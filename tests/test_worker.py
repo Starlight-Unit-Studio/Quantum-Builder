@@ -114,6 +114,25 @@ class WorkerCompilerTests(unittest.TestCase):
         self.assertIn("Lint found 1 error", excerpt)
         self.assertNotEqual(excerpt, "\n".join(lines[-45:]))
 
+    def test_sensitive_keytool_arguments_are_redacted_from_logs_and_errors(self):
+        secret = "do-not-log-this-password"
+        command = [
+            "keytool", "-genkeypair", "-storepass", secret,
+            "-keypass", secret, "-alias", "quantum-release",
+        ]
+        shown = worker.redact_command(command)
+        rendered = " ".join(shown)
+        self.assertNotIn(secret, rendered)
+        self.assertEqual(
+            shown,
+            [
+                "keytool", "-genkeypair", "-storepass", "***",
+                "-keypass", "***", "-alias", "quantum-release",
+            ],
+        )
+        self.assertEqual(command[3], secret)
+        self.assertEqual(command[5], secret)
+
 
 if __name__ == "__main__":
     unittest.main()
