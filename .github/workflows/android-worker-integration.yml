@@ -69,11 +69,11 @@ jobs:
             if [ "$status" = failed ]; then
               sudo sqlite3 var/quantum-builder.sqlite "SELECT message FROM builds WHERE id=1;"
               docker compose logs --no-color worker
-              if [ -f var/builds/1/build.log ]; then
+              if sudo test -f var/builds/1/build.log; then
                 echo '===== Gradle failure markers ====='
-                grep -n -E -C 14 'FAILURE:|What went wrong|Execution failed for task|Lint found|(^|[[:space:]])error:|Exception|Caused by:' var/builds/1/build.log || true
+                sudo grep -n -E -C 14 'FAILURE:|What went wrong|Execution failed for task|Lint found|(^|[[:space:]])error:|Exception|Caused by:' var/builds/1/build.log || true
                 echo '===== Gradle log tail ====='
-                tail -n 220 var/builds/1/build.log || true
+                sudo tail -n 220 var/builds/1/build.log || true
               fi
               exit 1
             fi
@@ -110,21 +110,12 @@ jobs:
         if: failure()
         run: |
           docker compose logs --no-color worker || true
-          if [ -f var/builds/1/build.log ]; then
+          if sudo test -f var/builds/1/build.log; then
             echo '===== Gradle failure markers ====='
-            grep -n -E -C 14 'FAILURE:|What went wrong|Execution failed for task|Lint found|(^|[[:space:]])error:|Exception|Caused by:' var/builds/1/build.log || true
+            sudo grep -n -E -C 14 'FAILURE:|What went wrong|Execution failed for task|Lint found|(^|[[:space:]])error:|Exception|Caused by:' var/builds/1/build.log || true
             echo '===== Gradle log tail ====='
-            tail -n 220 var/builds/1/build.log || true
+            sudo tail -n 220 var/builds/1/build.log || true
           fi
-
-      - name: Upload generated build log on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: quantum-builder-generated-build-log
-          path: var/builds/1/build.log
-          if-no-files-found: ignore
-          retention-days: 7
 
       - name: Stop integration stack
         if: always()
