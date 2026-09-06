@@ -54,7 +54,27 @@ fi
 skip_admin="${QB_SKIP_ADMIN_BOOTSTRAP:-0}"
 auto_email="${QB_ADMIN_EMAIL:-}"
 auto_password="${QB_ADMIN_PASSWORD:-}"
-if [[ "$skip_admin" != 1 ]]; then
+
+log 'Baue Web-Runtime und Android-Build-Worker. Der erste Worker-Build kann einige Minuten dauern.'
+docker compose build --pull
+
+admin_exists=0
+if docker compose run --rm -T \
+  -e QB_BOOTSTRAP_CHECK_ONLY=1 \
+  php php /app/bin/bootstrap.php >/dev/null; then
+  admin_exists=1
+else
+  bootstrap_status=$?
+  [[ "$bootstrap_status" -eq 10 ]] || die "Administratorstatus konnte nicht geprueft werden (Exit ${bootstrap_status})."
+fi
+
+if (( admin_exists == 1 )); then
+  log 'Administrator ist bereits initialisiert.'
+else
+  if [[ "$skip_admin" == 1 ]]; then
+    log 'Unvollstaendige vorherige Installation erkannt: Konfiguration existiert, aber noch kein Administrator. Bootstrap wird fortgesetzt.'
+  fi
+
   if [[ -z "$auto_email" && -r /dev/tty && -w /dev/tty ]]; then
     printf 'Admin E-Mail: ' >/dev/tty
     IFS= read -r auto_email </dev/tty
@@ -68,16 +88,11 @@ if [[ "$skip_admin" != 1 ]]; then
       printf 'Passwort ist zu kurz.\n' >/dev/tty
     done
   fi
-fi
 
-log 'Baue Web-Runtime und Android-Build-Worker. Der erste Worker-Build kann einige Minuten dauern.'
-docker compose build --pull
-
-if [[ "$skip_admin" != 1 ]]; then
   [[ -n "$auto_email" && -n "$auto_password" ]] || die 'Bei der Erstinstallation werden Admin E-Mail und Passwort benoetigt.'
   log 'Initialisiere Administrator.'
-  # setup.sh is intentionally curl-pipe friendly. stdin is therefore not a TTY,
-  # so Compose must not try to allocate one for the bootstrap container.
+  # setup.sh ist absichtlich curl-pipe-tauglich. stdin ist dabei kein TTY,
+  # daher darf Compose fuer den Bootstrap-Container keines anfordern.
   docker compose run --rm -T \
     -e QB_BOOTSTRAP_ADMIN_EMAIL="$auto_email" \
     -e QB_BOOTSTRAP_ADMIN_PASSWORD="$auto_password" \
