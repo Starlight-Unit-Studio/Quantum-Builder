@@ -45,6 +45,8 @@ GRADLE_FAILURE_MARKERS = (
     "Exception",
 )
 
+SENSITIVE_COMMAND_OPTIONS = {"-storepass", "-keypass"}
+
 
 def log(message: str) -> None:
     print(f"[Quantum Builder Worker] {message}", flush=True)
@@ -118,8 +120,24 @@ def failure_excerpt(lines: list[str]) -> str:
     return "\n".join(lines[-45:]).strip()
 
 
+def redact_command(command: list[str]) -> list[str]:
+    """Return a log-safe copy of a command without mutating the real argv."""
+    redacted: list[str] = []
+    hide_next = False
+    for part in command:
+        if hide_next:
+            redacted.append("***")
+            hide_next = False
+            continue
+        redacted.append(part)
+        if part in SENSITIVE_COMMAND_OPTIONS:
+            hide_next = True
+    return redacted
+
+
 def run(command: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None, output=None) -> None:
-    log("exec: " + " ".join(command))
+    shown_command = redact_command(command)
+    log("exec: " + " ".join(shown_command))
     process = subprocess.Popen(
         command,
         cwd=str(cwd) if cwd else None,
@@ -140,7 +158,7 @@ def run(command: list[str], *, cwd: Path | None = None, env: dict[str, str] | No
     code = process.wait()
     if code:
         raise RuntimeError(
-            f"Command failed ({code}): {' '.join(command)}\n"
+            f"Command failed ({code}): {' '.join(shown_command)}\n"
             + failure_excerpt(tail)
         )
 
