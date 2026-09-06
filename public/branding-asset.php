@@ -56,7 +56,7 @@ try {
     if ($operation === 'delete') {
         $assets->delete($app, $kind);
         unset($config['branding']['assets'][$kind]);
-        $updated = $apps->update($appId, $app + ['config' => $config]);
+        $updated = $apps->update($appId, array_replace($app, ['config' => $config]));
         $reply(['ok' => true, 'app' => $updated, 'asset' => null]);
     }
 
@@ -69,7 +69,7 @@ try {
 
     $asset = $assets->store($app, $kind, $_FILES['file']);
     $config['branding']['assets'][$kind] = $asset;
-    $updated = $apps->update($appId, $app + ['config' => $config]);
+    $updated = $apps->update($appId, array_replace($app, ['config' => $config]));
     $reply(['ok' => true, 'app' => $updated, 'asset' => $asset], 201);
 } catch (\InvalidArgumentException $e) {
     $reply(['ok' => false, 'error' => 'validation_error', 'message' => $e->getMessage()], 422);
