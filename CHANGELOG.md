@@ -14,6 +14,7 @@ Initial Quantum Builder bootstrap.
 - build history and authenticated downloads
 - SSH quick installer with update-safe persistent state
 - curl-pipe installer bootstrap works without requiring a TTY for Docker Compose
+- interrupted first installs resume administrator bootstrap safely on the next installer run
 - preflight and stack management helpers
 - PHP/Python/shell/Compose/web smoke CI
 - real generated Android release integration workflow
