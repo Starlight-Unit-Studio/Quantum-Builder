@@ -31,6 +31,20 @@ jobs:
       - name: Curl-pipe installer TTY regression guard
         run: grep -Fq 'docker compose run --rm -T' scripts/install.sh
 
+      - name: Installer source permission regression guard
+        run: |
+          grep -Fq -- '--chmod=D755,F644' setup.sh
+          grep -Fq 'bin/bootstrap.php' setup.sh
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          mkdir -p "$tmp/source/bin" "$tmp/target"
+          printf '%s\n' '<?php echo "ok";' > "$tmp/source/bin/bootstrap.php"
+          chmod 0750 "$tmp/source" "$tmp/source/bin"
+          chmod 0640 "$tmp/source/bin/bootstrap.php"
+          rsync -a --chmod=D755,F644 "$tmp/source/" "$tmp/target/"
+          test "$(stat -c '%a' "$tmp/target/bin")" = 755
+          test "$(stat -c '%a' "$tmp/target/bin/bootstrap.php")" = 644
+
       - name: Prepare CI environment
         run: |
           cat > .env <<'EOF'
