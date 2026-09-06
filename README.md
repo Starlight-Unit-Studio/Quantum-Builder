@@ -10,23 +10,32 @@ Current version: `0.1.0-alpha1`
 
 ## Studio quick installer
 
-Like Ember CoreUI, Quantum Builder ships with a single-command SSH installer. It installs/updates the project under `/opt/quantum-builder`, preserves persistent builder state and runs a post-install preflight.
+Like Ember CoreUI, Quantum Builder is installed directly from this GitHub repository. No manual clone or local checkout is required. The canonical SSH installer is the root `setup.sh` from `main`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Starlight-Unit-Studio/Quantum-Builder/main/setup.sh | sudo bash
+```
+
+The installer downloads the current repository state itself, installs/updates Quantum Builder under `/opt/quantum-builder`, preserves persistent builder state and runs a post-install preflight.
+
+For operators who prefer downloading the launcher before executing it, the equivalent guarded form is:
 
 ```bash
 ( setup_file="$(mktemp)" && trap 'rm -f -- "$setup_file"' EXIT && curl -fsSL https://raw.githubusercontent.com/Starlight-Unit-Studio/Quantum-Builder/main/setup.sh -o "$setup_file" && sudo bash "$setup_file" )
 ```
 
-On the first interactive installation the installer asks for an administrator email address and password. For unattended first installation:
+On the first interactive installation the installer asks for an administrator email address and password. For unattended first installation, the environment variables can be passed through `sudo`:
 
 ```bash
-sudo QB_ADMIN_EMAIL='admin@example.com' QB_ADMIN_PASSWORD='replace-with-a-long-password' bash setup.sh
+curl -fsSL https://raw.githubusercontent.com/Starlight-Unit-Studio/Quantum-Builder/main/setup.sh \
+  | sudo QB_ADMIN_EMAIL='admin@example.com' QB_ADMIN_PASSWORD='replace-with-a-long-password' bash
 ```
 
 By default the web service binds only to `127.0.0.1:8787`. Put the service behind your own HTTPS reverse proxy before exposing it publicly.
 
 ### Updates
 
-Running the same one-liner again performs an update. The installer preserves:
+Running the same repository curl command again performs an update. The installer preserves:
 
 - `.env` local configuration
 - SQLite app/profile database
