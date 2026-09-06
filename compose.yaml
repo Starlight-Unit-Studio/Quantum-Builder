@@ -1,0 +1,50 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - php
+    ports:
+      - "${QB_BIND:-127.0.0.1}:${QB_HTTP_PORT:-8787}:8080"
+    volumes:
+      - ./public:/app/public:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - quantum
+
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    restart: unless-stopped
+    environment:
+      QB_DATA_DIR: /var/lib/quantum-builder
+      QB_VERSION: ${QB_VERSION:-0.1.0-alpha1}
+      QB_SESSION_SECRET: ${QB_SESSION_SECRET}
+    volumes:
+      - ./public:/app/public:ro
+      - ./src:/app/src:ro
+      - ./bin:/app/bin:ro
+      - ./var:/var/lib/quantum-builder
+    command: ["sh", "-lc", "php /app/bin/bootstrap.php && php-fpm -F"]
+    networks:
+      - quantum
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker/Dockerfile
+    restart: unless-stopped
+    environment:
+      QB_DATA_DIR: /var/lib/quantum-builder
+      QB_WRAPPER_REPOSITORY: ${QB_WRAPPER_REPOSITORY:-https://github.com/Starlight-Unit-Studio/Quantum-Mobile-Wrapper.git}
+      QB_WRAPPER_REF: ${QB_WRAPPER_REF:-compat/android-6-api23}
+      QB_POLL_SECONDS: ${QB_POLL_SECONDS:-3}
+    volumes:
+      - ./var:/var/lib/quantum-builder
+    networks:
+      - quantum
+
+networks:
+  quantum:
+    driver: bridge
