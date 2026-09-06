@@ -69,7 +69,12 @@ jobs:
             if [ "$status" = failed ]; then
               sudo sqlite3 var/quantum-builder.sqlite "SELECT message FROM builds WHERE id=1;"
               docker compose logs --no-color worker
-              test -f var/builds/1/build.log && tail -n 100 var/builds/1/build.log || true
+              if sudo test -f var/builds/1/build.log; then
+                echo '===== Gradle failure markers ====='
+                sudo grep -n -E -C 14 'FAILURE:|What went wrong|Execution failed for task|Lint found|(^|[[:space:]])error:|Exception|Caused by:' var/builds/1/build.log || true
+                echo '===== Gradle log tail ====='
+                sudo tail -n 220 var/builds/1/build.log || true
+              fi
               exit 1
             fi
             sleep 10
@@ -79,13 +84,12 @@ jobs:
 
       - name: Verify complete artifact set and checksums
         run: |
-          test -s var/builds/1/app-release.apk
-          test -s var/builds/1/app-release.aab
-          test -s var/builds/1/source.zip
-          test -s var/builds/1/SHA256SUMS
-          cd var/builds/1
-          sha256sum -c SHA256SUMS
-          if unzip -l source.zip | grep -E '\.(p12|jks|keystore)$|/password$|signing\.properties$'; then
+          sudo test -s var/builds/1/app-release.apk
+          sudo test -s var/builds/1/app-release.aab
+          sudo test -s var/builds/1/source.zip
+          sudo test -s var/builds/1/SHA256SUMS
+          sudo sh -lc 'cd var/builds/1 && sha256sum -c SHA256SUMS'
+          if sudo unzip -l var/builds/1/source.zip | grep -E '\.(p12|jks|keystore)$|/password$|signing\.properties$'; then
             echo 'Signing material leaked into source archive.' >&2
             exit 1
           fi
@@ -105,7 +109,12 @@ jobs:
         if: failure()
         run: |
           docker compose logs --no-color worker || true
-          test -f var/builds/1/build.log && tail -n 150 var/builds/1/build.log || true
+          if sudo test -f var/builds/1/build.log; then
+            echo '===== Gradle failure markers ====='
+            sudo grep -n -E -C 14 'FAILURE:|What went wrong|Execution failed for task|Lint found|(^|[[:space:]])error:|Exception|Caused by:' var/builds/1/build.log || true
+            echo '===== Gradle log tail ====='
+            sudo tail -n 220 var/builds/1/build.log || true
+          fi
 
       - name: Stop integration stack
         if: always()

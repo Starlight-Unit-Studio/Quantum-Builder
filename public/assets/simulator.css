@@ -1,0 +1,21 @@
+.sim-head-actions{display:flex;align-items:center;gap:8px}
+.simulator-toolbar{display:grid;gap:10px;margin:0 0 14px}
+.sim-device-tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.sim-device-tab{min-height:34px;border-radius:12px;border:1px solid var(--line-soft);background:rgba(0,0,0,.18);color:var(--muted);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+.sim-device-tab:hover{border-color:var(--line);color:#fff}
+.sim-device-tab.is-active{color:#fff;border-color:var(--line-strong);background:linear-gradient(180deg,rgba(33,111,172,.34),rgba(3,8,18,.9));box-shadow:0 0 18px rgba(111,199,255,.1)}
+.sim-control-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:7px;align-items:center}
+.sim-zoom-control{min-width:0;display:grid;grid-template-columns:auto minmax(80px,1fr) auto;align-items:center;gap:8px;border:1px solid var(--line-soft);border-radius:13px;padding:6px 9px;background:rgba(0,0,0,.18)}
+.sim-zoom-label,.sim-zoom-value{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:8px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.sim-zoom-value{min-width:32px;text-align:right;color:var(--cyan)}
+.sim-zoom-control input[type='range']{width:100%;accent-color:var(--cyan);cursor:pointer}
+.sim-tool-btn{min-width:38px;height:38px;border-radius:12px;border:1px solid rgba(111,199,255,.24);background:linear-gradient(180deg,rgba(8,20,38,.92),rgba(3,8,18,.94));color:#f8fbff;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9px;font-weight:700;letter-spacing:.06em;padding:0 9px}
+.sim-tool-btn:hover{border-color:rgba(111,199,255,.5);box-shadow:0 0 18px rgba(111,199,255,.11)}
+.sim-tool-btn.is-muted{border-color:rgba(255,217,120,.42);color:var(--gold);background:linear-gradient(180deg,rgba(92,66,20,.42),rgba(16,10,2,.92))}
+.simulator-stage{position:relative;width:100%;display:flex;justify-content:center;align-items:flex-start;overflow:hidden;transition:height .16s ease}
+#simulatorDevice{width:100%;transform-origin:top center;transition:transform .16s ease,border-radius .16s ease}
+#simulatorDevice.sim-tablet{aspect-ratio:3/4;border-radius:26px}
+#simulatorDevice.sim-landscape{aspect-ratio:18.5/9;border-radius:24px}
+#simulatorDevice.sim-tablet.sim-landscape{aspect-ratio:4/3}
+.sim-audio-note{margin-top:8px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:8px;line-height:1.45;color:var(--muted-2)}
+@media(max-width:430px){.sim-control-row{grid-template-columns:1fr repeat(4,36px)}.sim-tool-btn{min-width:36px;padding:0 6px}.sim-zoom-control{grid-template-columns:auto 1fr}.sim-zoom-value{grid-column:1/-1;text-align:center}.sim-zoom-label{display:none}}

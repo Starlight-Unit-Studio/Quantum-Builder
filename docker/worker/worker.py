@@ -28,6 +28,25 @@ BUILD_ROOT = DATA_DIR / "builds"
 WORK_ROOT = DATA_DIR / "work"
 SIGNING_ROOT = DATA_DIR / "signing"
 
+GRADLE_PHASES = (
+    ("android-lint", "Running Android debug lint", "lintDebug"),
+    ("android-test", "Running Android unit tests", "test"),
+    ("android-apk", "Building signed release APK", "assembleRelease"),
+    ("android-aab", "Building signed release AAB", "bundleRelease"),
+)
+
+GRADLE_FAILURE_MARKERS = (
+    "FAILURE:",
+    "What went wrong",
+    "Execution failed for task",
+    "Lint found",
+    "Caused by:",
+    " error:",
+    "Exception",
+)
+
+SENSITIVE_COMMAND_OPTIONS = {"-storepass", "-keypass"}
+
 
 def log(message: str) -> None:
     print(f"[Quantum Builder Worker] {message}", flush=True)
@@ -80,8 +99,45 @@ def update_build(con: sqlite3.Connection, build_id: int, **changes: Any) -> None
     con.execute(f"UPDATE builds SET {', '.join(fields)} WHERE id=?", values)
 
 
+def failure_excerpt(lines: list[str]) -> str:
+    """Return the most useful Gradle failure context instead of the generic footer."""
+    if not lines:
+        return "No command output captured."
+
+    matches: list[int] = []
+    for index, line in enumerate(lines):
+        if any(marker.lower() in line.lower() for marker in GRADLE_FAILURE_MARKERS):
+            matches.append(index)
+
+    if matches:
+        start = max(0, matches[0] - 3)
+        end = min(len(lines), matches[-1] + 12)
+        excerpt = lines[start:end]
+        if len(excerpt) > 90:
+            excerpt = excerpt[:45] + ["... diagnostic excerpt truncated ..."] + excerpt[-44:]
+        return "\n".join(excerpt).strip()
+
+    return "\n".join(lines[-45:]).strip()
+
+
+def redact_command(command: list[str]) -> list[str]:
+    """Return a log-safe copy of a command without mutating the real argv."""
+    redacted: list[str] = []
+    hide_next = False
+    for part in command:
+        if hide_next:
+            redacted.append("***")
+            hide_next = False
+            continue
+        redacted.append(part)
+        if part in SENSITIVE_COMMAND_OPTIONS:
+            hide_next = True
+    return redacted
+
+
 def run(command: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None, output=None) -> None:
-    log("exec: " + " ".join(command))
+    shown_command = redact_command(command)
+    log("exec: " + " ".join(shown_command))
     process = subprocess.Popen(
         command,
         cwd=str(cwd) if cwd else None,
@@ -98,10 +154,13 @@ def run(command: list[str], *, cwd: Path | None = None, env: dict[str, str] | No
             output.write(line)
             output.flush()
         tail.append(line.rstrip())
-        tail = tail[-20:]
+        tail = tail[-600:]
     code = process.wait()
     if code:
-        raise RuntimeError(f"Command failed ({code}): {' '.join(command)}\n" + "\n".join(tail[-10:]))
+        raise RuntimeError(
+            f"Command failed ({code}): {' '.join(shown_command)}\n"
+            + failure_excerpt(tail)
+        )
 
 
 def safe_ref(ref: str) -> str:
@@ -218,7 +277,16 @@ def patch_gradle(project: Path, app: sqlite3.Row) -> None:
     if build_types_marker not in text:
         raise RuntimeError("Wrapper compiler could not locate buildTypes")
     if "signingConfigs {" not in text:
-        signing = """    signingConfigs {\n        release {\n            storeFile file(System.getenv('QB_SIGNING_STORE_FILE'))\n            storePassword System.getenv('QB_SIGNING_STORE_PASSWORD')\n            keyAlias 'quantum-release'\n            keyPassword System.getenv('QB_SIGNING_STORE_PASSWORD')\n        }\n    }\n\n"""
+        signing = """    signingConfigs {
+        release {
+            storeFile file(System.getenv('QB_SIGNING_STORE_FILE'))
+            storePassword System.getenv('QB_SIGNING_STORE_PASSWORD')
+            keyAlias 'quantum-release'
+            keyPassword System.getenv('QB_SIGNING_STORE_PASSWORD')
+        }
+    }
+
+"""
         text = text.replace(build_types_marker, signing + build_types_marker, 1)
 
     build_types_at = text.index(build_types_marker)
@@ -296,6 +364,20 @@ def make_source_zip(project: Path, destination: Path) -> None:
     ], cwd=project)
 
 
+def run_gradle_phases(
+    con: sqlite3.Connection,
+    build_id: int,
+    project: Path,
+    env: dict[str, str],
+    output,
+) -> None:
+    for stage, message, task in GRADLE_PHASES:
+        update_build(con, build_id, stage=stage, message=message)
+        output.write(f"\n===== QUANTUM BUILD PHASE: {stage} / {task} =====\n")
+        output.flush()
+        run(["./gradlew", "--no-daemon", task, "--stacktrace"], cwd=project, env=env, output=output)
+
+
 def compile_build(con: sqlite3.Connection, build: sqlite3.Row) -> None:
     build_id = int(build["id"])
     app = con.execute("SELECT * FROM apps WHERE id=?", (build["app_id"],)).fetchone()
@@ -327,7 +409,6 @@ def compile_build(con: sqlite3.Connection, build: sqlite3.Row) -> None:
         update_build(con, build_id, stage="signing", message="Preparing persistent app signing identity")
         keystore, password = signing_identity(app, output)
 
-        update_build(con, build_id, stage="android-build", message="Running lint, tests, APK and AAB build")
         gradle = project / "gradlew"
         gradle.chmod(gradle.stat().st_mode | 0o111)
         env = os.environ.copy()
@@ -336,7 +417,7 @@ def compile_build(con: sqlite3.Connection, build: sqlite3.Row) -> None:
             "QB_SIGNING_STORE_PASSWORD": password,
             "GRADLE_USER_HOME": str(DATA_DIR / "gradle-cache"),
         })
-        run(["./gradlew", "--no-daemon", "lint", "test", "assembleRelease", "bundleRelease"], cwd=project, env=env, output=output)
+        run_gradle_phases(con, build_id, project, env, output)
 
         update_build(con, build_id, stage="artifacts", message="Collecting build artifacts")
         sources = {
@@ -380,8 +461,17 @@ def compile_build(con: sqlite3.Connection, build: sqlite3.Row) -> None:
 
 def fail_build(con: sqlite3.Connection, build_id: int, error: BaseException) -> None:
     message = str(error).strip() or error.__class__.__name__
-    update_build(con, build_id, status="failed", stage="failed", message=message, finished=True)
-    log(f"Build #{build_id} failed: {message}")
+    current = con.execute("SELECT stage FROM builds WHERE id=?", (build_id,)).fetchone()
+    failed_stage = str(current["stage"] if current and current["stage"] else "unknown")
+    update_build(
+        con,
+        build_id,
+        status="failed",
+        stage=f"failed:{failed_stage}"[:120],
+        message=message,
+        finished=True,
+    )
+    log(f"Build #{build_id} failed in {failed_stage}: {message}")
 
 
 def main() -> int:

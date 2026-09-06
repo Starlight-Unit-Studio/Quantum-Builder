@@ -89,6 +89,50 @@ class WorkerCompilerTests(unittest.TestCase):
         self.assertNotIn("password", json.dumps(data).lower())
         self.assertNotIn("keystore", json.dumps(data).lower())
 
+    def test_generated_release_build_uses_staged_gradle_phases(self):
+        self.assertEqual(
+            worker.GRADLE_PHASES,
+            (
+                ("android-lint", "Running Android debug lint", "lintDebug"),
+                ("android-test", "Running Android unit tests", "test"),
+                ("android-apk", "Building signed release APK", "assembleRelease"),
+                ("android-aab", "Building signed release AAB", "bundleRelease"),
+            ),
+        )
+
+    def test_failure_excerpt_prefers_gradle_root_cause_over_footer(self):
+        lines = [f"noise {index}" for index in range(40)]
+        lines += [
+            "FAILURE: Build failed with an exception.",
+            "* What went wrong:",
+            "Execution failed for task ':app:lintDebug'.",
+            "> Lint found 1 error, 0 warnings.",
+        ]
+        lines += [f"generic footer {index}" for index in range(80)]
+        excerpt = worker.failure_excerpt(lines)
+        self.assertIn("Execution failed for task ':app:lintDebug'", excerpt)
+        self.assertIn("Lint found 1 error", excerpt)
+        self.assertNotEqual(excerpt, "\n".join(lines[-45:]))
+
+    def test_sensitive_keytool_arguments_are_redacted_from_logs_and_errors(self):
+        secret = "do-not-log-this-password"
+        command = [
+            "keytool", "-genkeypair", "-storepass", secret,
+            "-keypass", secret, "-alias", "quantum-release",
+        ]
+        shown = worker.redact_command(command)
+        rendered = " ".join(shown)
+        self.assertNotIn(secret, rendered)
+        self.assertEqual(
+            shown,
+            [
+                "keytool", "-genkeypair", "-storepass", "***",
+                "-keypass", "***", "-alias", "quantum-release",
+            ],
+        )
+        self.assertEqual(command[3], secret)
+        self.assertEqual(command[5], secret)
+
 
 if __name__ == "__main__":
     unittest.main()
