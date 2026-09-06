@@ -13,6 +13,7 @@ Initial Quantum Builder bootstrap.
 - Source ZIP and SHA256SUMS output
 - build history and authenticated downloads
 - SSH quick installer with update-safe persistent state
+- curl-pipe installer bootstrap works without requiring a TTY for Docker Compose
 - preflight and stack management helpers
 - PHP/Python/shell/Compose/web smoke CI
 - real generated Android release integration workflow
