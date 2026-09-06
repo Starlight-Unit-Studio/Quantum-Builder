@@ -17,6 +17,7 @@ $authenticated = $auth->isLoggedIn();
   <meta name="theme-color" content="#020611">
   <title>Starlight Quantum Builder</title>
   <link rel="stylesheet" href="/assets/terran.css?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>">
+  <link rel="stylesheet" href="/assets/simulator.css?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>">
 </head>
 <body>
   <div class="qb-bg"></div>
@@ -221,13 +222,36 @@ $authenticated = $auth->isLoggedIn();
             </form>
 
             <aside class="simulator-panel terran-panel">
-              <div class="sim-head"><div><div class="kicker">SIMULATOR</div><strong id="simAppName">APP PREVIEW</strong></div><span class="chip">ANDROID</span></div>
-              <div class="device-frame">
-                <div class="device-status">QUANTUM RUNTIME</div>
-                <iframe id="simulatorFrame" title="App preview" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
-                <div id="simFallback" class="sim-fallback">Start-URL speichern, um die Vorschau zu laden.</div>
+              <div class="sim-head">
+                <div><div class="kicker">SIMULATOR</div><strong id="simAppName">APP PREVIEW</strong></div>
+                <div class="sim-head-actions"><span class="chip">ANDROID</span></div>
+              </div>
+              <div class="simulator-toolbar" aria-label="Simulator-Steuerung">
+                <div class="sim-device-tabs" role="group" aria-label="Gerät">
+                  <button class="sim-device-tab is-active" type="button" data-simulator-device="phone">Android Phone</button>
+                  <button class="sim-device-tab" type="button" data-simulator-device="tablet">Android Tablet</button>
+                </div>
+                <div class="sim-control-row">
+                  <label class="sim-zoom-control" for="simulatorZoom">
+                    <span class="sim-zoom-label">Zoom</span>
+                    <input id="simulatorZoom" type="range" min="0" max="100" step="5" value="100" aria-label="Simulator Zoom 0 bis 100 Prozent">
+                    <output id="simulatorZoomValue" class="sim-zoom-value" for="simulatorZoom">100%</output>
+                  </label>
+                  <button id="simulatorMuteButton" class="sim-tool-btn is-muted" type="button" aria-pressed="true" title="Simulator ist stumm">MUTE</button>
+                  <button id="simulatorHomeButton" class="sim-tool-btn" type="button" title="Start-URL laden">HOME</button>
+                  <button id="simulatorReloadButton" class="sim-tool-btn" type="button" title="Vorschau neu laden">RELOAD</button>
+                  <button id="simulatorRotateButton" class="sim-tool-btn" type="button" title="Auf Querformat wechseln">ROTATE</button>
+                </div>
+              </div>
+              <div id="simulatorStage" class="simulator-stage">
+                <div id="simulatorDevice" class="device-frame">
+                  <div class="device-status">QUANTUM RUNTIME</div>
+                  <iframe id="simulatorFrame" title="App preview" sandbox="allow-scripts allow-forms allow-same-origin" allow="autoplay 'none'"></iframe>
+                  <div id="simFallback" class="sim-fallback">Start-URL speichern, um die Vorschau zu laden.</div>
+                </div>
               </div>
               <div class="sim-meta"><span id="simPackage">package</span><span id="simVersion">version</span></div>
+              <div class="sim-audio-note">Simulator startet stumm. Quantum-aware Seiten reagieren direkt auf das Audio-Signal; bei fremden Cross-Origin-Seiten erzwingt MUTE zusätzlich einen Reload mit blockiertem Autoplay.</div>
             </aside>
           </div>
         </section>
@@ -247,5 +271,6 @@ $authenticated = $auth->isLoggedIn();
 
   <script>window.QB_BOOT = <?= json_encode(['authenticated' => $authenticated, 'csrf' => $authenticated ? $auth->csrf() : null, 'version' => Config::version()], JSON_UNESCAPED_SLASHES) ?>;</script>
   <script src="/assets/app.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>
+  <script src="/assets/simulator.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>
 </body>
 </html>
