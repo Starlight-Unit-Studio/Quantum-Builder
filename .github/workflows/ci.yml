@@ -1,0 +1,68 @@
+name: Quantum Builder CI
+
+on:
+  push:
+    branches: [main, 'bootstrap/**', 'feature/**', 'fix/**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  static-and-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP syntax
+        run: find src public bin -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Python compiler tests
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+
+      - name: Shell syntax
+        run: |
+          bash -n setup.sh
+          bash -n scripts/install.sh
+          bash -n scripts/preflight.sh
+          bash -n scripts/stack.sh
+
+      - name: Prepare CI environment
+        run: |
+          cat > .env <<'EOF'
+          QB_BIND=127.0.0.1
+          QB_HTTP_PORT=8787
+          QB_VERSION=0.1.0-alpha1
+          QB_SESSION_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          QB_WRAPPER_REPOSITORY=https://github.com/Starlight-Unit-Studio/Quantum-Mobile-Wrapper.git
+          QB_WRAPPER_REF=compat/android-6-api23
+          QB_POLL_SECONDS=3
+          EOF
+          sudo chown 82:82 var
+          sudo chmod 0770 var
+
+      - name: Compose validation
+        run: docker compose config -q
+
+      - name: Web runtime smoke test
+        run: |
+          docker compose up -d --build php nginx
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8787/health.php | grep -q '"ok":true'; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose logs php nginx
+          exit 1
+
+      - name: Web entrypoint smoke test
+        run: curl -fsS http://127.0.0.1:8787/ | grep -q 'STΛRLIGHT QUANTUM BUILDER'
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker compose logs --no-color php nginx || true
+
+      - name: Stop smoke stack
+        if: always()
+        run: docker compose down --remove-orphans || true

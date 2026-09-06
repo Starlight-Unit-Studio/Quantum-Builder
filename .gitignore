@@ -1,0 +1,7 @@
+.env
+var/*
+!var/.gitkeep
+*.log
+.DS_Store
+.idea/
+.vscode/
