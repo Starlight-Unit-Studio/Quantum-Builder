@@ -14,6 +14,10 @@ command -v docker >/dev/null 2>&1 || die 'Docker ist nicht installiert.'
 docker compose version >/dev/null 2>&1 || die 'Docker Compose v2 ist nicht verfuegbar.'
 
 install -d -m 0770 var
+# Nur der Store-Wurzelordner gehoert dem PHP-User. Vorhandene Signing-Unterordner
+# bleiben absichtlich mit ihren strengeren Worker-Rechten unangetastet.
+chown 82:82 var
+chmod 0770 var
 
 if [[ ! -f .env ]]; then
   secret="$(od -An -N48 -tx1 /dev/urandom | tr -d ' \n')"
@@ -32,32 +36,30 @@ else
   log 'Bestehende lokale Konfiguration bleibt erhalten.'
 fi
 
-# PHP Alpine nutzt www-data UID 82. Der Worker darf als root im Build-Container
-# denselben persistenten Store verwenden. Keine weltweiten Schreibrechte.
-chown -R 82:82 var
-chmod -R u+rwX,g+rwX,o-rwx var
-
+skip_admin="${QB_SKIP_ADMIN_BOOTSTRAP:-0}"
 auto_email="${QB_ADMIN_EMAIL:-}"
 auto_password="${QB_ADMIN_PASSWORD:-}"
-if [[ -z "$auto_email" && -r /dev/tty && -w /dev/tty ]]; then
-  printf 'Admin E-Mail: ' >/dev/tty
-  IFS= read -r auto_email </dev/tty
-fi
-if [[ -z "$auto_password" && -r /dev/tty && -w /dev/tty ]]; then
-  while :; do
-    printf 'Admin Passwort (mindestens 12 Zeichen): ' >/dev/tty
-    IFS= read -r -s auto_password </dev/tty
-    printf '\n' >/dev/tty
-    [[ ${#auto_password} -ge 12 ]] && break
-    printf 'Passwort ist zu kurz.\n' >/dev/tty
-  done
+if [[ "$skip_admin" != 1 ]]; then
+  if [[ -z "$auto_email" && -r /dev/tty && -w /dev/tty ]]; then
+    printf 'Admin E-Mail: ' >/dev/tty
+    IFS= read -r auto_email </dev/tty
+  fi
+  if [[ -z "$auto_password" && -r /dev/tty && -w /dev/tty ]]; then
+    while :; do
+      printf 'Admin Passwort (mindestens 12 Zeichen): ' >/dev/tty
+      IFS= read -r -s auto_password </dev/tty
+      printf '\n' >/dev/tty
+      [[ ${#auto_password} -ge 12 ]] && break
+      printf 'Passwort ist zu kurz.\n' >/dev/tty
+    done
+  fi
 fi
 
 log 'Baue Web-Runtime und Android-Build-Worker. Der erste Worker-Build kann einige Minuten dauern.'
 docker compose build --pull
 
-if [[ -n "$auto_email" || -n "$auto_password" ]]; then
-  [[ -n "$auto_email" && -n "$auto_password" ]] || die 'QB_ADMIN_EMAIL und QB_ADMIN_PASSWORD muessen gemeinsam gesetzt sein.'
+if [[ "$skip_admin" != 1 ]]; then
+  [[ -n "$auto_email" && -n "$auto_password" ]] || die 'Bei der Erstinstallation werden Admin E-Mail und Passwort benoetigt.'
   log 'Initialisiere Administrator.'
   docker compose run --rm \
     -e QB_BOOTSTRAP_ADMIN_EMAIL="$auto_email" \
