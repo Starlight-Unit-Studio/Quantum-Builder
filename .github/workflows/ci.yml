@@ -28,6 +28,9 @@ jobs:
           bash -n scripts/stack.sh
           bash -n scripts/host-proxy-info.sh
 
+      - name: Curl-pipe installer TTY regression guard
+        run: grep -Fq 'docker compose run --rm -T' scripts/install.sh
+
       - name: Prepare CI environment
         run: |
           cat > .env <<'EOF'
