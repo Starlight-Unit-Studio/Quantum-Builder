@@ -26,12 +26,14 @@ jobs:
           bash -n scripts/install.sh
           bash -n scripts/preflight.sh
           bash -n scripts/stack.sh
+          bash -n scripts/host-proxy-info.sh
 
       - name: Prepare CI environment
         run: |
           cat > .env <<'EOF'
           QB_BIND=127.0.0.1
           QB_HTTP_PORT=8787
+          QB_PUBLIC_DOMAIN=builder.example.com
           QB_VERSION=0.1.0-alpha1
           QB_SESSION_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
           QB_WRAPPER_REPOSITORY=https://github.com/Starlight-Unit-Studio/Quantum-Mobile-Wrapper.git
@@ -40,6 +42,14 @@ jobs:
           EOF
           sudo chown 82:82 var
           sudo chmod 0770 var
+
+      - name: Host proxy helper smoke test
+        run: |
+          output="$(bash scripts/host-proxy-info.sh)"
+          printf '%s\n' "$output"
+          grep -q 'http://127.0.0.1:8787' <<<"$output"
+          grep -q 'https://builder.example.com' <<<"$output"
+          grep -q 'KEINE Host-Webserver' <<<"$output"
 
       - name: Compose validation
         run: docker compose config -q

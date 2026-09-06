@@ -12,17 +12,36 @@ Current version: `0.1.0-alpha1`
 
 Like Ember CoreUI, Quantum Builder ships with a single-command SSH installer. It installs/updates the project under `/opt/quantum-builder`, preserves persistent builder state and runs a post-install preflight.
 
-```bash
-( setup_file="$(mktemp)" && trap 'rm -f -- "$setup_file"' EXIT && curl -fsSL https://raw.githubusercontent.com/Starlight-Unit-Studio/Quantum-Builder/main/setup.sh -o "$setup_file" && sudo bash "$setup_file" )
-```
-
-On the first interactive installation the installer asks for an administrator email address and password. For unattended first installation:
+Canonical repository installer:
 
 ```bash
-sudo QB_ADMIN_EMAIL='admin@example.com' QB_ADMIN_PASSWORD='replace-with-a-long-password' bash setup.sh
+curl -fsSL https://raw.githubusercontent.com/Starlight-Unit-Studio/Quantum-Builder/main/setup.sh | sudo bash
 ```
 
-By default the web service binds only to `127.0.0.1:8787`. Put the service behind your own HTTPS reverse proxy before exposing it publicly.
+On the first interactive installation the installer asks for:
+
+- optional public domain, for example `builder.starlight-unit.de`
+- administrator email address
+- administrator password
+
+For the Starlight Unit Studios production host the domain can be supplied directly while still using the repository one-liner:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Starlight-Unit-Studio/Quantum-Builder/main/setup.sh | sudo env QB_PUBLIC_DOMAIN='builder.starlight-unit.de' bash
+```
+
+For an unattended first installation:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Starlight-Unit-Studio/Quantum-Builder/main/setup.sh | \
+  sudo env \
+    QB_PUBLIC_DOMAIN='builder.example.com' \
+    QB_ADMIN_EMAIL='admin@example.com' \
+    QB_ADMIN_PASSWORD='replace-with-a-long-password' \
+    bash
+```
+
+By default the web service binds only to `127.0.0.1:8787`. The installer deliberately does **not** replace or rewrite a host Apache/Nginx, KeyHelp-managed virtual host, or TLS configuration.
 
 ### Updates
 
@@ -35,6 +54,51 @@ Running the same one-liner again performs an update. The installer preserves:
 - Gradle cache
 
 The per-app signing identity is deliberately persistent. As long as the package ID remains unchanged and each new build uses a higher `versionCode`, later generated APKs can be installed as normal Android updates instead of requiring an uninstall.
+
+## Production hosting and KeyHelp
+
+Quantum Builder carries its own internal Docker web stack. It does **not** need Apache inside the project and it does not install a second public webserver when a hosting panel already owns the server frontend.
+
+Default production topology:
+
+```text
+https://builder.starlight-unit.de
+        |
+        v
+KeyHelp-managed host webserver + TLS
+        |
+        v
+http://127.0.0.1:8787
+        |
+        v
+Quantum Docker Nginx
+        |
+        v
+PHP-FPM + SQLite control plane
+        |
+        v
+Android build worker
+```
+
+For Starlight Unit Studios, `builder.starlight-unit.de` remains managed by KeyHelp. The Quantum installation stays under `/opt/quantum-builder`; the KeyHelp document root is not used as the application source directory.
+
+The host reverse proxy should forward the managed HTTPS virtual host to `http://127.0.0.1:8787`. TLS certificates remain under KeyHelp control.
+
+Apache-style proxy directives for the KeyHelp-managed virtual host:
+
+```apache
+ProxyPreserveHost On
+ProxyPass        / http://127.0.0.1:8787/
+ProxyPassReverse / http://127.0.0.1:8787/
+```
+
+Do not overwrite KeyHelp-generated Apache configuration directly. Add proxy directives only through the KeyHelp-supported virtual-host/domain extension mechanism for the server installation in use.
+
+The installer prints detected host-webserver information after preflight. It is intentionally advisory and does not mutate host configuration. The same diagnostics can be shown later with:
+
+```bash
+sudo /opt/quantum-builder/scripts/stack.sh proxy-info
+```
 
 ## What alpha1 already does
 
@@ -106,6 +170,7 @@ sudo ./scripts/stack.sh logs
 sudo ./scripts/stack.sh restart
 sudo ./scripts/stack.sh rebuild
 sudo ./scripts/stack.sh preflight
+sudo ./scripts/stack.sh proxy-info
 ```
 
 ## Manual development start
@@ -142,6 +207,8 @@ Alpha1 defaults to the current Android 6 compatibility branch `compat/android-6-
 
 - HTTPS start URLs are required for app profiles.
 - The builder defaults to loopback-only exposure.
+- Public TLS terminates at the managed host webserver/reverse proxy.
+- The installer does not overwrite KeyHelp, Apache/Nginx virtual hosts or TLS files.
 - Login sessions use HttpOnly, SameSite=Strict cookies.
 - Mutating API calls require a session CSRF token.
 - Build downloads require authentication.

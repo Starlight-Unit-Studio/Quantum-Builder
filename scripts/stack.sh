@@ -17,6 +17,7 @@ Commands:
   restart     Restart containers
   rebuild     Rebuild images and restart
   preflight   Run installation checks
+  proxy-info  Show host webserver/KeyHelp reverse-proxy guidance
 EOF
 }
 
@@ -29,5 +30,6 @@ case "$cmd" in
   restart) docker compose restart ;;
   rebuild) docker compose build --pull && docker compose up -d --remove-orphans ;;
   preflight) exec "$ROOT_DIR/scripts/preflight.sh" ;;
+  proxy-info) exec "$ROOT_DIR/scripts/host-proxy-info.sh" ;;
   *) usage; exit 2 ;;
 esac
