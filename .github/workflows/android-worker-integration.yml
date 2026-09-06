@@ -32,7 +32,7 @@ jobs:
         run: docker compose build php worker
 
       - name: Initialize database
-        run: docker compose run --rm php php /app/bin/bootstrap.php
+        run: docker compose run --rm -T php php /app/bin/bootstrap.php
 
       - name: Queue generated app build
         run: |
