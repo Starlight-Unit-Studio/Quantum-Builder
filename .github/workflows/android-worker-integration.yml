@@ -84,13 +84,12 @@ jobs:
 
       - name: Verify complete artifact set and checksums
         run: |
-          test -s var/builds/1/app-release.apk
-          test -s var/builds/1/app-release.aab
-          test -s var/builds/1/source.zip
-          test -s var/builds/1/SHA256SUMS
-          cd var/builds/1
-          sha256sum -c SHA256SUMS
-          if unzip -l source.zip | grep -E '\.(p12|jks|keystore)$|/password$|signing\.properties$'; then
+          sudo test -s var/builds/1/app-release.apk
+          sudo test -s var/builds/1/app-release.aab
+          sudo test -s var/builds/1/source.zip
+          sudo test -s var/builds/1/SHA256SUMS
+          sudo sh -lc 'cd var/builds/1 && sha256sum -c SHA256SUMS'
+          if sudo unzip -l var/builds/1/source.zip | grep -E '\.(p12|jks|keystore)$|/password$|signing\.properties$'; then
             echo 'Signing material leaked into source archive.' >&2
             exit 1
           fi
