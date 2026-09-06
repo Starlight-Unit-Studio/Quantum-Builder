@@ -14,8 +14,7 @@ final class Apps
 
     public function all(): array
     {
-        $rows = $this->pdo->query('SELECT * FROM apps ORDER BY updated_at DESC, id DESC')->fetchAll();
-        return array_map([$this, 'hydrate'], $rows);
+        return array_map([$this, 'hydrate'], $this->pdo->query('SELECT * FROM apps ORDER BY updated_at DESC, id DESC')->fetchAll());
     }
 
     public function find(int $id): ?array
@@ -28,24 +27,12 @@ final class Apps
 
     public function create(array $input): array
     {
-        $data = $this->validate($input, true);
-        $uuid = bin2hex(random_bytes(16));
+        $data = $this->validate($input);
         $stmt = $this->pdo->prepare(
             'INSERT INTO apps (uuid, name, package_id, start_url, description, version_name, version_code, min_sdk, target_sdk, config_json)
              VALUES (:uuid, :name, :package_id, :start_url, :description, :version_name, :version_code, :min_sdk, :target_sdk, :config_json)'
         );
-        $stmt->execute([
-            'uuid' => $uuid,
-            'name' => $data['name'],
-            'package_id' => $data['package_id'],
-            'start_url' => $data['start_url'],
-            'description' => $data['description'],
-            'version_name' => $data['version_name'],
-            'version_code' => $data['version_code'],
-            'min_sdk' => $data['min_sdk'],
-            'target_sdk' => $data['target_sdk'],
-            'config_json' => json_encode($data['config'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-        ]);
+        $stmt->execute($data + ['uuid' => bin2hex(random_bytes(16))]);
         return $this->find((int) $this->pdo->lastInsertId()) ?? throw new \RuntimeException('App creation failed.');
     }
 
@@ -54,28 +41,17 @@ final class Apps
         if (!$this->find($id)) {
             throw new \InvalidArgumentException('App not found.');
         }
-        $data = $this->validate($input, false);
+        $data = $this->validate($input);
         $stmt = $this->pdo->prepare(
             'UPDATE apps SET name=:name, package_id=:package_id, start_url=:start_url, description=:description,
              version_name=:version_name, version_code=:version_code, min_sdk=:min_sdk, target_sdk=:target_sdk,
              config_json=:config_json, updated_at=CURRENT_TIMESTAMP WHERE id=:id'
         );
-        $stmt->execute([
-            'id' => $id,
-            'name' => $data['name'],
-            'package_id' => $data['package_id'],
-            'start_url' => $data['start_url'],
-            'description' => $data['description'],
-            'version_name' => $data['version_name'],
-            'version_code' => $data['version_code'],
-            'min_sdk' => $data['min_sdk'],
-            'target_sdk' => $data['target_sdk'],
-            'config_json' => json_encode($data['config'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-        ]);
+        $stmt->execute($data + ['id' => $id]);
         return $this->find($id) ?? throw new \RuntimeException('App update failed.');
     }
 
-    private function validate(array $input, bool $creating): array
+    private function validate(array $input): array
     {
         $name = trim((string) ($input['name'] ?? ''));
         $packageId = trim((string) ($input['package_id'] ?? ''));
@@ -87,8 +63,8 @@ final class Apps
         $targetSdk = (int) ($input['target_sdk'] ?? 36);
         $config = is_array($input['config'] ?? null) ? $input['config'] : [];
 
-        if ($name === '' || mb_strlen($name) > 80) {
-            throw new \InvalidArgumentException('App name is required and must be at most 80 characters.');
+        if ($name === '' || strlen($name) > 160) {
+            throw new \InvalidArgumentException('App name is required and must be at most 80 typical characters.');
         }
         if (!preg_match('/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){1,}$/', $packageId)) {
             throw new \InvalidArgumentException('Package ID is invalid.');
@@ -113,54 +89,27 @@ final class Apps
         $defaults = [
             'trusted_domain' => (string) $url['host'],
             'theme' => [
-                'primary' => '#6fc7ff',
-                'accent' => '#ffd978',
-                'status_bar' => '#020611',
-                'navigation_bar' => '#020611',
-                'splash_background' => '#020611',
+                'primary' => '#6fc7ff', 'accent' => '#ffd978', 'status_bar' => '#020611',
+                'navigation_bar' => '#020611', 'splash_background' => '#020611',
             ],
             'interface' => [
-                'dark_mode' => 'dark',
-                'orientation' => 'auto',
-                'keep_screen_on' => false,
-                'fullscreen' => false,
-                'page_transitions' => true,
-                'pull_to_refresh' => false,
-                'pinch_to_zoom' => false,
-                'font_scale' => 100,
+                'dark_mode' => 'dark', 'orientation' => 'auto', 'keep_screen_on' => false,
+                'fullscreen' => false, 'page_transitions' => true, 'pull_to_refresh' => false,
+                'pinch_to_zoom' => false, 'font_scale' => 100,
             ],
-            'navigation' => [
-                'top_bar' => false,
-                'sidebar' => false,
-                'bottom_tabs' => false,
-                'contextual_toolbar' => false,
-            ],
-            'links' => [
-                'new_windows' => 'blocked',
-                'deep_link_scheme' => '',
-            ],
+            'navigation' => ['top_bar' => false, 'sidebar' => false, 'bottom_tabs' => false, 'contextual_toolbar' => false],
+            'links' => ['new_windows' => 'blocked', 'deep_link_scheme' => ''],
             'permissions' => [
-                'location' => false,
-                'microphone' => false,
-                'camera' => false,
-                'public_downloads' => true,
-                'background_audio' => false,
+                'location' => false, 'microphone' => false, 'camera' => false,
+                'public_downloads' => true, 'background_audio' => false,
             ],
             'web' => [
-                'user_agent_suffix' => ' QuantumMobileWrapper',
-                'custom_headers' => [],
-                'custom_css' => '',
-                'custom_js' => '',
-                'cookie_persistence' => 'default',
+                'user_agent_suffix' => ' QuantumMobileWrapper', 'custom_headers' => [],
+                'custom_css' => '', 'custom_js' => '', 'cookie_persistence' => 'default',
             ],
             'plugins' => [
-                'quantum_nmp' => false,
-                'quantum_asset_store' => false,
-                'share' => false,
-                'haptics' => false,
-                'biometrics' => false,
-                'qr_scanner' => false,
-                'push_fcm' => false,
+                'quantum_nmp' => false, 'quantum_asset_store' => false, 'share' => false,
+                'haptics' => false, 'biometrics' => false, 'qr_scanner' => false, 'push_fcm' => false,
             ],
             'wrapper_ref' => (string) (getenv('QB_WRAPPER_REF') ?: 'compat/android-6-api23'),
         ];
@@ -171,13 +120,16 @@ final class Apps
             throw new \InvalidArgumentException('Trusted domain is invalid.');
         }
 
-        return compact('name', 'packageId', 'startUrl', 'description', 'versionName', 'versionCode', 'minSdk', 'targetSdk', 'config') + [
+        return [
+            'name' => $name,
             'package_id' => $packageId,
             'start_url' => $startUrl,
+            'description' => $description,
             'version_name' => $versionName,
             'version_code' => $versionCode,
             'min_sdk' => $minSdk,
             'target_sdk' => $targetSdk,
+            'config_json' => json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
         ];
     }
 
