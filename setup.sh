@@ -57,7 +57,7 @@ log "Lade ${REPOSITORY} (${INSTALL_REF}) in ein temporaeres Verzeichnis."
 git clone --depth 1 --branch "$INSTALL_REF" "https://github.com/${REPOSITORY}.git" "$TEMP_DIR/source"
 SOURCE_DIR="$TEMP_DIR/source"
 
-for required in VERSION compose.yaml README.md scripts/install.sh scripts/preflight.sh scripts/stack.sh scripts/host-proxy-info.sh public/index.php docker/worker/worker.py; do
+for required in VERSION compose.yaml README.md bin/bootstrap.php scripts/install.sh scripts/preflight.sh scripts/stack.sh scripts/host-proxy-info.sh public/index.php docker/worker/worker.py; do
   [[ -s "$SOURCE_DIR/$required" ]] || die "Quellpaket unvollstaendig: $required fehlt."
 done
 
@@ -73,12 +73,19 @@ if (( existing == 1 )); then
   log 'Bestehende Installation erkannt. App-Profile, Signing-Keys, Build-Historie und lokale Konfiguration bleiben erhalten.'
 fi
 
-rsync -a --delete \
+# setup.sh runs with umask 027, so a fresh git clone is intentionally private
+# (directories 0750, files 0640). Those clone modes must not be copied verbatim
+# into the bind-mounted application source because the PHP and Nginx containers
+# run as unprivileged users. Normalize only repository source paths here; .env
+# and var/ stay excluded and retain their stricter persistent-state permissions.
+rsync -a --delete --chmod=D755,F644 \
   --exclude='.git/' \
   --exclude='.env' \
   --exclude='var/' \
   "$SOURCE_DIR/" "$TARGET_DIR/"
-chmod 0750 "$TARGET_DIR/setup.sh" "$TARGET_DIR/scripts/install.sh" "$TARGET_DIR/scripts/preflight.sh" "$TARGET_DIR/scripts/stack.sh" "$TARGET_DIR/scripts/host-proxy-info.sh"
+chmod 0750 "$TARGET_DIR"
+chmod 0750 "$TARGET_DIR/setup.sh"
+find "$TARGET_DIR/scripts" -type f -name '*.sh' -exec chmod 0750 {} +
 
 cd "$TARGET_DIR"
 if (( existing == 1 )); then
