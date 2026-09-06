@@ -21,7 +21,6 @@ trap cleanup EXIT
 [[ "$INSTALL_REF" =~ ^[A-Za-z0-9._/-]+$ && "$INSTALL_REF" != -* && "$INSTALL_REF" != *'..'* ]] || die 'Ungueltiger QB_INSTALL_REF.'
 
 packages=()
-command -v ca-certificates >/dev/null 2>&1 || true
 command -v curl >/dev/null 2>&1 || packages+=(ca-certificates curl)
 command -v git >/dev/null 2>&1 || packages+=(git)
 command -v rsync >/dev/null 2>&1 || packages+=(rsync)
@@ -65,12 +64,11 @@ done
 source_commit="$(git -C "$SOURCE_DIR" rev-parse HEAD)"
 version="$(tr -d '[:space:]' < "$SOURCE_DIR/VERSION")"
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+[-A-Za-z0-9.]*$ ]] || die 'VERSION ist ungueltig.'
-log "Gepruefter Checkout: ${source_commit} / Version ${version}"
+log "Checkout: ${source_commit} / Version ${version}"
 
 existing=0
 [[ -f "$TARGET_DIR/.env" ]] && existing=1
 install -d -m 0750 "$TARGET_DIR"
-
 if (( existing == 1 )); then
   log 'Bestehende Installation erkannt. App-Profile, Signing-Keys, Build-Historie und lokale Konfiguration bleiben erhalten.'
 fi
@@ -80,12 +78,11 @@ rsync -a --delete \
   --exclude='.env' \
   --exclude='var/' \
   "$SOURCE_DIR/" "$TARGET_DIR/"
-
 chmod 0750 "$TARGET_DIR/setup.sh" "$TARGET_DIR/scripts/install.sh" "$TARGET_DIR/scripts/preflight.sh" "$TARGET_DIR/scripts/stack.sh"
 
 cd "$TARGET_DIR"
 if (( existing == 1 )); then
-  QB_ADMIN_EMAIL='' QB_ADMIN_PASSWORD='' ./scripts/install.sh
+  QB_SKIP_ADMIN_BOOTSTRAP=1 ./scripts/install.sh
 else
   ./scripts/install.sh
 fi
