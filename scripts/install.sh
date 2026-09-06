@@ -9,6 +9,14 @@ cd "$ROOT_DIR"
 log(){ printf '[Quantum Builder Install] %s\n' "$*"; }
 die(){ printf '[Quantum Builder Install] FEHLER: %s\n' "$*" >&2; exit 1; }
 
+ensure_env_default(){
+  local key="$1"
+  local value="$2"
+  grep -qE "^${key}=" .env && return 0
+  printf '%s=%s\n' "$key" "$value" >> .env
+  log "Lokale Konfiguration erweitert: ${key}"
+}
+
 [[ "${EUID:-$(id -u)}" -eq 0 ]] || die 'Bitte mit sudo/root ausfuehren.'
 command -v docker >/dev/null 2>&1 || die 'Docker ist nicht installiert.'
 docker compose version >/dev/null 2>&1 || die 'Docker Compose v2 ist nicht verfuegbar.'
@@ -24,6 +32,7 @@ if [[ ! -f .env ]]; then
   cat > .env <<EOF
 QB_BIND=${QB_BIND:-127.0.0.1}
 QB_HTTP_PORT=${QB_HTTP_PORT:-8787}
+QB_PUBLIC_URL=${QB_PUBLIC_URL:-https://builder.starlight-unit.de}
 QB_VERSION=$(tr -d '[:space:]' < VERSION)
 QB_SESSION_SECRET=${secret}
 QB_WRAPPER_REPOSITORY=${QB_WRAPPER_REPOSITORY:-https://github.com/Starlight-Unit-Studio/Quantum-Mobile-Wrapper.git}
@@ -34,6 +43,7 @@ EOF
   log 'Neue lokale Konfiguration erzeugt.'
 else
   log 'Bestehende lokale Konfiguration bleibt erhalten.'
+  ensure_env_default QB_PUBLIC_URL "${QB_PUBLIC_URL:-https://builder.starlight-unit.de}"
 fi
 
 skip_admin="${QB_SKIP_ADMIN_BOOTSTRAP:-0}"
@@ -72,5 +82,7 @@ log 'Starte Quantum Builder.'
 docker compose up -d --remove-orphans
 
 "$ROOT_DIR/scripts/preflight.sh"
+"$ROOT_DIR/scripts/hosting.sh" status
 log "Quantum Builder $(tr -d '[:space:]' < VERSION) ist bereit."
 log "Lokaler Endpunkt: http://$(grep '^QB_BIND=' .env | cut -d= -f2):$(grep '^QB_HTTP_PORT=' .env | cut -d= -f2)"
+log "Oeffentliche Ziel-URL: $(grep '^QB_PUBLIC_URL=' .env | cut -d= -f2-)"
