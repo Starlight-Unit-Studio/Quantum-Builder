@@ -19,11 +19,21 @@ install -d -m 0770 var
 chown 82:82 var
 chmod 0770 var
 
+public_domain="${QB_PUBLIC_DOMAIN:-}"
+if [[ ! -f .env && -z "$public_domain" && -r /dev/tty && -w /dev/tty ]]; then
+  printf 'Oeffentliche Domain (optional, z.B. builder.starlight-unit.de; Enter = nur localhost): ' >/dev/tty
+  IFS= read -r public_domain </dev/tty
+fi
+if [[ -n "$public_domain" ]]; then
+  [[ "$public_domain" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]] || die 'QB_PUBLIC_DOMAIN muss ein Hostname ohne http:// oder Pfad sein.'
+fi
+
 if [[ ! -f .env ]]; then
   secret="$(od -An -N48 -tx1 /dev/urandom | tr -d ' \n')"
   cat > .env <<EOF
 QB_BIND=${QB_BIND:-127.0.0.1}
 QB_HTTP_PORT=${QB_HTTP_PORT:-8787}
+QB_PUBLIC_DOMAIN=${public_domain}
 QB_VERSION=$(tr -d '[:space:]' < VERSION)
 QB_SESSION_SECRET=${secret}
 QB_WRAPPER_REPOSITORY=${QB_WRAPPER_REPOSITORY:-https://github.com/Starlight-Unit-Studio/Quantum-Mobile-Wrapper.git}
@@ -34,6 +44,11 @@ EOF
   log 'Neue lokale Konfiguration erzeugt.'
 else
   log 'Bestehende lokale Konfiguration bleibt erhalten.'
+  if ! grep -q '^QB_PUBLIC_DOMAIN=' .env; then
+    printf '\nQB_PUBLIC_DOMAIN=%s\n' "$public_domain" >> .env
+    chmod 0600 .env
+    log 'QB_PUBLIC_DOMAIN wurde der bestehenden Konfiguration hinzugefuegt.'
+  fi
 fi
 
 skip_admin="${QB_SKIP_ADMIN_BOOTSTRAP:-0}"
@@ -74,3 +89,4 @@ docker compose up -d --remove-orphans
 "$ROOT_DIR/scripts/preflight.sh"
 log "Quantum Builder $(tr -d '[:space:]' < VERSION) ist bereit."
 log "Lokaler Endpunkt: http://$(grep '^QB_BIND=' .env | cut -d= -f2):$(grep '^QB_HTTP_PORT=' .env | cut -d= -f2)"
+"$ROOT_DIR/scripts/host-proxy-info.sh"
