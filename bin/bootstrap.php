@@ -12,6 +12,11 @@ use QuantumBuilder\Database;
 $db = new Database();
 $db->migrate();
 
+if ((string) (getenv('QB_BOOTSTRAP_CHECK_ONLY') ?: '') === '1') {
+    $count = (int) $db->pdo()->query('SELECT COUNT(*) FROM users')->fetchColumn();
+    exit($count > 0 ? 0 : 10);
+}
+
 $email = trim((string) (getenv('QB_BOOTSTRAP_ADMIN_EMAIL') ?: ''));
 $password = (string) (getenv('QB_BOOTSTRAP_ADMIN_PASSWORD') ?: '');
 if ($email !== '' || $password !== '') {
