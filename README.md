@@ -13,16 +13,19 @@ Current version: `0.1.0-alpha1`
 Like Ember CoreUI, Quantum Builder ships with a single-command SSH installer. It installs/updates the project under `/opt/quantum-builder`, preserves persistent builder state and runs a post-install preflight.
 
 ```bash
-( setup_file="$(mktemp)" && trap 'rm -f -- "$setup_file"' EXIT && curl -fsSL https://raw.githubusercontent.com/Starlight-Unit-Studio/Quantum-Builder/main/setup.sh -o "$setup_file" && sudo bash "$setup_file" )
+curl -fsSL https://raw.githubusercontent.com/Starlight-Unit-Studio/Quantum-Builder/main/setup.sh | sudo bash
 ```
 
-On the first interactive installation the installer asks for an administrator email address and password. For unattended first installation:
+The installer reads the administrator credentials from `/dev/tty`, so the short pipe form remains interactive on first install.
+
+For an unattended first installation:
 
 ```bash
-sudo QB_ADMIN_EMAIL='admin@example.com' QB_ADMIN_PASSWORD='replace-with-a-long-password' bash setup.sh
+curl -fsSL https://raw.githubusercontent.com/Starlight-Unit-Studio/Quantum-Builder/main/setup.sh \
+  | sudo QB_ADMIN_EMAIL='admin@example.com' QB_ADMIN_PASSWORD='replace-with-a-long-password' bash
 ```
 
-By default the web service binds only to `127.0.0.1:8787`. Put the service behind your own HTTPS reverse proxy before exposing it publicly.
+By default the web service binds only to `127.0.0.1:8787`. The canonical Studio public URL is `https://builder.starlight-unit.de`, served through the existing KeyHelp-managed Apache/HTTPS frontend.
 
 ### Updates
 
@@ -35,6 +38,51 @@ Running the same one-liner again performs an update. The installer preserves:
 - Gradle cache
 
 The per-app signing identity is deliberately persistent. As long as the package ID remains unchanged and each new build uses a higher `versionCode`, later generated APKs can be installed as normal Android updates instead of requiring an uninstall.
+
+## Production hosting: KeyHelp / existing Apache
+
+Quantum Builder deliberately does **not** install or replace the host Apache/Nginx used by KeyHelp. Its own Docker web stack stays private on loopback:
+
+```text
+https://builder.starlight-unit.de
+        |
+        v
+KeyHelp-managed Apache + TLS
+        |
+        v
+http://127.0.0.1:8787
+        |
+        v
+Quantum Docker Nginx
+        |
+        v
+PHP-FPM + SQLite
+        |
+        +--> Android build worker (internal only)
+```
+
+The installer detects a KeyHelp Apache layout at `/etc/apache2/keyhelp`, reports the local proxy target and never edits KeyHelp-generated vhost files.
+
+After installation:
+
+```bash
+cd /opt/quantum-builder
+sudo ./scripts/hosting.sh status
+sudo ./scripts/hosting.sh keyhelp
+```
+
+The `keyhelp` command prints the HTTPS reverse-proxy directives for the domain. Paste them into the KeyHelp domain's **Apache settings / HTTPS additional directives**. Required Apache modules are `proxy`, `proxy_http` and `headers`.
+
+The generated snippet preserves `/.well-known/acme-challenge`, forwards the public host and HTTPS scheme and proxies all other requests to `127.0.0.1:8787`.
+
+Generic helper output is also available:
+
+```bash
+sudo ./scripts/hosting.sh apache
+sudo ./scripts/hosting.sh nginx
+```
+
+Do not manually edit KeyHelp-generated files under `/etc/apache2/keyhelp/vhosts/`; KeyHelp may regenerate them.
 
 ## What alpha1 already does
 
@@ -55,6 +103,7 @@ The first alpha establishes the real architecture rather than a static mockup:
 - build history
 - Android 6/API 23 through Android 16/API 36 profile baseline
 - health endpoint and installer preflight
+- managed-hosting detection and reverse-proxy helper
 
 A build is intentionally **one operation**. `REBUILD ALL` produces the complete artifact set, then the UI lets the operator choose which artifact to download.
 
@@ -72,7 +121,13 @@ See [`docs/FEATURE_MATRIX.md`](docs/FEATURE_MATRIX.md) for the detailed roadmap 
 Browser
    |
    v
-Quantum Builder Web UI
+KeyHelp / existing HTTPS reverse proxy
+   |
+   v
+Quantum Docker Nginx
+   |
+   v
+Quantum Builder Web UI + PHP-FPM
    |
    +-- Auth / CSRF
    +-- App Profiles
@@ -106,6 +161,7 @@ sudo ./scripts/stack.sh logs
 sudo ./scripts/stack.sh restart
 sudo ./scripts/stack.sh rebuild
 sudo ./scripts/stack.sh preflight
+sudo ./scripts/stack.sh hosting
 ```
 
 ## Manual development start
@@ -128,7 +184,7 @@ docker compose run --rm \
 docker compose up -d
 ```
 
-Open `http://127.0.0.1:8787` locally or use an HTTPS reverse proxy.
+Open `http://127.0.0.1:8787` locally or place it behind an HTTPS reverse proxy.
 
 ## Wrapper source
 
@@ -142,6 +198,8 @@ Alpha1 defaults to the current Android 6 compatibility branch `compat/android-6-
 
 - HTTPS start URLs are required for app profiles.
 - The builder defaults to loopback-only exposure.
+- The KeyHelp/host webserver remains the public TLS termination layer.
+- Reverse-proxy HTTPS headers are preserved through the internal Nginx -> PHP-FPM hop.
 - Login sessions use HttpOnly, SameSite=Strict cookies.
 - Mutating API calls require a session CSRF token.
 - Build downloads require authentication.

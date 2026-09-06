@@ -13,6 +13,11 @@ Initial Quantum Builder bootstrap.
 - Source ZIP and SHA256SUMS output
 - build history and authenticated downloads
 - SSH quick installer with update-safe persistent state
+- direct GitHub `curl | sudo bash` installer entrypoint
+- KeyHelp / existing-host reverse-proxy detection without replacing the host webserver
+- loopback-only builder runtime with `builder.starlight-unit.de` as the canonical public URL
+- reverse-proxy header preservation through internal Nginx to PHP-FPM
+- KeyHelp, Apache and Nginx proxy-snippet helper
 - preflight and stack management helpers
 - PHP/Python/shell/Compose/web smoke CI
 - real generated Android release integration workflow
