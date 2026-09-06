@@ -1,0 +1,68 @@
+.branding-assets{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.branding-asset-card{
+  min-width:0;
+  border:1px solid var(--line-soft);
+  border-radius:16px;
+  background:rgba(0,0,0,.18);
+  padding:13px;
+  display:grid;
+  grid-template-columns:92px minmax(0,1fr);
+  gap:13px;
+  align-items:center;
+}
+.branding-asset-preview{
+  width:92px;
+  height:92px;
+  border:1px solid rgba(111,199,255,.2);
+  border-radius:18px;
+  background:
+    linear-gradient(45deg,rgba(255,255,255,.025) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.025) 75%),
+    linear-gradient(45deg,rgba(255,255,255,.025) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.025) 75%),
+    rgba(1,5,14,.72);
+  background-position:0 0,8px 8px;
+  background-size:16px 16px;
+  overflow:hidden;
+  display:grid;
+  place-items:center;
+  color:var(--muted-2);
+  font-family:'JetBrains Mono',ui-monospace,monospace;
+  font-size:8px;
+  letter-spacing:.08em;
+  text-align:center;
+}
+.branding-asset-card.is-splash .branding-asset-preview{
+  border-radius:12px;
+}
+.branding-asset-preview img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.branding-asset-copy{min-width:0}
+.branding-asset-copy strong{display:block;color:#fff;margin-bottom:3px}
+.branding-asset-copy p{margin:0 0 9px;color:var(--muted);font-size:12px;line-height:1.35}
+.branding-asset-actions{display:flex;gap:7px;flex-wrap:wrap}
+.branding-asset-actions .btn{min-height:36px;padding:6px 10px;border-radius:12px;font-size:11px}
+.branding-asset-status{
+  min-height:18px;
+  margin-top:7px;
+  color:var(--muted-2);
+  font-family:'JetBrains Mono',ui-monospace,monospace;
+  font-size:9px;
+}
+.branding-asset-status.is-ok{color:var(--green)}
+.branding-asset-status.is-bad{color:#ffaaaa}
+.branding-asset-input{display:none}
+
+@media(max-width:760px){
+  .branding-assets{grid-template-columns:1fr}
+}
+@media(max-width:430px){
+  .branding-asset-card{grid-template-columns:72px minmax(0,1fr)}
+  .branding-asset-preview{width:72px;height:72px}
+}
