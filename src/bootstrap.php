@@ -15,8 +15,10 @@ spl_autoload_register(static function (string $class): void {
 });
 
 use QuantumBuilder\Auth;
+use QuantumBuilder\Config;
 use QuantumBuilder\Database;
 
+Config::sessionSecret();
 $db = new Database();
 $db->migrate();
 $auth = new Auth($db->pdo());
