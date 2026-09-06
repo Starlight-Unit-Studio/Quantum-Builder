@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-       ca-certificates curl git openjdk-17-jdk-headless python3 sqlite3 unzip zip \
+       ca-certificates curl git openjdk-17-jdk-headless python3 python3-pil sqlite3 unzip zip \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /opt/android-sdk/cmdline-tools /tmp/android-tools \
     && curl -fsSL --retry 3 \
