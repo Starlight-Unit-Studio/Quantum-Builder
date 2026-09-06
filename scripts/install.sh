@@ -76,7 +76,9 @@ docker compose build --pull
 if [[ "$skip_admin" != 1 ]]; then
   [[ -n "$auto_email" && -n "$auto_password" ]] || die 'Bei der Erstinstallation werden Admin E-Mail und Passwort benoetigt.'
   log 'Initialisiere Administrator.'
-  docker compose run --rm \
+  # setup.sh is intentionally curl-pipe friendly. stdin is therefore not a TTY,
+  # so Compose must not try to allocate one for the bootstrap container.
+  docker compose run --rm -T \
     -e QB_BOOTSTRAP_ADMIN_EMAIL="$auto_email" \
     -e QB_BOOTSTRAP_ADMIN_PASSWORD="$auto_password" \
     php php /app/bin/bootstrap.php
