@@ -18,6 +18,8 @@ Canonical repository installer:
 curl -fsSL https://raw.githubusercontent.com/Starlight-Unit-Studio/Quantum-Builder/main/setup.sh | sudo bash
 ```
 
+The installer is designed to work directly through the curl pipe. Docker Compose bootstrap containers are explicitly run without TTY allocation while interactive questions continue to use `/dev/tty`. If a first installation is interrupted after `.env` was created but before the administrator account exists, running the same installer again detects the incomplete bootstrap and resumes administrator creation instead of treating it as a finished update.
+
 On the first interactive installation the installer asks for:
 
 - optional public domain, for example `builder.starlight-unit.de`
@@ -186,7 +188,7 @@ cp .env.example .env
 sudo chown 82:82 var
 sudo chmod 0770 var
 docker compose build
-docker compose run --rm \
+docker compose run --rm -T \
   -e QB_BOOTSTRAP_ADMIN_EMAIL='admin@example.com' \
   -e QB_BOOTSTRAP_ADMIN_PASSWORD='replace-with-a-long-password' \
   php php /app/bin/bootstrap.php
