@@ -27,6 +27,7 @@ final class Apps
 
     public function create(array $input): array
     {
+        $input = $this->stripServerManagedConfig($input);
         $data = $this->validate($input);
         $stmt = $this->pdo->prepare(
             'INSERT INTO apps (uuid, name, package_id, start_url, description, version_name, version_code, min_sdk, target_sdk, config_json)
@@ -38,10 +39,20 @@ final class Apps
 
     public function update(int $id, array $input): array
     {
-        if (!$this->find($id)) {
+        $existing = $this->find($id);
+        if (!$existing) {
             throw new \InvalidArgumentException('App not found.');
         }
+        $assets = $existing['config']['branding']['assets'] ?? [];
+        $input = $this->stripServerManagedConfig($input);
         $data = $this->validate($input);
+        $config = json_decode((string) $data['config_json'], true) ?: [];
+        if (is_array($assets) && $assets !== []) {
+            $config['branding'] = is_array($config['branding'] ?? null) ? $config['branding'] : [];
+            $config['branding']['assets'] = $assets;
+        }
+        $data['config_json'] = json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
         $stmt = $this->pdo->prepare(
             'UPDATE apps SET name=:name, package_id=:package_id, start_url=:start_url, description=:description,
              version_name=:version_name, version_code=:version_code, min_sdk=:min_sdk, target_sdk=:target_sdk,
@@ -49,6 +60,44 @@ final class Apps
         );
         $stmt->execute($data + ['id' => $id]);
         return $this->find($id) ?? throw new \RuntimeException('App update failed.');
+    }
+
+    public function setBrandingAsset(int $id, string $kind, ?array $metadata): array
+    {
+        if (!in_array($kind, Assets::KINDS, true)) {
+            throw new \InvalidArgumentException('Unbekannter Asset-Typ.');
+        }
+        $app = $this->find($id);
+        if (!$app) {
+            throw new \InvalidArgumentException('App not found.');
+        }
+        $config = is_array($app['config'] ?? null) ? $app['config'] : [];
+        $config['branding'] = is_array($config['branding'] ?? null) ? $config['branding'] : [];
+        $config['branding']['assets'] = is_array($config['branding']['assets'] ?? null) ? $config['branding']['assets'] : [];
+        if ($metadata === null) {
+            unset($config['branding']['assets'][$kind]);
+        } else {
+            $config['branding']['assets'][$kind] = $metadata;
+        }
+        $stmt = $this->pdo->prepare('UPDATE apps SET config_json=:config_json, updated_at=CURRENT_TIMESTAMP WHERE id=:id');
+        $stmt->execute([
+            'config_json' => json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+            'id' => $id,
+        ]);
+        return $this->find($id) ?? throw new \RuntimeException('Branding asset update failed.');
+    }
+
+    private function stripServerManagedConfig(array $input): array
+    {
+        if (!is_array($input['config'] ?? null)) {
+            return $input;
+        }
+        $config = $input['config'];
+        if (is_array($config['branding'] ?? null)) {
+            unset($config['branding']['assets']);
+        }
+        $input['config'] = $config;
+        return $input;
     }
 
     private function validate(array $input): array
@@ -92,6 +141,7 @@ final class Apps
                 'primary' => '#6fc7ff', 'accent' => '#ffd978', 'status_bar' => '#020611',
                 'navigation_bar' => '#020611', 'splash_background' => '#020611',
             ],
+            'branding' => ['assets' => []],
             'interface' => [
                 'dark_mode' => 'dark', 'orientation' => 'auto', 'keep_screen_on' => false,
                 'fullscreen' => false, 'page_transitions' => true, 'pull_to_refresh' => false,
