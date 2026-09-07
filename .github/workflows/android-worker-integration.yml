@@ -107,21 +107,24 @@ jobs:
             jarsigner -verify /var/lib/quantum-builder/builds/1/app-release.aab
           '
 
-      - name: Prepare install probe artifact
+      - name: Stage install probe in runner-owned directory
         run: |
-          sudo cp var/builds/1/app-release.apk var/builds/1/starlight-unit-game-ci-probe.apk
-          sudo chmod 0644 var/builds/1/starlight-unit-game-ci-probe.apk
+          rm -rf ci-artifacts
+          mkdir -p ci-artifacts
+          sudo cp var/builds/1/app-release.apk ci-artifacts/starlight-unit-game-ci-probe.apk
+          sudo cp var/builds/1/app-release.aab ci-artifacts/app-release.aab
+          sudo cp var/builds/1/SHA256SUMS ci-artifacts/SHA256SUMS
+          sudo cp var/builds/1/build.json ci-artifacts/build.json
+          sudo chown -R "$(id -u):$(id -g)" ci-artifacts
+          chmod -R u+rwX,go+rX ci-artifacts
+          test -r ci-artifacts/starlight-unit-game-ci-probe.apk
 
       - name: Upload generated release probe
         uses: actions/upload-artifact@v4
         with:
           name: quantum-builder-game-release-install-probe
           if-no-files-found: error
-          path: |
-            var/builds/1/starlight-unit-game-ci-probe.apk
-            var/builds/1/app-release.aab
-            var/builds/1/SHA256SUMS
-            var/builds/1/build.json
+          path: ci-artifacts/
           retention-days: 7
 
       - name: Enable KVM group perms
@@ -139,7 +142,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            adb install var/builds/1/starlight-unit-game-ci-probe.apk
+            adb install ci-artifacts/starlight-unit-game-ci-probe.apk
             adb shell pm path de.starlightunit.game
             adb shell dumpsys package de.starlightunit.game | grep -E 'versionCode=100|versionName=0.1.0-ci-probe'
             adb shell am start -W -n de.starlightunit.game/de.starlightunit.wrapper.MainActivity
