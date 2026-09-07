@@ -10,7 +10,7 @@ permissions:
 jobs:
   generated-release-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -19,7 +19,7 @@ jobs:
           cat > .env <<'EOF'
           QB_BIND=127.0.0.1
           QB_HTTP_PORT=8787
-          QB_VERSION=0.1.0-alpha1
+          QB_VERSION=0.1.0-alpha3
           QB_SESSION_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
           QB_WRAPPER_REPOSITORY=https://github.com/Starlight-Unit-Studio/Quantum-Mobile-Wrapper.git
           QB_WRAPPER_REF=compat/android-6-api23
@@ -34,23 +34,23 @@ jobs:
       - name: Initialize database
         run: docker compose run --rm -T php php /app/bin/bootstrap.php
 
-      - name: Queue generated app build
+      - name: Queue generated game release build
         run: |
           sudo sqlite3 var/quantum-builder.sqlite <<'SQL'
           INSERT INTO apps (
             uuid, name, package_id, start_url, description,
             version_name, version_code, min_sdk, target_sdk, config_json
           ) VALUES (
-            'ci-generated-app',
-            'Quantum CI App',
-            'de.starlightunit.quantumci',
-            'https://example.com/',
-            'CI generated app',
-            '0.0.1-ci',
+            'ci-generated-game-app',
+            'Starlight Unit - The Game CI Probe',
+            'de.starlightunit.game',
+            'https://game.starlight-unit.de/index_01.html',
+            'CI generated install probe',
+            '0.1.0-ci-probe',
             100,
             23,
             36,
-            '{"trusted_domain":"example.com","interface":{"keep_screen_on":false,"orientation":"portrait"},"web":{"user_agent_suffix":" QuantumCI"},"permissions":{"location":false,"microphone":false,"camera":false},"wrapper_ref":"compat/android-6-api23"}'
+            '{"trusted_domain":"game.starlight-unit.de","interface":{"keep_screen_on":false,"orientation":"portrait"},"web":{"user_agent_suffix":" QuantumCI","custom_headers":{}},"permissions":{"location":false,"microphone":false,"camera":false},"wrapper_ref":"compat/android-6-api23"}'
           );
           INSERT INTO builds (app_id, status, stage, message, wrapper_ref)
           VALUES (1, 'queued', 'queued', 'CI integration build', 'compat/android-6-api23');
@@ -98,12 +98,46 @@ jobs:
         run: |
           docker compose exec -T worker sh -lc '
             "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose /var/lib/quantum-builder/builds/1/app-release.apk
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs /var/lib/quantum-builder/builds/1/app-release.apk | tee /tmp/certs.txt
             "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging /var/lib/quantum-builder/builds/1/app-release.apk | tee /tmp/badging.txt
-            grep -q "package: name=.de.starlightunit.quantumci." /tmp/badging.txt
+            grep -q "package: name=.de.starlightunit.game." /tmp/badging.txt
+            grep -q "versionCode=.100." /tmp/badging.txt
             grep -q "sdkVersion:.23." /tmp/badging.txt
             grep -q "targetSdkVersion:.36." /tmp/badging.txt
             jarsigner -verify /var/lib/quantum-builder/builds/1/app-release.aab
           '
+
+      - name: Prepare install probe artifact
+        run: |
+          sudo cp var/builds/1/app-release.apk var/builds/1/starlight-unit-game-ci-probe.apk
+          sudo chmod 0644 var/builds/1/starlight-unit-game-ci-probe.apk
+
+      - name: Install generated release APK on Android 16 emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            adb install var/builds/1/starlight-unit-game-ci-probe.apk
+            adb shell pm path de.starlightunit.game
+            adb shell dumpsys package de.starlightunit.game | grep -E 'versionCode=100|versionName=0.1.0-ci-probe'
+            adb shell am start -W -n de.starlightunit.game/de.starlightunit.wrapper.MainActivity
+
+      - name: Upload generated release probe
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quantum-builder-game-release-install-probe
+          if-no-files-found: error
+          path: |
+            var/builds/1/starlight-unit-game-ci-probe.apk
+            var/builds/1/app-release.aab
+            var/builds/1/SHA256SUMS
+            var/builds/1/build.json
+          retention-days: 7
 
       - name: Worker logs on failure
         if: failure()
