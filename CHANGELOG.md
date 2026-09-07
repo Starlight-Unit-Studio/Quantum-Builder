@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0-alpha3
+
+Custom-header object contract hotfix.
+
+- fixes profiles whose empty `web.custom_headers` value was hydrated as JSON `[]` even though the Builder UI requires a JSON object
+- API responses now always expose `web.custom_headers` as a JSON object, including the empty `{}` case
+- legacy stored empty arrays and malformed scalar header values are normalized safely instead of blocking every profile save
+- new/updated profiles persist custom headers with object semantics so the Android worker receives a stable dictionary shape
+- `REBUILD ALL` is no longer blocked by the unrelated Custom Headers validator on otherwise valid profiles
+- regression coverage now verifies both the stored JSON shape and legacy-profile hydration
+
 ## 0.1.0-alpha2
 
 Profile persistence and Android versioning hardening.
