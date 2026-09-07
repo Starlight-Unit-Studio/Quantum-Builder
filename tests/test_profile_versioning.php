@@ -44,10 +44,31 @@ $input = [
 
 $app = $apps->create($input);
 assert($app['version_code'] === 0);
+assert(isset($app['config']['web']['custom_headers']));
+assert(is_object($app['config']['web']['custom_headers']));
+assert(get_object_vars($app['config']['web']['custom_headers']) === []);
+
+$storedJson = (string) $db->pdo()->query('SELECT config_json FROM apps WHERE id=' . (int) $app['id'])->fetchColumn();
+$storedConfig = json_decode($storedJson);
+assert(is_object($storedConfig));
+assert(is_object($storedConfig->web->custom_headers));
+
+$legacyConfig = json_decode($storedJson, true, flags: JSON_THROW_ON_ERROR);
+$legacyConfig['web']['custom_headers'] = [];
+$stmt = $db->pdo()->prepare('UPDATE apps SET config_json=:config WHERE id=:id');
+$stmt->execute([
+    'config' => json_encode($legacyConfig, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+    'id' => $app['id'],
+]);
+$app = $apps->find((int) $app['id']);
+assert($app !== null);
+assert(is_object($app['config']['web']['custom_headers']));
+assert(get_object_vars($app['config']['web']['custom_headers']) === []);
 
 $input['version_code'] = 999;
 $app = $apps->update((int) $app['id'], $input);
 assert($app['version_code'] === 0);
+assert(is_object($app['config']['web']['custom_headers']));
 
 $build = $builds->queue((int) $app['id'], 'compat/android-6-api23');
 assert($build['status'] === 'queued');
@@ -59,4 +80,4 @@ $builds->queue((int) $app['id'], 'compat/android-6-api23');
 $app = $apps->find((int) $app['id']);
 assert($app !== null && $app['version_code'] === 2);
 
-fwrite(STDOUT, "profile versioning: ok\n");
+fwrite(STDOUT, "profile versioning and custom header contract: ok\n");
