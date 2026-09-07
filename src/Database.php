@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS apps (
     start_url TEXT NOT NULL,
     description TEXT NOT NULL DEFAULT '',
     version_name TEXT NOT NULL DEFAULT '0.1.0',
-    version_code INTEGER NOT NULL DEFAULT 1,
+    version_code INTEGER NOT NULL DEFAULT 0,
     min_sdk INTEGER NOT NULL DEFAULT 23,
     target_sdk INTEGER NOT NULL DEFAULT 36,
     config_json TEXT NOT NULL DEFAULT '{}',
