@@ -121,6 +121,11 @@ final class Apps
             throw new \InvalidArgumentException('Trusted domain is invalid.');
         }
 
+        if (!isset($config['web']) || !is_array($config['web'])) {
+            $config['web'] = $defaults['web'];
+        }
+        $config['web']['custom_headers'] = (object) $this->normalizeCustomHeaders($config['web']['custom_headers'] ?? []);
+
         return [
             'name' => $name,
             'package_id' => $packageId,
@@ -134,13 +139,36 @@ final class Apps
         ];
     }
 
+    private function normalizeCustomHeaders(mixed $headers): array
+    {
+        if (is_string($headers)) {
+            $decoded = json_decode($headers, true);
+            $headers = is_array($decoded) ? $decoded : [];
+        } elseif (is_object($headers)) {
+            $headers = get_object_vars($headers);
+        }
+
+        if (!is_array($headers)) {
+            return [];
+        }
+        if ($headers !== [] && array_is_list($headers)) {
+            return [];
+        }
+        return $headers;
+    }
+
     private function hydrate(array $row): array
     {
         $row['id'] = (int) $row['id'];
         $row['version_code'] = (int) $row['version_code'];
         $row['min_sdk'] = (int) $row['min_sdk'];
         $row['target_sdk'] = (int) $row['target_sdk'];
-        $row['config'] = json_decode((string) $row['config_json'], true) ?: [];
+        $config = json_decode((string) $row['config_json'], true) ?: [];
+        if (!isset($config['web']) || !is_array($config['web'])) {
+            $config['web'] = [];
+        }
+        $config['web']['custom_headers'] = (object) $this->normalizeCustomHeaders($config['web']['custom_headers'] ?? []);
+        $row['config'] = $config;
         unset($row['config_json']);
         return $row;
     }
