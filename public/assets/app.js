@@ -6,6 +6,10 @@
     currentApp: null,
     apps: [],
     buildTimer: null,
+    saveTimer: null,
+    savePromise: null,
+    formRevision: 0,
+    savedRevision: 0,
   };
 
   const $ = (id) => document.getElementById(id);
@@ -61,12 +65,17 @@
   };
 
   const logout = async () => {
+    if (state.currentApp && state.formRevision > state.savedRevision) {
+      const saved = await saveApp({ silent: false });
+      if (!saved) return;
+    }
     try {
       await api('logout', { method: 'POST' });
     } finally {
       state.csrf = null;
       state.currentApp = null;
       if (state.buildTimer) clearInterval(state.buildTimer);
+      if (state.saveTimer) clearTimeout(state.saveTimer);
       setAuthenticated(false);
     }
   };
@@ -88,7 +97,7 @@
       <div class="app-card__package">${escapeHtml(app.package_id)}</div>
       <div class="app-card__meta">
         <div class="meta-box"><span>Version</span><strong>${escapeHtml(app.version_name)}</strong></div>
-        <div class="meta-box"><span>Code</span><strong>${app.version_code}</strong></div>
+        <div class="meta-box"><span>Next code</span><strong>${app.version_code}</strong></div>
         <div class="meta-box"><span>Android</span><strong>${app.min_sdk} - ${app.target_sdk}</strong></div>
       </div>
       <div class="app-card__actions">
@@ -124,7 +133,7 @@
           name: $('newAppName').value.trim(),
           start_url: $('newStartUrl').value.trim(),
           package_id: $('newPackageId').value.trim(),
-          description: '', version_name: '0.1.0', version_code: 1, min_sdk: 23, target_sdk: 36, config: {},
+          description: '', version_name: '0.1.0', version_code: 0, min_sdk: 23, target_sdk: 36, config: {},
         },
       });
       $('newAppDialog').close();
@@ -140,6 +149,14 @@
 
   const get = (obj, path, fallback = '') => path.split('.').reduce((value, key) => (value && value[key] !== undefined ? value[key] : undefined), obj) ?? fallback;
 
+  const resetSaveTracking = () => {
+    if (state.saveTimer) clearTimeout(state.saveTimer);
+    state.saveTimer = null;
+    state.formRevision = 0;
+    state.savedRevision = 0;
+    $('saveState').textContent = 'READY';
+  };
+
   const fillForm = (app) => {
     const config = app.config || {};
     $('appId').value = app.id;
@@ -150,7 +167,7 @@
     $('wrapperRef').value = get(config, 'wrapper_ref', 'compat/android-6-api23');
     $('packageId').value = app.package_id || '';
     $('versionName').value = app.version_name || '0.1.0';
-    $('versionCode').value = app.version_code || 1;
+    $('versionCode').value = app.version_code ?? 0;
     $('minSdk').value = app.min_sdk || 23;
     $('targetSdk').value = app.target_sdk || 36;
 
@@ -197,6 +214,7 @@
     $('pluginQr').checked = Boolean(get(config, 'plugins.qr_scanner', false));
     $('pluginFcm').checked = Boolean(get(config, 'plugins.push_fcm', false));
 
+    resetSaveTracking();
     updateSimulator();
   };
 
@@ -252,22 +270,77 @@
     };
   };
 
-  const saveApp = async () => {
+  const scheduleSave = (delay = 700) => {
+    if (!state.currentApp) return;
+    if (state.saveTimer) clearTimeout(state.saveTimer);
+    state.saveTimer = setTimeout(() => {
+      state.saveTimer = null;
+      saveApp({ silent: true }).catch(() => {});
+    }, delay);
+  };
+
+  const markDirty = () => {
+    if (!state.currentApp) return;
+    state.formRevision += 1;
+    $('saveState').textContent = 'UNSAVED';
+    scheduleSave();
+  };
+
+  const saveApp = async ({ silent = false, force = false } = {}) => {
+    if (!state.currentApp) return true;
+    if (state.saveTimer) {
+      clearTimeout(state.saveTimer);
+      state.saveTimer = null;
+    }
+
+    if (state.savePromise) {
+      await state.savePromise;
+      if (!force && state.savedRevision >= state.formRevision) return true;
+    }
+
+    if (!force && state.savedRevision >= state.formRevision) return true;
+
+    let payload;
+    try {
+      payload = collectForm();
+    } catch (error) {
+      $('saveState').textContent = 'CHECK INPUT';
+      if (!silent) alert(error.message);
+      return false;
+    }
+
+    const revision = state.formRevision;
     $('saveState').textContent = 'SAVING';
     $('saveAppButton').disabled = true;
+
+    const request = api('save_app', { method: 'POST', body: payload });
+    state.savePromise = request;
     try {
-      const payload = collectForm();
-      const result = await api('save_app', { method: 'POST', body: payload });
+      const result = await request;
       state.currentApp = result.app;
-      fillForm(result.app);
+      const appIndex = state.apps.findIndex((app) => app.id === result.app.id);
+      if (appIndex >= 0) state.apps[appIndex] = result.app;
       $('editorTitle').textContent = result.app.name;
-      $('saveState').textContent = 'SAVED';
-      await loadApps();
-      setTimeout(() => { if ($('saveState').textContent === 'SAVED') $('saveState').textContent = 'READY'; }, 1500);
+      state.savedRevision = Math.max(state.savedRevision, revision);
+
+      if (state.formRevision === revision) {
+        $('saveState').textContent = 'SAVED';
+        setTimeout(() => {
+          if (state.formRevision === state.savedRevision && $('saveState').textContent === 'SAVED') {
+            $('saveState').textContent = 'READY';
+          }
+        }, 900);
+      } else {
+        $('saveState').textContent = 'UNSAVED';
+        scheduleSave(200);
+      }
+      return true;
     } catch (error) {
       $('saveState').textContent = 'ERROR';
-      alert(error.message);
+      if (!silent) alert(error.message);
+      return false;
     } finally {
+      state.savePromise = null;
       $('saveAppButton').disabled = false;
     }
   };
@@ -291,7 +364,12 @@
   };
 
   const showApps = async () => {
+    if (state.currentApp && state.formRevision > state.savedRevision) {
+      const saved = await saveApp({ silent: false });
+      if (!saved) return;
+    }
     state.currentApp = null;
+    resetSaveTracking();
     if (state.buildTimer) clearInterval(state.buildTimer);
     $('editorView').classList.add('is-hidden');
     $('appsView').classList.remove('is-hidden');
@@ -301,6 +379,7 @@
   };
 
   const showSection = (section) => {
+    if (state.currentApp && state.formRevision > state.savedRevision) scheduleSave(0);
     qsa('[data-editor-section]').forEach((el) => el.classList.toggle('is-hidden', el.dataset.editorSection !== section));
     qsa('[data-section]').forEach((el) => el.classList.toggle('is-active', el.dataset.section === section));
     if (section === 'build') loadBuilds().catch(() => {});
@@ -309,10 +388,17 @@
 
   const queueBuild = async () => {
     if (!state.currentApp) return;
-    await saveApp();
+    const saved = await saveApp({ silent: false, force: true });
+    if (!saved) return;
     $('rebuildAllButton').disabled = true;
     try {
-      await api('queue_build', { method: 'POST', body: { app_id: state.currentApp.id } });
+      const result = await api('queue_build', { method: 'POST', body: { app_id: state.currentApp.id } });
+      if (result.app) {
+        state.currentApp = result.app;
+        $('versionCode').value = result.app.version_code;
+        const appIndex = state.apps.findIndex((app) => app.id === result.app.id);
+        if (appIndex >= 0) state.apps[appIndex] = result.app;
+      }
       await loadBuilds();
     } catch (error) {
       alert(error.message);
@@ -361,6 +447,27 @@
     }
   };
 
+  const persistOnPageHide = () => {
+    if (!state.currentApp || !state.csrf || state.formRevision <= state.savedRevision) return;
+    let payload;
+    try {
+      payload = collectForm();
+    } catch {
+      return;
+    }
+    fetch('/api.php?action=save_app', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-QB-CSRF': state.csrf,
+      },
+      credentials: 'same-origin',
+      keepalive: true,
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  };
+
   const openMobileNav = () => $('sidebar').classList.toggle('is-open');
   const closeMobileNav = () => $('sidebar').classList.remove('is-open');
 
@@ -370,12 +477,29 @@
     $('newAppButton').addEventListener('click', () => $('newAppDialog').showModal());
     $('newAppForm').addEventListener('submit', createApp);
     $('backToApps').addEventListener('click', showApps);
-    $('saveAppButton').addEventListener('click', saveApp);
+    $('saveAppButton').addEventListener('click', () => saveApp({ silent: false, force: true }));
     $('rebuildAllButton').addEventListener('click', queueBuild);
     $('mobileNavToggle').addEventListener('click', openMobileNav);
+
+    const versionCodeField = $('versionCode');
+    versionCodeField.readOnly = true;
+    versionCodeField.setAttribute('aria-readonly', 'true');
+    versionCodeField.title = 'Wird bei jedem Build automatisch erhöht.';
+
     qsa('[data-section]').forEach((button) => button.addEventListener('click', () => showSection(button.dataset.section)));
-    qsa('#appForm input, #appForm select, #appForm textarea').forEach((input) => input.addEventListener('change', updateSimulator));
-    qsa('#appForm input').forEach((input) => input.addEventListener('input', updateSimulator));
+    qsa('#appForm input, #appForm select, #appForm textarea').forEach((input) => {
+      input.addEventListener('change', () => {
+        updateSimulator();
+        markDirty();
+      });
+    });
+    qsa('#appForm input, #appForm textarea').forEach((input) => {
+      input.addEventListener('input', () => {
+        updateSimulator();
+        markDirty();
+      });
+    });
+    window.addEventListener('pagehide', persistOnPageHide);
     document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeMobileNav(); });
   };
 

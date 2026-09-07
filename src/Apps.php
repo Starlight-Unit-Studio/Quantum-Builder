@@ -42,9 +42,10 @@ final class Apps
             throw new \InvalidArgumentException('App not found.');
         }
         $data = $this->validate($input);
+        unset($data['version_code']);
         $stmt = $this->pdo->prepare(
             'UPDATE apps SET name=:name, package_id=:package_id, start_url=:start_url, description=:description,
-             version_name=:version_name, version_code=:version_code, min_sdk=:min_sdk, target_sdk=:target_sdk,
+             version_name=:version_name, min_sdk=:min_sdk, target_sdk=:target_sdk,
              config_json=:config_json, updated_at=CURRENT_TIMESTAMP WHERE id=:id'
         );
         $stmt->execute($data + ['id' => $id]);
@@ -58,7 +59,7 @@ final class Apps
         $startUrl = trim((string) ($input['start_url'] ?? ''));
         $description = trim((string) ($input['description'] ?? ''));
         $versionName = trim((string) ($input['version_name'] ?? '0.1.0'));
-        $versionCode = (int) ($input['version_code'] ?? 1);
+        $versionCode = (int) ($input['version_code'] ?? 0);
         $minSdk = (int) ($input['min_sdk'] ?? 23);
         $targetSdk = (int) ($input['target_sdk'] ?? 36);
         $config = is_array($input['config'] ?? null) ? $input['config'] : [];
@@ -76,8 +77,8 @@ final class Apps
         if ($versionName === '' || strlen($versionName) > 40) {
             throw new \InvalidArgumentException('Version name is invalid.');
         }
-        if ($versionCode < 1) {
-            throw new \InvalidArgumentException('Version code must be greater than zero.');
+        if ($versionCode < 0) {
+            throw new \InvalidArgumentException('Version code must not be negative.');
         }
         if ($minSdk < 23 || $minSdk > 36) {
             throw new \InvalidArgumentException('Minimum SDK must be between 23 and 36.');

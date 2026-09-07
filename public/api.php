@@ -84,12 +84,15 @@ try {
     }
 
     if ($action === 'queue_build' && $method === 'POST') {
-        $app = $apps->find((int) ($payload['app_id'] ?? 0));
+        $appId = (int) ($payload['app_id'] ?? 0);
+        $app = $apps->find($appId);
         if (!$app) {
             $reply(['ok' => false, 'error' => 'not_found'], 404);
         }
         $ref = trim((string) ($app['config']['wrapper_ref'] ?? ''));
-        $reply(['ok' => true, 'build' => $builds->queue((int) $app['id'], $ref)], 202);
+        $build = $builds->queue($appId, $ref);
+        $versionedApp = $apps->find($appId);
+        $reply(['ok' => true, 'build' => $build, 'app' => $versionedApp], 202);
     }
 
     if ($action === 'builds' && $method === 'GET') {

@@ -51,6 +51,15 @@ else
   fi
 fi
 
+current_version="$(tr -d '[:space:]' < VERSION)"
+if grep -q '^QB_VERSION=' .env; then
+  sed -i "s/^QB_VERSION=.*/QB_VERSION=${current_version}/" .env
+else
+  printf '\nQB_VERSION=%s\n' "$current_version" >> .env
+fi
+chmod 0600 .env
+log "Lokale Runtime-Version auf ${current_version} synchronisiert."
+
 skip_admin="${QB_SKIP_ADMIN_BOOTSTRAP:-0}"
 auto_email="${QB_ADMIN_EMAIL:-}"
 auto_password="${QB_ADMIN_PASSWORD:-}"
