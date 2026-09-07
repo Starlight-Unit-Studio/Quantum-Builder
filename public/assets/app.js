@@ -480,6 +480,12 @@
     $('saveAppButton').addEventListener('click', () => saveApp({ silent: false, force: true }));
     $('rebuildAllButton').addEventListener('click', queueBuild);
     $('mobileNavToggle').addEventListener('click', openMobileNav);
+
+    const versionCodeField = $('versionCode');
+    versionCodeField.readOnly = true;
+    versionCodeField.setAttribute('aria-readonly', 'true');
+    versionCodeField.title = 'Wird bei jedem Build automatisch erhöht.';
+
     qsa('[data-section]').forEach((button) => button.addEventListener('click', () => showSection(button.dataset.section)));
     qsa('#appForm input, #appForm select, #appForm textarea').forEach((input) => {
       input.addEventListener('change', () => {
