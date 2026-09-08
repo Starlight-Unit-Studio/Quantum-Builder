@@ -1,4 +1,5 @@
 import importlib.util
+import io
 import json
 import tempfile
 import unittest
@@ -88,6 +89,30 @@ class WorkerCompilerTests(unittest.TestCase):
         self.assertEqual(data["build_id"], 7)
         self.assertNotIn("password", json.dumps(data).lower())
         self.assertNotIn("keystore", json.dumps(data).lower())
+
+    def test_mandatory_production_splash_replaces_wrapper_copy(self):
+        source = self.root / "canonical.jpg"
+        payload = b"\xff\xd8\xff\xe0"
+        payload += b"\x00" * (worker.CANONICAL_PRODUCTION_SPLASH_SIZE - len(payload))
+        source.write_bytes(payload)
+
+        drawable = self.root / "app/src/main/res/drawable-nodpi"
+        drawable.mkdir(parents=True, exist_ok=True)
+        stale_webp = drawable / "quantum_production_splash.webp"
+        stale_webp.write_bytes(b"stale")
+
+        previous = worker.CANONICAL_PRODUCTION_SPLASH
+        worker.CANONICAL_PRODUCTION_SPLASH = source
+        try:
+            output = io.StringIO()
+            target = worker.install_mandatory_production_splash(self.root, output)
+        finally:
+            worker.CANONICAL_PRODUCTION_SPLASH = previous
+
+        self.assertFalse(stale_webp.exists())
+        self.assertEqual(target.name, "quantum_production_splash.jpg")
+        self.assertEqual(target.read_bytes(), payload)
+        self.assertIn("Installed mandatory production splash", output.getvalue())
 
     def test_generated_release_build_uses_staged_gradle_phases(self):
         self.assertEqual(
