@@ -235,3 +235,11 @@ Quantum Builder is intended to become the common app-generation control plane fo
 - KeyHelp Panel
 
 Those become app profiles over one maintained runtime instead of six diverging wrapper codebases.
+
+## License
+
+Starlight Quantum Builder is **source-available, not open source**. It is distributed under the **Starlight Quantum Builder Source-Available License v1.0** in [`LICENSE`](LICENSE).
+
+The license allows installation, self-hosting, internal modification, and use of generated applications, including commercial applications. It does not permit redistribution or resale of Quantum Builder itself, white-labeling, operating a competing hosted app-builder service, or removing the mandatory `Built with Starlight Quantum Builder` attribution from generated applications without prior written permission from Starlight Unit Studios.
+
+Generated application content and third-party branding remain the property of their respective owners.

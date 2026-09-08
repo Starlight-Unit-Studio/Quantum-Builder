@@ -1,0 +1,102 @@
+Starlight Quantum Builder Source-Available License v1.0
+Effective date: 2026-09-08
+
+Copyright (c) 2026 Starlight Unit Studios. All rights reserved.
+
+This license applies to Starlight Quantum Builder and all source code, assets, documentation, user interface elements, build logic, configuration, and other materials distributed with it, except for third-party components that carry their own license.
+
+This is a source-available license. It is not an open-source license.
+
+1. Definitions
+
+"Software" means Starlight Quantum Builder and the materials covered by this license.
+
+"Licensor" means Starlight Unit Studios.
+
+"Generated Applications" means APKs, AABs, source archives, configuration outputs, and other application artifacts produced by the Software for a user's own application profile.
+
+"Internal Use" means use by you, your household, your organization, or your employees and contractors for your own projects and operations, and not as a hosted, managed, white-label, resale, or competing service offered to third parties.
+
+2. Permission Grant
+
+Subject to all terms of this license, the Licensor grants you a non-exclusive, non-transferable, worldwide, royalty-free right to:
+
+(a) download and install the Software;
+(b) run the Software for personal, educational, community, internal business, and commercial Internal Use;
+(c) inspect and modify the source code for your own Internal Use;
+(d) create Generated Applications with the Software; and
+(e) use, publish, distribute, sell, or otherwise commercialize your own Generated Applications, subject to Section 3.
+
+No rights are granted except those expressly stated in this license.
+
+3. Attribution and Generated Applications
+
+The Software contains mandatory Starlight Quantum Builder attribution intended to identify the build technology used to produce a Generated Application. You must not remove, hide, replace, disable, bypass, obscure, or materially alter that attribution.
+
+This includes the mandatory production splash and associated legal notice containing the wording "Built with Starlight Quantum Builder", or a successor attribution designated by the Licensor in the Software.
+
+The Licensor does not claim ownership of the application content, branding, trademarks, data, or other materials supplied by a user for a Generated Application. Those materials remain the property of their respective owners.
+
+4. Redistribution Restrictions
+
+You may not, without prior written permission from the Licensor:
+
+(a) sell, license, sublicense, rent, lease, publish, mirror, redistribute, or otherwise provide the Software or a modified version of the Software to third parties;
+(b) distribute prebuilt or repackaged copies of the Software outside the official Starlight Unit Studios distribution channels;
+(c) offer the Software, or a modified version, as a hosted service, software-as-a-service product, managed app-builder service, commercial build service, or other service for third parties;
+(d) create, market, or operate a competing product or service substantially based on the Software;
+(e) white-label, rebrand, or present the Software as your own product;
+(f) remove or alter copyright, license, authorship, origin, product-name, or attribution notices; or
+(g) use the Software as a component of a product whose primary purpose is to redistribute, resell, or provide access to the Software itself.
+
+5. GitHub Forks and Contributions
+
+Public GitHub forks are permitted only for code review, experimentation, issue reproduction, or preparing contributions back to the official repository. Such forks must retain this LICENSE file and all copyright and attribution notices.
+
+A permitted fork does not grant permission to operate a public or commercial alternative distribution, hosted service, white-label version, or competing app-builder service.
+
+If you submit a contribution to the official repository, you represent that you have the right to submit it and grant the Licensor a perpetual, worldwide, irrevocable, royalty-free right to use, reproduce, modify, distribute, relicense, and incorporate that contribution into the Software and other Starlight Unit Studios projects.
+
+6. No Trademark License
+
+This license does not grant any right to use the names, logos, marks, trade dress, fictional universe assets, or branding of Starlight Unit Studios, Starlight Quantum Builder, Quantum Mobile Wrapper, Starlight Unit, or related products except where necessary to preserve required attribution or accurately identify compatibility.
+
+You may not use those marks in a way that implies sponsorship, endorsement, ownership, or official status without written permission.
+
+7. Security and Technical Protection
+
+You may not intentionally bypass, disable, defeat, or remove technical measures whose purpose is to preserve signing identity, build provenance, mandatory attribution, license notices, or other integrity protections of the Software or Generated Applications.
+
+8. Reservation of Rights
+
+The Software is licensed, not sold. The Licensor retains all copyright, title, ownership, and other intellectual-property rights in and to the Software.
+
+Any use not expressly permitted by this license requires prior written permission from the Licensor.
+
+9. Termination
+
+Your rights under this license terminate automatically if you materially breach its terms. Upon termination, you must stop using and distributing the Software and any unauthorized derivative or redistributed copies.
+
+Rights may be reinstated only by written permission from the Licensor or after a breach is fully cured where applicable law requires or permits reinstatement.
+
+10. Disclaimer of Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT, TO THE MAXIMUM EXTENT PERMITTED BY LAW.
+
+11. Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE LICENSOR AND CONTRIBUTORS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR FOR LOSS OF DATA, PROFITS, REVENUE, BUSINESS, OR GOODWILL ARISING FROM OR RELATED TO THE SOFTWARE OR THIS LICENSE.
+
+Nothing in this section excludes liability that cannot legally be excluded or limited.
+
+12. Governing Law
+
+This license is governed by the laws of the Federal Republic of Germany, excluding its conflict-of-laws rules, unless mandatory law requires otherwise.
+
+13. Severability
+
+If any provision of this license is held unenforceable, the remaining provisions remain in effect to the fullest extent permitted by law.
+
+14. Written Exceptions
+
+The Licensor may grant additional rights, redistribution permission, commercial hosting rights, OEM rights, or white-label rights only through a separate written agreement.
