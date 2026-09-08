@@ -27,6 +27,8 @@ POLL_SECONDS = max(1, int(os.environ.get("QB_POLL_SECONDS", "3")))
 BUILD_ROOT = DATA_DIR / "builds"
 WORK_ROOT = DATA_DIR / "work"
 SIGNING_ROOT = DATA_DIR / "signing"
+CANONICAL_PRODUCTION_SPLASH = Path(os.environ.get("QB_CANONICAL_PRODUCTION_SPLASH", "/worker/assets/quantum_production_splash.webp")).resolve()
+CANONICAL_PRODUCTION_SPLASH_SIZE = 112976
 
 GRADLE_PHASES = (
     ("android-lint", "Running Android debug lint", "lintDebug"),
@@ -175,6 +177,42 @@ def clone_wrapper(destination: Path, ref: str, output) -> None:
     run(["git", "fetch", "--depth", "1", "origin", ref], cwd=destination, output=output)
     run(["git", "checkout", "--detach", "FETCH_HEAD"], cwd=destination, output=output)
     shutil.rmtree(destination / ".git", ignore_errors=True)
+
+
+def install_mandatory_production_splash(project: Path, output=None) -> Path:
+    source = CANONICAL_PRODUCTION_SPLASH
+    if not source.is_file():
+        raise RuntimeError(f"Mandatory production splash missing: {source}")
+
+    data = source.read_bytes()
+    if len(data) != CANONICAL_PRODUCTION_SPLASH_SIZE:
+        raise RuntimeError(
+            f"Mandatory production splash has unexpected size: {len(data)} bytes "
+            f"(expected {CANONICAL_PRODUCTION_SPLASH_SIZE})"
+        )
+    if len(data) < 12 or data[:4] != b"RIFF" or data[8:12] != b"WEBP":
+        raise RuntimeError("Mandatory production splash is not a valid WebP container")
+
+    drawable_dir = project / "app/src/main/res/drawable-nodpi"
+    drawable_dir.mkdir(parents=True, exist_ok=True)
+    for existing in drawable_dir.glob("quantum_production_splash.*"):
+        existing.unlink()
+
+    target = drawable_dir / "quantum_production_splash.webp"
+    shutil.copy2(source, target)
+    if target.stat().st_size != CANONICAL_PRODUCTION_SPLASH_SIZE:
+        raise RuntimeError("Mandatory production splash copy failed integrity check")
+
+    splash_sha = hashlib.sha256(data).hexdigest()
+    message = (
+        f"Installed mandatory production splash from Quantum Builder source of truth "
+        f"({CANONICAL_PRODUCTION_SPLASH_SIZE} bytes, sha256={splash_sha})"
+    )
+    log(message)
+    if output is not None:
+        output.write(message + "\n")
+        output.flush()
+    return target
 
 
 def random_password(length: int = 48) -> str:
@@ -398,6 +436,9 @@ def compile_build(con: sqlite3.Connection, build: sqlite3.Row) -> None:
     with (artifact_dir / "build.log").open("w", encoding="utf-8") as output:
         update_build(con, build_id, stage="checkout", message=f"Checking out wrapper {ref}")
         clone_wrapper(project, ref, output)
+
+        update_build(con, build_id, stage="branding", message="Installing mandatory Starlight production splash")
+        install_mandatory_production_splash(project, output)
 
         update_build(con, build_id, stage="compile-profile", message="Compiling app profile into wrapper")
         patch_app_config(project, app, config)
