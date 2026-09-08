@@ -97,21 +97,21 @@ jobs:
       - name: Verify canonical production splash was injected
         run: |
           set -euo pipefail
-          rm -f /tmp/quantum_production_splash.webp
+          rm -f /tmp/quantum_production_splash.jpg
           sudo unzip -p var/builds/1/source.zip \
-            app/src/main/res/drawable-nodpi/quantum_production_splash.webp \
-            > /tmp/quantum_production_splash.webp
-          test "$(stat -c%s /tmp/quantum_production_splash.webp)" -eq 112976
+            app/src/main/res/drawable-nodpi/quantum_production_splash.jpg \
+            > /tmp/quantum_production_splash.jpg
+          test "$(stat -c%s /tmp/quantum_production_splash.jpg)" -eq 112976
           expected="$(sha256sum public/assets/799645628_1052852437562992_1942421779255659784_n-1.webp | awk '{print $1}')"
-          actual="$(sha256sum /tmp/quantum_production_splash.webp | awk '{print $1}')"
+          actual="$(sha256sum /tmp/quantum_production_splash.jpg | awk '{print $1}')"
           test "$actual" = "$expected"
           python3 - <<'PY'
           from pathlib import Path
-          data = Path('/tmp/quantum_production_splash.webp').read_bytes()
-          assert data[:4] == b'RIFF' and data[8:12] == b'WEBP'
+          data = Path('/tmp/quantum_production_splash.jpg').read_bytes()
+          assert data[:3] == b'\xff\xd8\xff'
           PY
-          if sudo unzip -l var/builds/1/source.zip | grep -q 'quantum_production_splash\.jpg'; then
-            echo 'Legacy JPEG production splash survived builder injection.' >&2
+          if sudo unzip -l var/builds/1/source.zip | grep -q 'quantum_production_splash\.webp'; then
+            echo 'Legacy/mislabeled WebP splash survived builder injection.' >&2
             exit 1
           fi
 
