@@ -17,13 +17,64 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply staged patch
+      - name: Apply deterministic source rewrites
         shell: bash
         run: |
           set -euo pipefail
-          grep -v '^index ' .github/patches/canonical-production-splash.patch > /tmp/canonical-production-splash.patch
-          git apply --check /tmp/canonical-production-splash.patch
-          git apply /tmp/canonical-production-splash.patch
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one match, found {count}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          replace_once(
+              'docker/worker/Dockerfile',
+              'WORKDIR /worker\nCOPY docker/worker/worker.py /worker/worker.py\n\nCMD ["python3", "/worker/worker.py"]\n',
+              'WORKDIR /worker\nCOPY docker/worker/worker.py /worker/worker.py\nRUN mkdir -p /worker/assets\nCOPY public/assets/799645628_1052852437562992_1942421779255659784_n-1.webp \\\n     /worker/assets/quantum_production_splash.webp\n\nCMD ["python3", "/worker/worker.py"]\n',
+          )
+
+          replace_once(
+              'docker/worker/worker.py',
+              'SIGNING_ROOT = DATA_DIR / "signing"\n\nGRADLE_PHASES = (',
+              'SIGNING_ROOT = DATA_DIR / "signing"\nCANONICAL_PRODUCTION_SPLASH = Path(os.environ.get("QB_CANONICAL_PRODUCTION_SPLASH", "/worker/assets/quantum_production_splash.webp")).resolve()\nCANONICAL_PRODUCTION_SPLASH_SIZE = 112976\n\nGRADLE_PHASES = (',
+          )
+
+          replace_once(
+              'docker/worker/worker.py',
+              '    shutil.rmtree(destination / ".git", ignore_errors=True)\n\n\ndef random_password(length: int = 48) -> str:\n',
+              '''    shutil.rmtree(destination / ".git", ignore_errors=True)\n\n\ndef install_mandatory_production_splash(project: Path, output=None) -> Path:\n    source = CANONICAL_PRODUCTION_SPLASH\n    if not source.is_file():\n        raise RuntimeError(f"Mandatory production splash missing: {source}")\n\n    data = source.read_bytes()\n    if len(data) != CANONICAL_PRODUCTION_SPLASH_SIZE:\n        raise RuntimeError(\n            f"Mandatory production splash has unexpected size: {len(data)} bytes "\n            f"(expected {CANONICAL_PRODUCTION_SPLASH_SIZE})"\n        )\n    if len(data) < 12 or data[:4] != b"RIFF" or data[8:12] != b"WEBP":\n        raise RuntimeError("Mandatory production splash is not a valid WebP container")\n\n    drawable_dir = project / "app/src/main/res/drawable-nodpi"\n    drawable_dir.mkdir(parents=True, exist_ok=True)\n    for existing in drawable_dir.glob("quantum_production_splash.*"):\n        existing.unlink()\n\n    target = drawable_dir / "quantum_production_splash.webp"\n    shutil.copy2(source, target)\n    if target.stat().st_size != CANONICAL_PRODUCTION_SPLASH_SIZE:\n        raise RuntimeError("Mandatory production splash copy failed integrity check")\n\n    splash_sha = hashlib.sha256(data).hexdigest()\n    message = (\n        f"Installed mandatory production splash from Quantum Builder source of truth "\n        f"({CANONICAL_PRODUCTION_SPLASH_SIZE} bytes, sha256={splash_sha})"\n    )\n    log(message)\n    if output is not None:\n        output.write(message + "\\n")\n        output.flush()\n    return target\n\n\ndef random_password(length: int = 48) -> str:\n''',
+          )
+
+          replace_once(
+              'docker/worker/worker.py',
+              '        clone_wrapper(project, ref, output)\n\n        update_build(con, build_id, stage="compile-profile", message="Compiling app profile into wrapper")\n',
+              '        clone_wrapper(project, ref, output)\n\n        update_build(con, build_id, stage="branding", message="Installing mandatory Starlight production splash")\n        install_mandatory_production_splash(project, output)\n\n        update_build(con, build_id, stage="compile-profile", message="Compiling app profile into wrapper")\n',
+          )
+
+          replace_once(
+              'tests/test_worker.py',
+              'import importlib.util\nimport json\nimport tempfile\n',
+              'import importlib.util\nimport io\nimport json\nimport tempfile\n',
+          )
+
+          replace_once(
+              'tests/test_worker.py',
+              '    def test_generated_release_build_uses_staged_gradle_phases(self):\n',
+              '''    def test_mandatory_production_splash_replaces_wrapper_copy(self):\n        source = self.root / "canonical.webp"\n        payload = b"RIFF" + b"\\x00\\x00\\x00\\x00" + b"WEBP"\n        payload += b"\\x00" * (worker.CANONICAL_PRODUCTION_SPLASH_SIZE - len(payload))\n        source.write_bytes(payload)\n\n        drawable = self.root / "app/src/main/res/drawable-nodpi"\n        drawable.mkdir(parents=True, exist_ok=True)\n        stale_jpg = drawable / "quantum_production_splash.jpg"\n        stale_jpg.write_bytes(b"stale")\n\n        previous = worker.CANONICAL_PRODUCTION_SPLASH\n        worker.CANONICAL_PRODUCTION_SPLASH = source\n        try:\n            output = io.StringIO()\n            target = worker.install_mandatory_production_splash(self.root, output)\n        finally:\n            worker.CANONICAL_PRODUCTION_SPLASH = previous\n\n        self.assertFalse(stale_jpg.exists())\n        self.assertEqual(target.name, "quantum_production_splash.webp")\n        self.assertEqual(target.read_bytes(), payload)\n        self.assertIn("Installed mandatory production splash", output.getvalue())\n\n    def test_generated_release_build_uses_staged_gradle_phases(self):\n''',
+          )
+
+          integration_step = '''\n      - name: Verify canonical production splash was injected\n        run: |\n          set -euo pipefail\n          rm -f /tmp/quantum_production_splash.webp\n          sudo unzip -p var/builds/1/source.zip \\\n            app/src/main/res/drawable-nodpi/quantum_production_splash.webp \\\n            > /tmp/quantum_production_splash.webp\n          test "$(stat -c%s /tmp/quantum_production_splash.webp)" -eq 112976\n          python3 - <<'CHECK'\n          from pathlib import Path\n          data = Path('/tmp/quantum_production_splash.webp').read_bytes()\n          assert data[:4] == b'RIFF' and data[8:12] == b'WEBP'\n          CHECK\n          if sudo unzip -l var/builds/1/source.zip | grep -q 'quantum_production_splash\\.jpg'; then\n            echo 'Legacy JPEG production splash survived builder injection.' >&2\n            exit 1\n          fi\n\n'''
+          replace_once(
+              '.github/workflows/android-worker-integration.yml',
+              '      - name: Verify Android identity and signature\n',
+              integration_step + '      - name: Verify Android identity and signature\n',
+          )
+          PY
 
       - name: Run worker unit tests
         run: python3 -m unittest tests/test_worker.py
