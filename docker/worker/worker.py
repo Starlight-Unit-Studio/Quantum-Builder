@@ -27,7 +27,7 @@ POLL_SECONDS = max(1, int(os.environ.get("QB_POLL_SECONDS", "3")))
 BUILD_ROOT = DATA_DIR / "builds"
 WORK_ROOT = DATA_DIR / "work"
 SIGNING_ROOT = DATA_DIR / "signing"
-CANONICAL_PRODUCTION_SPLASH = Path(os.environ.get("QB_CANONICAL_PRODUCTION_SPLASH", "/worker/assets/quantum_production_splash.webp")).resolve()
+CANONICAL_PRODUCTION_SPLASH = Path(os.environ.get("QB_CANONICAL_PRODUCTION_SPLASH", "/worker/assets/quantum_production_splash.jpg")).resolve()
 CANONICAL_PRODUCTION_SPLASH_SIZE = 112976
 
 GRADLE_PHASES = (
@@ -190,15 +190,15 @@ def install_mandatory_production_splash(project: Path, output=None) -> Path:
             f"Mandatory production splash has unexpected size: {len(data)} bytes "
             f"(expected {CANONICAL_PRODUCTION_SPLASH_SIZE})"
         )
-    if len(data) < 12 or data[:4] != b"RIFF" or data[8:12] != b"WEBP":
-        raise RuntimeError("Mandatory production splash is not a valid WebP container")
+    if len(data) < 3 or data[:3] != b"\xff\xd8\xff":
+        raise RuntimeError("Mandatory production splash is not valid JPEG data")
 
     drawable_dir = project / "app/src/main/res/drawable-nodpi"
     drawable_dir.mkdir(parents=True, exist_ok=True)
     for existing in drawable_dir.glob("quantum_production_splash.*"):
         existing.unlink()
 
-    target = drawable_dir / "quantum_production_splash.webp"
+    target = drawable_dir / "quantum_production_splash.jpg"
     shutil.copy2(source, target)
     if target.stat().st_size != CANONICAL_PRODUCTION_SPLASH_SIZE:
         raise RuntimeError("Mandatory production splash copy failed integrity check")

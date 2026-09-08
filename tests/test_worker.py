@@ -91,15 +91,15 @@ class WorkerCompilerTests(unittest.TestCase):
         self.assertNotIn("keystore", json.dumps(data).lower())
 
     def test_mandatory_production_splash_replaces_wrapper_copy(self):
-        source = self.root / "canonical.webp"
-        payload = b"RIFF" + b"\x00\x00\x00\x00" + b"WEBP"
+        source = self.root / "canonical.jpg"
+        payload = b"\xff\xd8\xff\xe0"
         payload += b"\x00" * (worker.CANONICAL_PRODUCTION_SPLASH_SIZE - len(payload))
         source.write_bytes(payload)
 
         drawable = self.root / "app/src/main/res/drawable-nodpi"
         drawable.mkdir(parents=True, exist_ok=True)
-        stale_jpg = drawable / "quantum_production_splash.jpg"
-        stale_jpg.write_bytes(b"stale")
+        stale_webp = drawable / "quantum_production_splash.webp"
+        stale_webp.write_bytes(b"stale")
 
         previous = worker.CANONICAL_PRODUCTION_SPLASH
         worker.CANONICAL_PRODUCTION_SPLASH = source
@@ -109,8 +109,8 @@ class WorkerCompilerTests(unittest.TestCase):
         finally:
             worker.CANONICAL_PRODUCTION_SPLASH = previous
 
-        self.assertFalse(stale_jpg.exists())
-        self.assertEqual(target.name, "quantum_production_splash.webp")
+        self.assertFalse(stale_webp.exists())
+        self.assertEqual(target.name, "quantum_production_splash.jpg")
         self.assertEqual(target.read_bytes(), payload)
         self.assertIn("Installed mandatory production splash", output.getvalue())
 
