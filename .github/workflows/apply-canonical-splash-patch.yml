@@ -1,0 +1,42 @@
+name: Apply canonical production splash patch
+
+on:
+  push:
+    branches:
+      - fix/builder-canonical-production-splash
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply staged patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -v '^index ' .github/patches/canonical-production-splash.patch > /tmp/canonical-production-splash.patch
+          git apply --check /tmp/canonical-production-splash.patch
+          git apply /tmp/canonical-production-splash.patch
+
+      - name: Run worker unit tests
+        run: python3 -m unittest tests/test_worker.py
+
+      - name: Remove one-shot patch machinery and commit result
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/patches/canonical-production-splash.patch
+          rm -f .github/workflows/apply-canonical-splash-patch.yml
+          rmdir .github/patches 2>/dev/null || true
+          git config user.name 'Starlight Unit Studios'
+          git config user.email 'kontakt@starlight-unit.de'
+          git add -A
+          git commit -m 'fix: inject canonical production splash during builds'
+          git push origin HEAD:fix/builder-canonical-production-splash
