@@ -67,27 +67,20 @@ jobs:
               '    def test_generated_release_build_uses_staged_gradle_phases(self):\n',
               '''    def test_mandatory_production_splash_replaces_wrapper_copy(self):\n        source = self.root / "canonical.webp"\n        payload = b"RIFF" + b"\\x00\\x00\\x00\\x00" + b"WEBP"\n        payload += b"\\x00" * (worker.CANONICAL_PRODUCTION_SPLASH_SIZE - len(payload))\n        source.write_bytes(payload)\n\n        drawable = self.root / "app/src/main/res/drawable-nodpi"\n        drawable.mkdir(parents=True, exist_ok=True)\n        stale_jpg = drawable / "quantum_production_splash.jpg"\n        stale_jpg.write_bytes(b"stale")\n\n        previous = worker.CANONICAL_PRODUCTION_SPLASH\n        worker.CANONICAL_PRODUCTION_SPLASH = source\n        try:\n            output = io.StringIO()\n            target = worker.install_mandatory_production_splash(self.root, output)\n        finally:\n            worker.CANONICAL_PRODUCTION_SPLASH = previous\n\n        self.assertFalse(stale_jpg.exists())\n        self.assertEqual(target.name, "quantum_production_splash.webp")\n        self.assertEqual(target.read_bytes(), payload)\n        self.assertIn("Installed mandatory production splash", output.getvalue())\n\n    def test_generated_release_build_uses_staged_gradle_phases(self):\n''',
           )
-
-          integration_step = '''\n      - name: Verify canonical production splash was injected\n        run: |\n          set -euo pipefail\n          rm -f /tmp/quantum_production_splash.webp\n          sudo unzip -p var/builds/1/source.zip \\\n            app/src/main/res/drawable-nodpi/quantum_production_splash.webp \\\n            > /tmp/quantum_production_splash.webp\n          test "$(stat -c%s /tmp/quantum_production_splash.webp)" -eq 112976\n          python3 - <<'CHECK'\n          from pathlib import Path\n          data = Path('/tmp/quantum_production_splash.webp').read_bytes()\n          assert data[:4] == b'RIFF' and data[8:12] == b'WEBP'\n          CHECK\n          if sudo unzip -l var/builds/1/source.zip | grep -q 'quantum_production_splash\\.jpg'; then\n            echo 'Legacy JPEG production splash survived builder injection.' >&2\n            exit 1\n          fi\n\n'''
-          replace_once(
-              '.github/workflows/android-worker-integration.yml',
-              '      - name: Verify Android identity and signature\n',
-              integration_step + '      - name: Verify Android identity and signature\n',
-          )
           PY
 
       - name: Run worker unit tests
         run: python3 -m unittest tests/test_worker.py
 
-      - name: Remove one-shot patch machinery and commit result
+      - name: Commit source changes
         shell: bash
         run: |
           set -euo pipefail
           rm -f .github/patches/canonical-production-splash.patch
-          rm -f .github/workflows/apply-canonical-splash-patch.yml
           rmdir .github/patches 2>/dev/null || true
+          find . -type d -name __pycache__ -prune -exec rm -rf {} +
           git config user.name 'Starlight Unit Studios'
           git config user.email 'kontakt@starlight-unit.de'
-          git add -A
+          git add docker/worker/Dockerfile docker/worker/worker.py tests/test_worker.py .github/patches || true
           git commit -m 'fix: inject canonical production splash during builds'
           git push origin HEAD:fix/builder-canonical-production-splash
