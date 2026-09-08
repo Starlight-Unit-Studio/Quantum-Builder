@@ -94,6 +94,27 @@ jobs:
             exit 1
           fi
 
+      - name: Verify canonical production splash was injected
+        run: |
+          set -euo pipefail
+          rm -f /tmp/quantum_production_splash.webp
+          sudo unzip -p var/builds/1/source.zip \
+            app/src/main/res/drawable-nodpi/quantum_production_splash.webp \
+            > /tmp/quantum_production_splash.webp
+          test "$(stat -c%s /tmp/quantum_production_splash.webp)" -eq 112976
+          expected="$(sha256sum public/assets/799645628_1052852437562992_1942421779255659784_n-1.webp | awk '{print $1}')"
+          actual="$(sha256sum /tmp/quantum_production_splash.webp | awk '{print $1}')"
+          test "$actual" = "$expected"
+          python3 - <<'PY'
+          from pathlib import Path
+          data = Path('/tmp/quantum_production_splash.webp').read_bytes()
+          assert data[:4] == b'RIFF' and data[8:12] == b'WEBP'
+          PY
+          if sudo unzip -l var/builds/1/source.zip | grep -q 'quantum_production_splash\.jpg'; then
+            echo 'Legacy JPEG production splash survived builder injection.' >&2
+            exit 1
+          fi
+
       - name: Verify Android identity and signature
         run: |
           docker compose exec -T worker sh -lc '
