@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 import json
 import os
@@ -275,6 +277,16 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
     start_host = parsed.hostname or str(config.get("trusted_domain") or "")
     trusted = str(config.get("trusted_domain") or start_host)
     web = config.get("web", {})
+    plugins = config.get("plugins", {})
+    custom_headers = web.get("custom_headers", {})
+    if not isinstance(custom_headers, dict):
+        custom_headers = {}
+    asset_sync = config.get("asset_sync", {})
+    if not isinstance(asset_sync, dict):
+        asset_sync = {}
+    manifest_url = str(asset_sync.get("manifest_url") or "").strip()
+    if manifest_url.startswith("/"):
+        manifest_url = f"{parsed.scheme}://{start_host}{manifest_url}"
 
     string_values = {
         "START_URL": str(app["start_url"]),
@@ -283,6 +295,9 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
         "USER_AGENT_SUFFIX": str(web.get("user_agent_suffix") or " QuantumMobileWrapper") + "/" + str(app["version_name"]),
         "ASSET_STORE_TRUSTED_HOST": start_host,
         "APP_HEADER_VALUE": re.sub(r"[^a-z0-9-]+", "-", str(app["package_id"]).lower()).strip("-"),
+        "CUSTOM_REQUEST_HEADERS_JSON": json.dumps(custom_headers, ensure_ascii=False, separators=(",", ":")),
+        "ASSET_MANIFEST_URL": manifest_url,
+        "ASSET_DOWNLOADER_ROOTS": str(asset_sync.get("roots") or ""),
     }
     for constant, value in string_values.items():
         text = replace_once(
@@ -292,13 +307,20 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
             f"AppConfig.{constant}",
         )
 
-    keep_screen = "true" if bool(config.get("interface", {}).get("keep_screen_on")) else "false"
-    text = replace_once(
-        text,
-        r'(public static final boolean KEEP_SCREEN_ON\s*=\s*)(true|false)(;)',
-        rf'\g<1>{keep_screen}\g<3>',
-        "AppConfig.KEEP_SCREEN_ON",
-    )
+    boolean_values = {
+        "KEEP_SCREEN_ON": bool(config.get("interface", {}).get("keep_screen_on")),
+        "QUANTUM_ASSET_STORE_ENABLED": bool(plugins.get("quantum_asset_store")),
+        "ASSET_STORE_PAGE_WARMUP_ENABLED": False,
+        "NATIVE_ASSET_DOWNLOADER_ENABLED": bool(plugins.get("native_asset_downloader")),
+    }
+    for constant, enabled in boolean_values.items():
+        value = "true" if enabled else "false"
+        text = replace_once(
+            text,
+            rf'(public static final boolean {re.escape(constant)}\s*=\s*)(true|false)(;)',
+            rf'\g<1>{value}\g<3>',
+            f"AppConfig.{constant}",
+        )
     path.write_text(text, encoding="utf-8")
 
 
@@ -337,6 +359,45 @@ def patch_gradle(project: Path, app: sqlite3.Row) -> None:
         body = "\n            signingConfig signingConfigs.release" + body
         tail = tail[:match.start(2)] + body + tail[match.end(2):]
     path.write_text(prefix + tail, encoding="utf-8")
+
+
+def install_profile_launcher_icon(project: Path, config: dict[str, Any]) -> None:
+    theme = config.get("theme", {})
+    data_url = theme.get("app_icon_data_url", "") if isinstance(theme, dict) else ""
+    if not isinstance(data_url, str) or not data_url:
+        return
+
+    match = re.fullmatch(r"data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)", data_url)
+    if not match:
+        raise RuntimeError("Profile app icon is not a supported data URL")
+
+    extension = {"png": "png", "jpeg": "jpg", "webp": "webp"}[match.group(1)]
+    try:
+        payload = base64.b64decode(match.group(2), validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise RuntimeError("Profile app icon base64 is invalid") from exc
+
+    if not payload or len(payload) > 600 * 1024:
+        raise RuntimeError("Profile app icon must be between 1 byte and 600 KiB")
+    if extension == "png" and not payload.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise RuntimeError("Profile PNG icon signature is invalid")
+    if extension == "jpg" and not payload.startswith(b"\xff\xd8\xff"):
+        raise RuntimeError("Profile JPEG icon signature is invalid")
+    if extension == "webp" and not (len(payload) >= 12 and payload[:4] == b"RIFF" and payload[8:12] == b"WEBP"):
+        raise RuntimeError("Profile WebP icon signature is invalid")
+
+    drawable_dir = project / "app/src/main/res/drawable-nodpi"
+    drawable_dir.mkdir(parents=True, exist_ok=True)
+    for old in drawable_dir.glob("quantum_app_icon.*"):
+        old.unlink()
+    target = drawable_dir / f"quantum_app_icon.{extension}"
+    target.write_bytes(payload)
+
+    manifest = project / "app/src/main/AndroidManifest.xml"
+    text = manifest.read_text(encoding="utf-8")
+    text = replace_once(text, r'android:icon="@[^"]+"', 'android:icon="@drawable/quantum_app_icon"', "launcher icon")
+    text = replace_once(text, r'android:roundIcon="@[^"]+"', 'android:roundIcon="@drawable/quantum_app_icon"', "round launcher icon")
+    manifest.write_text(text, encoding="utf-8")
 
 
 def patch_strings(project: Path, app: sqlite3.Row) -> None:
@@ -443,6 +504,7 @@ def compile_build(con: sqlite3.Connection, build: sqlite3.Row) -> None:
         update_build(con, build_id, stage="compile-profile", message="Compiling app profile into wrapper")
         patch_app_config(project, app, config)
         patch_gradle(project, app)
+        install_profile_launcher_icon(project, config)
         patch_strings(project, app)
         patch_manifest(project, config)
         write_profile(project, app, config, build_id)

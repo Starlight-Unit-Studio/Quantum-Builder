@@ -10,6 +10,7 @@
     savePromise: null,
     formRevision: 0,
     savedRevision: 0,
+    appIconDataUrl: '',
   };
 
   const $ = (id) => document.getElementById(id);
@@ -176,6 +177,9 @@
     $('statusBarColor').value = get(config, 'theme.status_bar', '#020611');
     $('navigationBarColor').value = get(config, 'theme.navigation_bar', '#020611');
     $('splashBackground').value = get(config, 'theme.splash_background', '#020611');
+    state.appIconDataUrl = get(config, 'theme.app_icon_data_url', '');
+    $('appIconFile').value = '';
+    $('appIconState').textContent = state.appIconDataUrl ? 'Eigenes App-Icon gespeichert' : 'Standard-Icon aktiv';
 
     $('darkMode').value = get(config, 'interface.dark_mode', 'dark');
     $('orientation').value = get(config, 'interface.orientation', 'auto');
@@ -208,6 +212,9 @@
 
     $('pluginNmp').checked = Boolean(get(config, 'plugins.quantum_nmp', false));
     $('pluginAssetStore').checked = Boolean(get(config, 'plugins.quantum_asset_store', false));
+    $('pluginAssetDownloader').checked = Boolean(get(config, 'plugins.native_asset_downloader', false));
+    $('assetManifestUrl').value = get(config, 'asset_sync.manifest_url', '');
+    $('assetRoots').value = get(config, 'asset_sync.roots', '/assets/portraits/');
     $('pluginShare').checked = Boolean(get(config, 'plugins.share', false));
     $('pluginHaptics').checked = Boolean(get(config, 'plugins.haptics', false));
     $('pluginBiometrics').checked = Boolean(get(config, 'plugins.biometrics', false));
@@ -242,6 +249,7 @@
         theme: {
           primary: $('primaryColor').value, accent: $('accentColor').value, status_bar: $('statusBarColor').value,
           navigation_bar: $('navigationBarColor').value, splash_background: $('splashBackground').value,
+          app_icon_data_url: state.appIconDataUrl,
         },
         interface: {
           dark_mode: $('darkMode').value, orientation: $('orientation').value, keep_screen_on: $('keepScreenOn').checked,
@@ -263,8 +271,13 @@
         },
         plugins: {
           quantum_nmp: $('pluginNmp').checked, quantum_asset_store: $('pluginAssetStore').checked,
+          native_asset_downloader: $('pluginAssetDownloader').checked,
           share: $('pluginShare').checked, haptics: $('pluginHaptics').checked, biometrics: $('pluginBiometrics').checked,
           qr_scanner: $('pluginQr').checked, push_fcm: $('pluginFcm').checked,
+        },
+        asset_sync: {
+          manifest_url: $('assetManifestUrl').value.trim(),
+          roots: $('assetRoots').value.trim(),
         },
       },
     };
@@ -447,6 +460,47 @@
     }
   };
 
+  const readAppIcon = (file) => new Promise((resolve, reject) => {
+    if (!file) {
+      resolve('');
+      return;
+    }
+    const allowed = new Set(['image/png', 'image/jpeg', 'image/webp']);
+    if (!allowed.has(file.type)) {
+      reject(new Error('App Icon muss PNG, JPEG oder WebP sein.'));
+      return;
+    }
+    if (file.size > 600 * 1024) {
+      reject(new Error('App Icon ist zu groß. Bitte maximal ca. 600 KB verwenden.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('App Icon konnte nicht gelesen werden.'));
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.readAsDataURL(file);
+  });
+
+  const handleAppIconChange = async () => {
+    const input = $('appIconFile');
+    const file = input?.files?.[0];
+    if (!file) return;
+    try {
+      state.appIconDataUrl = await readAppIcon(file);
+      $('appIconState').textContent = `Eigenes Icon: ${file.name}`;
+      markDirty();
+    } catch (error) {
+      input.value = '';
+      alert(error.message);
+    }
+  };
+
+  const removeAppIcon = () => {
+    state.appIconDataUrl = '';
+    $('appIconFile').value = '';
+    $('appIconState').textContent = 'Standard-Icon aktiv';
+    markDirty();
+  };
+
   const persistOnPageHide = () => {
     if (!state.currentApp || !state.csrf || state.formRevision <= state.savedRevision) return;
     let payload;
@@ -480,6 +534,8 @@
     $('saveAppButton').addEventListener('click', () => saveApp({ silent: false, force: true }));
     $('rebuildAllButton').addEventListener('click', queueBuild);
     $('mobileNavToggle').addEventListener('click', openMobileNav);
+    $('appIconFile').addEventListener('change', handleAppIconChange);
+    $('removeAppIconButton').addEventListener('click', removeAppIcon);
 
     const versionCodeField = $('versionCode');
     versionCodeField.readOnly = true;
@@ -487,13 +543,13 @@
     versionCodeField.title = 'Wird bei jedem Build automatisch erhöht.';
 
     qsa('[data-section]').forEach((button) => button.addEventListener('click', () => showSection(button.dataset.section)));
-    qsa('#appForm input, #appForm select, #appForm textarea').forEach((input) => {
+    qsa('#appForm input:not([type="file"]), #appForm select, #appForm textarea').forEach((input) => {
       input.addEventListener('change', () => {
         updateSimulator();
         markDirty();
       });
     });
-    qsa('#appForm input, #appForm textarea').forEach((input) => {
+    qsa('#appForm input:not([type="file"]), #appForm textarea').forEach((input) => {
       input.addEventListener('input', () => {
         updateSimulator();
         markDirty();

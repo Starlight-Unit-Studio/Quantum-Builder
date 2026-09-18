@@ -260,3 +260,7 @@ textarea.field{resize:vertical;line-height:1.45}
   .apps-grid{grid-template-columns:1fr}.app-card__meta{grid-template-columns:repeat(2,1fr)}
   .build-row{grid-template-columns:1fr}.build-actions{justify-content:flex-start}
 }
+
+
+.app-icon-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+#appIconState{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px}

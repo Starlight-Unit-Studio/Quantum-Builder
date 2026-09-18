@@ -34,7 +34,9 @@ class WorkerCompilerTests(unittest.TestCase):
         self.config = {
             "trusted_domain": "example.test",
             "interface": {"keep_screen_on": False, "orientation": "portrait"},
-            "web": {"user_agent_suffix": " QuantumTest"},
+            "web": {"user_agent_suffix": " QuantumTest", "custom_headers": {"X-Test-Client": "phone"}},
+            "plugins": {"quantum_asset_store": True, "native_asset_downloader": True},
+            "asset_sync": {"manifest_url": "/api/asset-manifest.json", "roots": "/assets/portraits/"},
             "permissions": {"location": True, "microphone": True, "camera": True},
         }
 
@@ -60,7 +62,7 @@ class WorkerCompilerTests(unittest.TestCase):
     def test_app_config_compiles_identity_and_keep_screen_on(self):
         path = self.root / "app/src/main/java/de/starlightunit/wrapper/config/AppConfig.java"
         path.write_text(
-            """package de.starlightunit.wrapper.config;\npublic final class AppConfig {\n public static final String START_URL = \"https://old.test/\";\n public static final String TRUSTED_DOMAIN = \"old.test\";\n public static final String VERSION_NAME = \"0.0.1\";\n public static final String USER_AGENT_SUFFIX = \" old/\" + VERSION_NAME;\n public static final String ASSET_STORE_TRUSTED_HOST = \"old.test\";\n public static final String APP_HEADER_VALUE = \"old\";\n public static final boolean KEEP_SCREEN_ON = true;\n}\n""",
+            """package de.starlightunit.wrapper.config;\npublic final class AppConfig {\n public static final String START_URL = \"https://old.test/\";\n public static final String TRUSTED_DOMAIN = \"old.test\";\n public static final String VERSION_NAME = \"0.0.1\";\n public static final String USER_AGENT_SUFFIX = \" old/\" + VERSION_NAME;\n public static final String ASSET_STORE_TRUSTED_HOST = \"old.test\";\n public static final String APP_HEADER_VALUE = \"old\";\n public static final String CUSTOM_REQUEST_HEADERS_JSON = \"{}\";\n public static final String ASSET_MANIFEST_URL = \"\";\n public static final String ASSET_DOWNLOADER_ROOTS = \"\";\n public static final boolean QUANTUM_ASSET_STORE_ENABLED = false;\n public static final boolean ASSET_STORE_PAGE_WARMUP_ENABLED = true;\n public static final boolean NATIVE_ASSET_DOWNLOADER_ENABLED = false;\n public static final boolean KEEP_SCREEN_ON = true;\n}\n""",
             encoding="utf-8",
         )
         worker.patch_app_config(self.root, self.app, self.config)
@@ -69,6 +71,28 @@ class WorkerCompilerTests(unittest.TestCase):
         self.assertIn('TRUSTED_DOMAIN = "example.test";', text)
         self.assertIn('ASSET_STORE_TRUSTED_HOST = "example.test";', text)
         self.assertIn('KEEP_SCREEN_ON = false;', text)
+        self.assertIn('QUANTUM_ASSET_STORE_ENABLED = true;', text)
+        self.assertIn('ASSET_STORE_PAGE_WARMUP_ENABLED = false;', text)
+        self.assertIn('CUSTOM_REQUEST_HEADERS_JSON = "{\\\"X-Test-Client\\\":\\\"phone\\\"}";', text)
+        self.assertIn('ASSET_MANIFEST_URL = "https://example.test/api/asset-manifest.json";', text)
+        self.assertIn('ASSET_DOWNLOADER_ROOTS = "/assets/portraits/";', text)
+        self.assertIn('NATIVE_ASSET_DOWNLOADER_ENABLED = true;', text)
+
+    def test_profile_launcher_icon_replaces_manifest_launcher_resource(self):
+        manifest = self.root / "app/src/main/AndroidManifest.xml"
+        manifest.write_text(
+            '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher"></application></manifest>',
+            encoding="utf-8",
+        )
+        png = b"\x89PNG\r\n\x1a\n" + b"icon"
+        import base64
+        config = {"theme": {"app_icon_data_url": "data:image/png;base64," + base64.b64encode(png).decode("ascii")}}
+        worker.install_profile_launcher_icon(self.root, config)
+        icon = self.root / "app/src/main/res/drawable-nodpi/quantum_app_icon.png"
+        self.assertEqual(icon.read_bytes(), png)
+        text = manifest.read_text(encoding="utf-8")
+        self.assertIn('android:icon="@drawable/quantum_app_icon"', text)
+        self.assertIn('android:roundIcon="@drawable/quantum_app_icon"', text)
 
     def test_manifest_adds_only_requested_runtime_permissions(self):
         manifest = self.root / "app/src/main/AndroidManifest.xml"
