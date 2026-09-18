@@ -281,6 +281,12 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
     custom_headers = web.get("custom_headers", {})
     if not isinstance(custom_headers, dict):
         custom_headers = {}
+    asset_sync = config.get("asset_sync", {})
+    if not isinstance(asset_sync, dict):
+        asset_sync = {}
+    manifest_url = str(asset_sync.get("manifest_url") or "").strip()
+    if manifest_url.startswith("/"):
+        manifest_url = f"{parsed.scheme}://{start_host}{manifest_url}"
 
     string_values = {
         "START_URL": str(app["start_url"]),
@@ -290,6 +296,8 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
         "ASSET_STORE_TRUSTED_HOST": start_host,
         "APP_HEADER_VALUE": re.sub(r"[^a-z0-9-]+", "-", str(app["package_id"]).lower()).strip("-"),
         "CUSTOM_REQUEST_HEADERS_JSON": json.dumps(custom_headers, ensure_ascii=False, separators=(",", ":")),
+        "ASSET_MANIFEST_URL": manifest_url,
+        "ASSET_DOWNLOADER_ROOTS": str(asset_sync.get("roots") or ""),
     }
     for constant, value in string_values.items():
         text = replace_once(
@@ -303,6 +311,7 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
         "KEEP_SCREEN_ON": bool(config.get("interface", {}).get("keep_screen_on")),
         "QUANTUM_ASSET_STORE_ENABLED": bool(plugins.get("quantum_asset_store")),
         "ASSET_STORE_PAGE_WARMUP_ENABLED": False,
+        "NATIVE_ASSET_DOWNLOADER_ENABLED": bool(plugins.get("native_asset_downloader")),
     }
     for constant, enabled in boolean_values.items():
         value = "true" if enabled else "false"
