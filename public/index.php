@@ -150,6 +150,12 @@ $authenticated = $auth->isLoggedIn();
                   <label class="toggle"><input id="pullToRefresh" type="checkbox"><span>Pull-to-Refresh</span></label>
                   <label class="toggle"><input id="pinchToZoom" type="checkbox"><span>Pinch-to-Zoom</span></label>
                   <label><span class="field-label">Font Scale %</span><input class="field" id="fontScale" type="number" min="50" max="200" step="5"></label>
+                  <label><span class="field-label">Ladeanzeige</span><select class="field" id="loadingIndicatorStyle"><option value="none">Aus</option><option value="top-bar">Ladebalken oben</option><option value="bottom-bar">Ladebalken unten</option><option value="center-spinner">Ladekreis mittig</option><option value="fullscreen-spinner">Vollbild-Ladekreis</option></select></label>
+                  <label><span class="field-label">Ladefarbe</span><input class="field color-field" id="loadingIndicatorColor" type="color"></label>
+                  <label><span class="field-label">Balkenhöhe (dp)</span><input class="field" id="loadingBarThickness" type="number" min="1" max="12" step="1"></label>
+                  <label><span class="field-label">Kreisgröße (dp)</span><input class="field" id="loadingSpinnerSize" type="number" min="24" max="128" step="4"></label>
+                  <label><span class="field-label">Overlay-Abdunklung %</span><input class="field" id="loadingOverlayDim" type="number" min="0" max="90" step="5"></label>
+                  <div class="notice span-2">Die Ladeanzeige wird nativ vom Wrapper gesteuert und erscheint bei WebView-Navigationen nach dem STU-Splash. Der bisherige Ladebalken oben bleibt der Standard.</div>
                 </div>
               </section>
 

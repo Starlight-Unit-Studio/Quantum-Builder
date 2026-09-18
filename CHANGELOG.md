@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+Per-app native loading indicator controls.
+
+- Adds native loading UI choices for none, top bar, bottom bar, centered spinner and fullscreen spinner.
+- Adds per-profile color, bar thickness, spinner size and fullscreen overlay dimming.
+- Persists the settings in the app profile and compiles them into the Android wrapper during every build.
+- Keeps the existing top loading bar as the default so older profiles retain current behavior.
+- Keeps loading UI independent from the mandatory STU production splash.
+
 ## 0.1.0-alpha3
 
 Custom-header object contract hotfix.
