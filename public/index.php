@@ -200,13 +200,18 @@ $authenticated = $auth->isLoggedIn();
                 <div class="plugin-grid">
                   <label class="plugin-card"><input id="pluginNmp" type="checkbox"><strong>Quantum NMP</strong><span>Persistenter Native Media Player</span></label>
                   <label class="plugin-card"><input id="pluginAssetStore" type="checkbox"><strong>Quantum Asset Store</strong><span>Persistente statische Web-Assets</span></label>
+                  <label class="plugin-card"><input id="pluginAssetDownloader" type="checkbox"><strong>Native Asset Downloader</strong><span>Manifest-basierter Startup-Sync in den Asset Store</span></label>
                   <label class="plugin-card"><input id="pluginShare" type="checkbox"><strong>Share</strong><span>Android Sharesheet</span></label>
                   <label class="plugin-card"><input id="pluginHaptics" type="checkbox"><strong>Haptics</strong><span>Native Vibration/Haptic Bridge</span></label>
                   <label class="plugin-card"><input id="pluginBiometrics" type="checkbox"><strong>Biometrics</strong><span>BiometricPrompt / Passkey-Hooks</span></label>
                   <label class="plugin-card"><input id="pluginQr" type="checkbox"><strong>QR / Barcode</strong><span>Scanner Bridge</span></label>
                   <label class="plugin-card"><input id="pluginFcm" type="checkbox"><strong>Firebase Cloud Messaging</strong><span>Push Notifications</span></label>
                 </div>
-                <div class="notice">Alpha1 speichert die Plugin-Auswahl vollständig. Quantum NMP und Asset Store existieren bereits im Wrapper; weitere Module werden schrittweise an die Runtime gekoppelt.</div>
+                <div class="field-grid">
+                  <label class="span-2"><span class="field-label">Asset Manifest URL</span><input class="field mono" id="assetManifestUrl" placeholder="https://game.example/assets/asset-manifest.json"></label>
+                  <label class="span-2"><span class="field-label">Asset Roots</span><textarea class="field mono" id="assetRoots" rows="4" placeholder="/assets/portraits/"></textarea></label>
+                </div>
+                <div class="notice">Native Asset Downloader prüft das Manifest beim App-Start, validiert Größe und SHA256 und schreibt nur fehlende oder geänderte Dateien in denselben Quantum Asset Store. Netzwerkfehler blockieren den App-Start nicht.</div>
               </section>
 
               <section class="terran-panel editor-section is-hidden" data-editor-section="build">
