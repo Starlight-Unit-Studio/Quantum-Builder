@@ -136,6 +136,13 @@ $authenticated = $auth->isLoggedIn();
                     <button id="removeAppIconButton" class="btn compact" type="button">Eigenes Icon entfernen</button>
                   </div>
                   <div class="notice span-2">Das hochgeladene Icon wird pro App-Profil gespeichert und beim nächsten Build direkt als Android-Launcher-Icon eingebaut. Maximal ca. 600 KB, PNG/JPEG/WebP.</div>
+                  <label class="span-2"><span class="field-label">Custom Splash Screen</span><input class="field" id="customSplashFile" type="file" accept="image/png,image/jpeg,image/webp"></label>
+                  <div class="span-2 app-icon-actions">
+                    <span id="customSplashState" class="muted">STU-Werkssplash aktiv</span>
+                    <button id="removeCustomSplashButton" class="btn compact" type="button">Custom Splash entfernen</button>
+                  </div>
+                  <label><span class="field-label">STU-Banner Dauer</span><select class="field" id="attributionBannerDuration"><option value="2000">2 Sekunden</option><option value="3000">3 Sekunden</option><option value="4000">4 Sekunden</option></select></label>
+                  <div class="notice span-2">Ohne Custom Splash bleibt der STU-Werkssplash unverändert. Mit Custom Splash wird er vollständig ersetzt; nach dem ersten erfolgreichen Seitenladen erscheint dafür einmalig der kleine STU-Attributionsbanner im Footer-Bereich. Splash und Banner werden niemals gleichzeitig angezeigt. Custom Splash max. 3 MB, PNG/JPEG/WebP.</div>
                 </div>
               </section>
 
