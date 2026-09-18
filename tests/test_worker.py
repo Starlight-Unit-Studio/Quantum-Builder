@@ -55,7 +55,7 @@ class WorkerCompilerTests(unittest.TestCase):
             },
             "plugins": {"quantum_asset_store": True, "native_asset_downloader": True},
             "asset_sync": {"manifest_url": "/api/asset-manifest.json", "roots": "/assets/portraits/"},
-            "permissions": {"location": True, "microphone": True, "camera": True},
+            "permissions": {"location": True, "microphone": True, "camera": True, "public_downloads": True},
         }
 
     def tearDown(self):
@@ -103,6 +103,7 @@ public final class AppConfig {
  public static final boolean ASSET_STORE_PAGE_WARMUP_ENABLED = true;
  public static final boolean NATIVE_ASSET_DOWNLOADER_ENABLED = false;
  public static final boolean KEEP_SCREEN_ON = true;
+ public static final boolean PUBLIC_DOWNLOADS_ENABLED = true;
  public static final boolean IMMERSIVE_FULLSCREEN_ENABLED = true;
  public static final boolean PULL_TO_REFRESH_ENABLED = false;
  public static final boolean PINCH_TO_ZOOM_ENABLED = false;
@@ -117,6 +118,7 @@ public final class AppConfig {
         self.assertIn('TRUSTED_DOMAIN = "example.test";', text)
         self.assertIn('ASSET_STORE_TRUSTED_HOST = "example.test";', text)
         self.assertIn('KEEP_SCREEN_ON = false;', text)
+        self.assertIn('PUBLIC_DOWNLOADS_ENABLED = true;', text)
         self.assertIn('IMMERSIVE_FULLSCREEN_ENABLED = true;', text)
         self.assertIn('PULL_TO_REFRESH_ENABLED = true;', text)
         self.assertIn('PINCH_TO_ZOOM_ENABLED = true;', text)
@@ -156,6 +158,7 @@ public final class AppConfig {
  public static final boolean ASSET_STORE_PAGE_WARMUP_ENABLED = true;
  public static final boolean NATIVE_ASSET_DOWNLOADER_ENABLED = false;
  public static final boolean KEEP_SCREEN_ON = true;
+ public static final boolean PUBLIC_DOWNLOADS_ENABLED = true;
  public static final boolean IMMERSIVE_FULLSCREEN_ENABLED = true;
  public static final boolean PULL_TO_REFRESH_ENABLED = false;
  public static final boolean PINCH_TO_ZOOM_ENABLED = false;
