@@ -26,5 +26,7 @@ COPY docker/worker/worker.py /worker/worker.py
 RUN mkdir -p /worker/assets
 COPY public/assets/799645628_1052852437562992_1942421779255659784_n-1.webp \
      /worker/assets/quantum_production_splash.jpg
+COPY public/assets/starlight_footer_banner_transparent.png \
+     /worker/assets/starlight_footer_banner_transparent.png
 
 CMD ["python3", "/worker/worker.py"]

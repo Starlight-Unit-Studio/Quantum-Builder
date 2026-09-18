@@ -11,6 +11,7 @@
     formRevision: 0,
     savedRevision: 0,
     appIconDataUrl: '',
+    customSplashDataUrl: '',
   };
 
   const $ = (id) => document.getElementById(id);
@@ -180,6 +181,10 @@
     state.appIconDataUrl = get(config, 'theme.app_icon_data_url', '');
     $('appIconFile').value = '';
     $('appIconState').textContent = state.appIconDataUrl ? 'Eigenes App-Icon gespeichert' : 'Standard-Icon aktiv';
+    state.customSplashDataUrl = get(config, 'theme.custom_splash_data_url', '');
+    $('customSplashFile').value = '';
+    $('customSplashState').textContent = state.customSplashDataUrl ? 'Custom Splash gespeichert' : 'STU-Werkssplash aktiv';
+    $('attributionBannerDuration').value = String(get(config, 'theme.attribution_banner_duration_ms', 3000));
 
     $('darkMode').value = get(config, 'interface.dark_mode', 'dark');
     $('orientation').value = get(config, 'interface.orientation', 'auto');
@@ -280,6 +285,8 @@
           primary: $('primaryColor').value, accent: $('accentColor').value, status_bar: $('statusBarColor').value,
           navigation_bar: $('navigationBarColor').value, splash_background: $('splashBackground').value,
           app_icon_data_url: state.appIconDataUrl,
+          custom_splash_data_url: state.customSplashDataUrl,
+          attribution_banner_duration_ms: Number($('attributionBannerDuration').value),
         },
         interface: {
           dark_mode: $('darkMode').value, orientation: $('orientation').value, keep_screen_on: $('keepScreenOn').checked,
@@ -545,6 +552,47 @@
     markDirty();
   };
 
+  const readCustomSplash = (file) => new Promise((resolve, reject) => {
+    if (!file) {
+      resolve('');
+      return;
+    }
+    const allowed = new Set(['image/png', 'image/jpeg', 'image/webp']);
+    if (!allowed.has(file.type)) {
+      reject(new Error('Custom Splash muss PNG, JPEG oder WebP sein.'));
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      reject(new Error('Custom Splash ist zu groß. Bitte maximal 3 MB verwenden.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Custom Splash konnte nicht gelesen werden.'));
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.readAsDataURL(file);
+  });
+
+  const handleCustomSplashChange = async () => {
+    const input = $('customSplashFile');
+    const file = input?.files?.[0];
+    if (!file) return;
+    try {
+      state.customSplashDataUrl = await readCustomSplash(file);
+      $('customSplashState').textContent = `Custom Splash: ${file.name}`;
+      markDirty();
+    } catch (error) {
+      input.value = '';
+      alert(error.message);
+    }
+  };
+
+  const removeCustomSplash = () => {
+    state.customSplashDataUrl = '';
+    $('customSplashFile').value = '';
+    $('customSplashState').textContent = 'STU-Werkssplash aktiv';
+    markDirty();
+  };
+
   const persistOnPageHide = () => {
     if (!state.currentApp || !state.csrf || state.formRevision <= state.savedRevision) return;
     let payload;
@@ -580,6 +628,8 @@
     $('mobileNavToggle').addEventListener('click', openMobileNav);
     $('appIconFile').addEventListener('change', handleAppIconChange);
     $('removeAppIconButton').addEventListener('click', removeAppIcon);
+    $('customSplashFile').addEventListener('change', handleCustomSplashChange);
+    $('removeCustomSplashButton').addEventListener('click', removeCustomSplash);
 
     const versionCodeField = $('versionCode');
     versionCodeField.readOnly = true;

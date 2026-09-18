@@ -99,6 +99,35 @@ try {
 }
 assert($badLinksRejected === true);
 
+$splashInput = $input;
+$splashInput['package_id'] = 'de.starlightunit.customsplash';
+$splashPayload = "\x89PNG\r\n\x1a\n" . 'profile-splash';
+$splashInput['config'] = [
+    'theme' => [
+        'custom_splash_data_url' => 'data:image/png;base64,' . base64_encode($splashPayload),
+        'attribution_banner_duration_ms' => 4000,
+    ],
+];
+$splashApp = $apps->create($splashInput);
+assert($splashApp['config']['theme']['custom_splash_data_url'] !== '');
+assert($splashApp['config']['theme']['attribution_banner_duration_ms'] === 4000);
+
+$badSplash = $input;
+$badSplash['package_id'] = 'de.starlightunit.badsplash';
+$badSplash['config'] = [
+    'theme' => [
+        'custom_splash_data_url' => 'data:image/png;base64,' . base64_encode('not-a-png'),
+        'attribution_banner_duration_ms' => 5000,
+    ],
+];
+$badSplashRejected = false;
+try {
+    $apps->create($badSplash);
+} catch (InvalidArgumentException) {
+    $badSplashRejected = true;
+}
+assert($badSplashRejected === true);
+
 $storedJson = (string) $db->pdo()->query('SELECT config_json FROM apps WHERE id=' . (int) $app['id'])->fetchColumn();
 $storedConfig = json_decode($storedJson);
 assert(is_object($storedConfig));
@@ -133,4 +162,4 @@ $builds->queue((int) $app['id'], 'compat/android-6-api23');
 $app = $apps->find((int) $app['id']);
 assert($app !== null && $app['version_code'] === 2);
 
-fwrite(STDOUT, "profile versioning, navigation/link trust, custom header and cookie migration contracts: ok\n");
+fwrite(STDOUT, "profile versioning, navigation/link trust, splash branding, custom header and cookie migration contracts: ok\n");

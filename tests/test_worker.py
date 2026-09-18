@@ -37,6 +37,7 @@ class WorkerCompilerTests(unittest.TestCase):
                 "status_bar": "#f5f6f8",
                 "navigation_bar": "#101820",
                 "splash_background": "#001122",
+                "attribution_banner_duration_ms": 3000,
             },
             "navigation": {
                 "top_bar": True,
@@ -143,6 +144,8 @@ public final class AppConfig {
  public static final boolean QUANTUM_ASSET_STORE_ENABLED = false;
  public static final boolean ASSET_STORE_PAGE_WARMUP_ENABLED = true;
  public static final boolean NATIVE_ASSET_DOWNLOADER_ENABLED = false;
+ public static final boolean CUSTOM_SPLASH_ENABLED = false;
+ public static final boolean ATTRIBUTION_BANNER_ENABLED = false;
  public static final boolean KEEP_SCREEN_ON = true;
  public static final boolean PAGE_TRANSITIONS_ENABLED = false;
  public static final boolean TOP_NAVIGATION_ENABLED = false;
@@ -153,6 +156,7 @@ public final class AppConfig {
  public static final boolean IMMERSIVE_FULLSCREEN_ENABLED = true;
  public static final boolean PULL_TO_REFRESH_ENABLED = false;
  public static final boolean PINCH_TO_ZOOM_ENABLED = false;
+ public static final int ATTRIBUTION_BANNER_DURATION_MS = 3000;
  public static final int FONT_SCALE_PERCENT = 100;
 }
 """,
@@ -163,6 +167,9 @@ public final class AppConfig {
         self.assertIn('START_URL = "https://example.test/app/index.html";', text)
         self.assertIn('TRUSTED_DOMAIN = "example.test";', text)
         self.assertIn('ASSET_STORE_TRUSTED_HOST = "example.test";', text)
+        self.assertIn('CUSTOM_SPLASH_ENABLED = false;', text)
+        self.assertIn('ATTRIBUTION_BANNER_ENABLED = false;', text)
+        self.assertIn('ATTRIBUTION_BANNER_DURATION_MS = 3000;', text)
         self.assertIn('KEEP_SCREEN_ON = false;', text)
         self.assertIn('PAGE_TRANSITIONS_ENABLED = true;', text)
         self.assertIn('TOP_NAVIGATION_ENABLED = true;', text)
@@ -232,6 +239,8 @@ public final class AppConfig {
  public static final boolean QUANTUM_ASSET_STORE_ENABLED = false;
  public static final boolean ASSET_STORE_PAGE_WARMUP_ENABLED = true;
  public static final boolean NATIVE_ASSET_DOWNLOADER_ENABLED = false;
+ public static final boolean CUSTOM_SPLASH_ENABLED = false;
+ public static final boolean ATTRIBUTION_BANNER_ENABLED = false;
  public static final boolean KEEP_SCREEN_ON = true;
  public static final boolean PAGE_TRANSITIONS_ENABLED = false;
  public static final boolean TOP_NAVIGATION_ENABLED = false;
@@ -242,6 +251,7 @@ public final class AppConfig {
  public static final boolean IMMERSIVE_FULLSCREEN_ENABLED = true;
  public static final boolean PULL_TO_REFRESH_ENABLED = false;
  public static final boolean PINCH_TO_ZOOM_ENABLED = false;
+ public static final int ATTRIBUTION_BANNER_DURATION_MS = 3000;
  public static final int FONT_SCALE_PERCENT = 100;
 }
 """,
@@ -270,6 +280,152 @@ public final class AppConfig {
         text = manifest.read_text(encoding="utf-8")
         self.assertIn('android:icon="@drawable/quantum_app_icon"', text)
         self.assertIn('android:roundIcon="@drawable/quantum_app_icon"', text)
+
+    def test_custom_splash_installs_profile_asset_and_canonical_attribution(self):
+        import base64
+
+        drawable = self.root / "app/src/main/res/drawable-nodpi"
+        drawable.mkdir(parents=True, exist_ok=True)
+        splash = b"\x89PNG\r\n\x1a\n" + b"custom-splash"
+        banner = b"\x89PNG\r\n\x1a\n" + b"stu-banner"
+        banner_source = self.root / "canonical-banner.png"
+        banner_source.write_bytes(banner)
+        config = {
+            "theme": {
+                "custom_splash_data_url": "data:image/png;base64,"
+                + base64.b64encode(splash).decode("ascii")
+            }
+        }
+
+        previous = worker.CANONICAL_ATTRIBUTION_BANNER
+        worker.CANONICAL_ATTRIBUTION_BANNER = banner_source
+        try:
+            output = io.StringIO()
+            installed = worker.install_profile_custom_splash_and_attribution(
+                self.root,
+                config,
+                output,
+            )
+        finally:
+            worker.CANONICAL_ATTRIBUTION_BANNER = previous
+
+        self.assertTrue(installed)
+        self.assertEqual(
+            (drawable / "quantum_custom_splash.png").read_bytes(),
+            splash,
+        )
+        self.assertEqual(
+            (drawable / "quantum_studio_attribution_banner.png").read_bytes(),
+            banner,
+        )
+        self.assertIn("Installed custom splash", output.getvalue())
+
+    def test_missing_custom_splash_installs_no_attribution_banner(self):
+        drawable = self.root / "app/src/main/res/drawable-nodpi"
+        drawable.mkdir(parents=True, exist_ok=True)
+        (drawable / "quantum_custom_splash.png").write_bytes(b"stale")
+        (drawable / "quantum_studio_attribution_banner.png").write_bytes(b"stale")
+
+        installed = worker.install_profile_custom_splash_and_attribution(
+            self.root,
+            {"theme": {"custom_splash_data_url": ""}},
+        )
+
+        self.assertFalse(installed)
+        self.assertFalse((drawable / "quantum_custom_splash.png").exists())
+        self.assertFalse((drawable / "quantum_studio_attribution_banner.png").exists())
+
+    def test_custom_splash_rejects_invalid_image_signature(self):
+        import base64
+
+        payload = b"not-a-png"
+        banner_source = self.root / "canonical-banner.png"
+        banner_source.write_bytes(b"\x89PNG\r\n\x1a\nvalid")
+        config = {
+            "theme": {
+                "custom_splash_data_url": "data:image/png;base64,"
+                + base64.b64encode(payload).decode("ascii")
+            }
+        }
+
+        previous = worker.CANONICAL_ATTRIBUTION_BANNER
+        worker.CANONICAL_ATTRIBUTION_BANNER = banner_source
+        try:
+            with self.assertRaisesRegex(RuntimeError, "PNG signature"):
+                worker.install_profile_custom_splash_and_attribution(self.root, config)
+        finally:
+            worker.CANONICAL_ATTRIBUTION_BANNER = previous
+
+    def test_custom_splash_flags_and_duration_compile_into_app_config(self):
+        import base64
+        import copy
+
+        config = copy.deepcopy(self.config)
+        config["theme"]["custom_splash_data_url"] = (
+            "data:image/png;base64,"
+            + base64.b64encode(b"\x89PNG\r\n\x1a\nsmall").decode("ascii")
+        )
+        config["theme"]["attribution_banner_duration_ms"] = 4000
+
+        path = self.root / "app/src/main/java/de/starlightunit/wrapper/config/AppConfig.java"
+        path.write_text(
+            """package de.starlightunit.wrapper.config;
+public final class AppConfig {
+ public static final String START_URL = "https://old.test/";
+ public static final String TRUSTED_DOMAIN = "old.test";
+ public static final String VERSION_NAME = "0.0.1";
+ public static final String USER_AGENT_SUFFIX = " old/" + VERSION_NAME;
+ public static final String ASSET_STORE_TRUSTED_HOST = "old.test";
+ public static final String APP_HEADER_VALUE = "old";
+ public static final String CUSTOM_REQUEST_HEADERS_JSON = "{}";
+ public static final String CUSTOM_CSS = "";
+ public static final String CUSTOM_JAVASCRIPT = "";
+ public static final String COOKIE_PERSISTENCE_MODE = "persistent";
+ public static final String WEB_DARK_MODE = "dark";
+ public static final String STATUS_BAR_COLOR = "#020611";
+ public static final String NAVIGATION_BAR_COLOR = "#020611";
+ public static final String SPLASH_BACKGROUND_COLOR = "#020611";
+ public static final String NATIVE_NAVIGATION_TITLE = "Old";
+ public static final String NATIVE_NAVIGATION_ITEMS_JSON = "[]";
+ public static final String NATIVE_NAVIGATION_BACKGROUND_COLOR = "#020611";
+ public static final String NATIVE_NAVIGATION_FOREGROUND_COLOR = "#ffffff";
+ public static final String NATIVE_NAVIGATION_ACCENT_COLOR = "#6fc7ff";
+ public static final String NEW_WINDOW_POLICY = "blocked";
+ public static final String DEEP_LINK_SCHEME = "";
+ public static final String LINK_RULES_JSON = "[]";
+ public static final String ASSET_MANIFEST_URL = "";
+ public static final String ASSET_DOWNLOADER_ROOTS = "";
+ public static final String LOADING_INDICATOR_STYLE = "top-bar";
+ public static final String LOADING_INDICATOR_COLOR = "#6fc7ff";
+ public static final int LOADING_BAR_THICKNESS_DP = 3;
+ public static final int LOADING_SPINNER_SIZE_DP = 56;
+ public static final int LOADING_OVERLAY_DIM_PERCENT = 35;
+ public static final boolean QUANTUM_ASSET_STORE_ENABLED = false;
+ public static final boolean ASSET_STORE_PAGE_WARMUP_ENABLED = true;
+ public static final boolean NATIVE_ASSET_DOWNLOADER_ENABLED = false;
+ public static final boolean CUSTOM_SPLASH_ENABLED = false;
+ public static final boolean ATTRIBUTION_BANNER_ENABLED = false;
+ public static final int ATTRIBUTION_BANNER_DURATION_MS = 3000;
+ public static final boolean KEEP_SCREEN_ON = true;
+ public static final boolean PAGE_TRANSITIONS_ENABLED = false;
+ public static final boolean TOP_NAVIGATION_ENABLED = false;
+ public static final boolean SIDEBAR_NAVIGATION_ENABLED = false;
+ public static final boolean BOTTOM_TABS_ENABLED = false;
+ public static final boolean CONTEXTUAL_TOOLBAR_ENABLED = false;
+ public static final boolean PUBLIC_DOWNLOADS_ENABLED = true;
+ public static final boolean IMMERSIVE_FULLSCREEN_ENABLED = true;
+ public static final boolean PULL_TO_REFRESH_ENABLED = false;
+ public static final boolean PINCH_TO_ZOOM_ENABLED = false;
+ public static final int FONT_SCALE_PERCENT = 100;
+}
+""",
+            encoding="utf-8",
+        )
+        worker.patch_app_config(self.root, self.app, config)
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("CUSTOM_SPLASH_ENABLED = true;", text)
+        self.assertIn("ATTRIBUTION_BANNER_ENABLED = true;", text)
+        self.assertIn("ATTRIBUTION_BANNER_DURATION_MS = 4000;", text)
 
     def test_manifest_adds_only_requested_runtime_permissions(self):
         manifest = self.root / "app/src/main/AndroidManifest.xml"

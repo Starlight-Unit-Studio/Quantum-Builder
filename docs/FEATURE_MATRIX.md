@@ -24,7 +24,9 @@ Legend:
 | Branding | Status/navigation bar colors | Runtime |
 | Branding | Splash background | Runtime |
 | Branding | Per-app launcher icon upload | Runtime |
-| Branding | Splash image upload/editor | Planned |
+| Branding | Custom splash image upload | Runtime |
+| Branding | Post-custom-splash STU attribution banner | Runtime |
+| Branding | Splash crop/editor | Planned |
 | Interface | Dark/light/auto mode | Runtime |
 | Interface | Portrait/landscape | Runtime |
 | Interface | Keep screen on | Runtime |

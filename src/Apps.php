@@ -92,7 +92,8 @@ final class Apps
             'theme' => [
                 'primary' => '#6fc7ff', 'accent' => '#ffd978', 'status_bar' => '#020611',
                 'navigation_bar' => '#020611', 'splash_background' => '#020611',
-                'app_icon_data_url' => '',
+                'app_icon_data_url' => '', 'custom_splash_data_url' => '',
+                'attribution_banner_duration_ms' => 3000,
             ],
             'interface' => [
                 'dark_mode' => 'dark', 'orientation' => 'auto', 'keep_screen_on' => false,
@@ -312,6 +313,20 @@ final class Apps
         $config['theme']['app_icon_data_url'] = $this->normalizeAppIconDataUrl(
             $config['theme']['app_icon_data_url'] ?? ''
         );
+        $config['theme']['custom_splash_data_url'] = $this->normalizeCustomSplashDataUrl(
+            $config['theme']['custom_splash_data_url'] ?? ''
+        );
+
+        $attributionDuration = $config['theme']['attribution_banner_duration_ms'] ?? 3000;
+        if (!is_int($attributionDuration)
+            && !(is_string($attributionDuration) && ctype_digit($attributionDuration))) {
+            throw new \InvalidArgumentException('STU attribution banner duration must be an integer.');
+        }
+        $attributionDuration = (int) $attributionDuration;
+        if ($attributionDuration < 2000 || $attributionDuration > 4000) {
+            throw new \InvalidArgumentException('STU attribution banner duration must be between 2000 and 4000 ms.');
+        }
+        $config['theme']['attribution_banner_duration_ms'] = $attributionDuration;
 
         return [
             'name' => $name,
@@ -341,6 +356,39 @@ final class Apps
         }
         $host = strtolower((string) ($url['host'] ?? ''));
         return $host === $trustedDomain || str_ends_with($host, '.' . $trustedDomain);
+    }
+
+    private function normalizeCustomSplashDataUrl(mixed $value): string
+    {
+        if (!is_string($value) || $value === '') {
+            return '';
+        }
+        if (strlen($value) > 4_300_000) {
+            throw new \InvalidArgumentException('Custom splash is too large.');
+        }
+        if (!preg_match('#^data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$#', $value, $matches)) {
+            throw new \InvalidArgumentException('Custom splash must be PNG, JPEG or WebP.');
+        }
+
+        $payload = base64_decode($matches[2], true);
+        if ($payload === false || $payload === '' || strlen($payload) > 3 * 1024 * 1024) {
+            throw new \InvalidArgumentException('Custom splash must be between 1 byte and 3 MiB.');
+        }
+
+        $type = $matches[1];
+        $valid = match ($type) {
+            'png' => str_starts_with($payload, "\x89PNG\r\n\x1a\n"),
+            'jpeg' => str_starts_with($payload, "\xff\xd8\xff"),
+            'webp' => strlen($payload) >= 12
+                && substr($payload, 0, 4) === 'RIFF'
+                && substr($payload, 8, 4) === 'WEBP',
+            default => false,
+        };
+        if (!$valid) {
+            throw new \InvalidArgumentException('Custom splash image signature is invalid.');
+        }
+
+        return $value;
     }
 
     private function normalizeAppIconDataUrl(mixed $value): string

@@ -31,6 +31,10 @@ WORK_ROOT = DATA_DIR / "work"
 SIGNING_ROOT = DATA_DIR / "signing"
 CANONICAL_PRODUCTION_SPLASH = Path(os.environ.get("QB_CANONICAL_PRODUCTION_SPLASH", "/worker/assets/quantum_production_splash.jpg")).resolve()
 CANONICAL_PRODUCTION_SPLASH_SIZE = 112976
+CANONICAL_ATTRIBUTION_BANNER = Path(os.environ.get(
+    "QB_CANONICAL_ATTRIBUTION_BANNER",
+    "/worker/assets/starlight_footer_banner_transparent.png",
+)).resolve()
 
 GRADLE_PHASES = (
     ("android-lint", "Running Android debug lint", "lintDebug"),
@@ -383,7 +387,12 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
             f"AppConfig.{constant}",
         )
 
+    custom_splash_data_url = str(theme.get("custom_splash_data_url") or "")
+    custom_splash_enabled = bool(custom_splash_data_url)
+
     boolean_values = {
+        "CUSTOM_SPLASH_ENABLED": custom_splash_enabled,
+        "ATTRIBUTION_BANNER_ENABLED": custom_splash_enabled,
         "KEEP_SCREEN_ON": bool(interface.get("keep_screen_on")),
         "PAGE_TRANSITIONS_ENABLED": bool(interface.get("page_transitions")),
         "TOP_NAVIGATION_ENABLED": bool(navigation.get("top_bar")),
@@ -408,6 +417,10 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
         )
 
     integer_values = {
+        "ATTRIBUTION_BANNER_DURATION_MS": max(
+            2000,
+            min(4000, int(theme.get("attribution_banner_duration_ms") or 3000)),
+        ),
         "FONT_SCALE_PERCENT": max(50, min(200, int(interface.get("font_scale") or 100))),
         "LOADING_BAR_THICKNESS_DP": max(1, min(12, int(interface.get("loading_bar_thickness_dp") or 3))),
         "LOADING_SPINNER_SIZE_DP": max(24, min(128, int(interface.get("loading_spinner_size_dp") or 56))),
@@ -497,6 +510,71 @@ def install_profile_launcher_icon(project: Path, config: dict[str, Any]) -> None
     text = replace_once(text, r'android:icon="@[^"]+"', 'android:icon="@drawable/quantum_app_icon"', "launcher icon")
     text = replace_once(text, r'android:roundIcon="@[^"]+"', 'android:roundIcon="@drawable/quantum_app_icon"', "round launcher icon")
     manifest.write_text(text, encoding="utf-8")
+
+
+def install_profile_custom_splash_and_attribution(
+    project: Path,
+    config: dict[str, Any],
+    output=None,
+) -> bool:
+    theme = config.get("theme", {})
+    data_url = theme.get("custom_splash_data_url", "") if isinstance(theme, dict) else ""
+    drawable_dir = project / "app/src/main/res/drawable-nodpi"
+    drawable_dir.mkdir(parents=True, exist_ok=True)
+
+    for old in drawable_dir.glob("quantum_custom_splash.*"):
+        old.unlink()
+    for old in drawable_dir.glob("quantum_studio_attribution_banner.*"):
+        old.unlink()
+
+    if not isinstance(data_url, str) or not data_url:
+        return False
+
+    match = re.fullmatch(r"data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)", data_url)
+    if not match:
+        raise RuntimeError("Profile custom splash is not a supported data URL")
+
+    extension = {"png": "png", "jpeg": "jpg", "webp": "webp"}[match.group(1)]
+    try:
+        payload = base64.b64decode(match.group(2), validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise RuntimeError("Profile custom splash base64 is invalid") from exc
+
+    if not payload or len(payload) > 3 * 1024 * 1024:
+        raise RuntimeError("Profile custom splash must be between 1 byte and 3 MiB")
+    if extension == "png" and not payload.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise RuntimeError("Profile custom splash PNG signature is invalid")
+    if extension == "jpg" and not payload.startswith(b"\xff\xd8\xff"):
+        raise RuntimeError("Profile custom splash JPEG signature is invalid")
+    if extension == "webp" and not (
+        len(payload) >= 12
+        and payload[:4] == b"RIFF"
+        and payload[8:12] == b"WEBP"
+    ):
+        raise RuntimeError("Profile custom splash WebP signature is invalid")
+
+    if not CANONICAL_ATTRIBUTION_BANNER.is_file():
+        raise RuntimeError(
+            f"Canonical STU attribution banner missing: {CANONICAL_ATTRIBUTION_BANNER}"
+        )
+    banner = CANONICAL_ATTRIBUTION_BANNER.read_bytes()
+    if len(banner) < 8 or not banner.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise RuntimeError("Canonical STU attribution banner is not valid PNG data")
+
+    splash_target = drawable_dir / f"quantum_custom_splash.{extension}"
+    banner_target = drawable_dir / "quantum_studio_attribution_banner.png"
+    splash_target.write_bytes(payload)
+    shutil.copy2(CANONICAL_ATTRIBUTION_BANNER, banner_target)
+
+    message = (
+        f"Installed custom splash ({len(payload)} bytes) with canonical STU attribution banner "
+        f"({len(banner)} bytes)"
+    )
+    log(message)
+    if output is not None:
+        output.write(message + "\n")
+        output.flush()
+    return True
 
 
 def patch_strings(project: Path, app: sqlite3.Row) -> None:
@@ -624,6 +702,7 @@ def compile_build(con: sqlite3.Connection, build: sqlite3.Row) -> None:
         patch_app_config(project, app, config)
         patch_gradle(project, app)
         install_profile_launcher_icon(project, config)
+        install_profile_custom_splash_and_attribution(project, config, output)
         patch_strings(project, app)
         patch_manifest(project, config)
         write_profile(project, app, config, build_id)
