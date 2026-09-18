@@ -110,8 +110,12 @@ final class Apps
                 'custom_css' => '', 'custom_js' => '', 'cookie_persistence' => 'default',
             ],
             'plugins' => [
-                'quantum_nmp' => false, 'quantum_asset_store' => false, 'share' => false,
-                'haptics' => false, 'biometrics' => false, 'qr_scanner' => false, 'push_fcm' => false,
+                'quantum_nmp' => false, 'quantum_asset_store' => false, 'native_asset_downloader' => false,
+                'share' => false, 'haptics' => false, 'biometrics' => false, 'qr_scanner' => false, 'push_fcm' => false,
+            ],
+            'asset_sync' => [
+                'manifest_url' => '',
+                'roots' => "/assets/portraits/",
             ],
             'wrapper_ref' => (string) (getenv('QB_WRAPPER_REF') ?: 'compat/android-6-api23'),
         ];
