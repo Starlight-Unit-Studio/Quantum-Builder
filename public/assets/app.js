@@ -213,7 +213,10 @@
     $('customHeaders').value = JSON.stringify(get(config, 'web.custom_headers', {}), null, 2);
     $('customCss').value = get(config, 'web.custom_css', '');
     $('customJs').value = get(config, 'web.custom_js', '');
-    $('cookiePersistence').value = get(config, 'web.cookie_persistence', 'default');
+    {
+      const cookieMode = get(config, 'web.cookie_persistence', 'persistent');
+      $('cookiePersistence').value = cookieMode === 'default' ? 'persistent' : cookieMode;
+    }
 
     $('pluginNmp').checked = Boolean(get(config, 'plugins.quantum_nmp', false));
     $('pluginAssetStore').checked = Boolean(get(config, 'plugins.quantum_asset_store', false));

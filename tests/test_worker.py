@@ -42,7 +42,13 @@ class WorkerCompilerTests(unittest.TestCase):
                 "loading_spinner_size_dp": 72,
                 "loading_overlay_dim_percent": 45,
             },
-            "web": {"user_agent_suffix": " QuantumTest", "custom_headers": {"X-Test-Client": "phone"}},
+            "web": {
+                "user_agent_suffix": " QuantumTest",
+                "custom_headers": {"X-Test-Client": "phone"},
+                "custom_css": "body { background: #010203; }",
+                "custom_js": "window.quantumPremium = true;",
+                "cookie_persistence": "session",
+            },
             "plugins": {"quantum_asset_store": True, "native_asset_downloader": True},
             "asset_sync": {"manifest_url": "/api/asset-manifest.json", "roots": "/assets/portraits/"},
             "permissions": {"location": True, "microphone": True, "camera": True},
@@ -79,6 +85,9 @@ public final class AppConfig {
  public static final String ASSET_STORE_TRUSTED_HOST = "old.test";
  public static final String APP_HEADER_VALUE = "old";
  public static final String CUSTOM_REQUEST_HEADERS_JSON = "{}";
+ public static final String CUSTOM_CSS = "";
+ public static final String CUSTOM_JAVASCRIPT = "";
+ public static final String COOKIE_PERSISTENCE_MODE = "persistent";
  public static final String ASSET_MANIFEST_URL = "";
  public static final String ASSET_DOWNLOADER_ROOTS = "";
  public static final String LOADING_INDICATOR_STYLE = "top-bar";
@@ -105,6 +114,9 @@ public final class AppConfig {
         self.assertIn('ASSET_MANIFEST_URL = "https://example.test/api/asset-manifest.json";', text)
         self.assertIn('ASSET_DOWNLOADER_ROOTS = "/assets/portraits/";', text)
         self.assertIn('NATIVE_ASSET_DOWNLOADER_ENABLED = true;', text)
+        self.assertIn('CUSTOM_CSS = "body { background: #010203; }";', text)
+        self.assertIn('CUSTOM_JAVASCRIPT = "window.quantumPremium = true;";', text)
+        self.assertIn('COOKIE_PERSISTENCE_MODE = "session";', text)
 
     def test_loading_indicator_settings_compile_into_app_config(self):
         path = self.root / "app/src/main/java/de/starlightunit/wrapper/config/AppConfig.java"
@@ -118,6 +130,9 @@ public final class AppConfig {
  public static final String ASSET_STORE_TRUSTED_HOST = "old.test";
  public static final String APP_HEADER_VALUE = "old";
  public static final String CUSTOM_REQUEST_HEADERS_JSON = "{}";
+ public static final String CUSTOM_CSS = "";
+ public static final String CUSTOM_JAVASCRIPT = "";
+ public static final String COOKIE_PERSISTENCE_MODE = "persistent";
  public static final String ASSET_MANIFEST_URL = "";
  public static final String ASSET_DOWNLOADER_ROOTS = "";
  public static final String LOADING_INDICATOR_STYLE = "top-bar";

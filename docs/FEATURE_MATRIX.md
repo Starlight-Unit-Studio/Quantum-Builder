@@ -57,9 +57,9 @@ Legend:
 | Web Overrides | Trusted domain | Runtime |
 | Web Overrides | User-Agent suffix | Runtime |
 | Web Overrides | Custom headers | Runtime for wrapper/native HTTP paths |
-| Web Overrides | Custom CSS | Profile |
-| Web Overrides | Custom JavaScript | Profile |
-| Web Overrides | Cookie persistence mode | Profile |
+| Web Overrides | Custom CSS | Runtime |
+| Web Overrides | Custom JavaScript | Runtime |
+| Web Overrides | Cookie persistence mode | Runtime |
 | Plugins | Quantum NMP selection | Profile; module already exists in wrapper |
 | Plugins | Quantum Asset Store selection | Runtime |
 | Plugins | Native Asset Downloader manifest startup sync | Runtime |

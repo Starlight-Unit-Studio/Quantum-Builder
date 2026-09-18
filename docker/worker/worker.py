@@ -277,6 +277,8 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
     start_host = parsed.hostname or str(config.get("trusted_domain") or "")
     trusted = str(config.get("trusted_domain") or start_host)
     web = config.get("web", {})
+    if not isinstance(web, dict):
+        web = {}
     interface = config.get("interface", {})
     if not isinstance(interface, dict):
         interface = {}
@@ -291,6 +293,19 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
     if manifest_url.startswith("/"):
         manifest_url = f"{parsed.scheme}://{start_host}{manifest_url}"
 
+    custom_css = str(web.get("custom_css") or "")
+    custom_javascript = str(web.get("custom_js") or "")
+    if len(custom_css.encode("utf-8")) > 48 * 1024:
+        raise RuntimeError("Custom CSS exceeds the 48 KiB runtime limit")
+    if len(custom_javascript.encode("utf-8")) > 48 * 1024:
+        raise RuntimeError("Custom JavaScript exceeds the 48 KiB runtime limit")
+
+    cookie_mode = str(web.get("cookie_persistence") or "persistent").strip().lower()
+    if cookie_mode == "default":
+        cookie_mode = "persistent"
+    if cookie_mode not in {"persistent", "server", "session"}:
+        raise RuntimeError("Unsupported cookie persistence mode")
+
     string_values = {
         "START_URL": str(app["start_url"]),
         "TRUSTED_DOMAIN": trusted,
@@ -299,6 +314,9 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
         "ASSET_STORE_TRUSTED_HOST": start_host,
         "APP_HEADER_VALUE": re.sub(r"[^a-z0-9-]+", "-", str(app["package_id"]).lower()).strip("-"),
         "CUSTOM_REQUEST_HEADERS_JSON": json.dumps(custom_headers, ensure_ascii=False, separators=(",", ":")),
+        "CUSTOM_CSS": custom_css,
+        "CUSTOM_JAVASCRIPT": custom_javascript,
+        "COOKIE_PERSISTENCE_MODE": cookie_mode,
         "ASSET_MANIFEST_URL": manifest_url,
         "ASSET_DOWNLOADER_ROOTS": str(asset_sync.get("roots") or ""),
         "LOADING_INDICATOR_STYLE": str(interface.get("loading_indicator_style") or "top-bar"),

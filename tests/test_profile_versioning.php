@@ -47,6 +47,7 @@ assert($app['version_code'] === 0);
 assert(isset($app['config']['web']['custom_headers']));
 assert(is_object($app['config']['web']['custom_headers']));
 assert(get_object_vars($app['config']['web']['custom_headers']) === []);
+assert($app['config']['web']['cookie_persistence'] === 'persistent');
 
 $storedJson = (string) $db->pdo()->query('SELECT config_json FROM apps WHERE id=' . (int) $app['id'])->fetchColumn();
 $storedConfig = json_decode($storedJson);
@@ -55,6 +56,7 @@ assert(is_object($storedConfig->web->custom_headers));
 
 $legacyConfig = json_decode($storedJson, true, flags: JSON_THROW_ON_ERROR);
 $legacyConfig['web']['custom_headers'] = [];
+$legacyConfig['web']['cookie_persistence'] = 'default';
 $stmt = $db->pdo()->prepare('UPDATE apps SET config_json=:config WHERE id=:id');
 $stmt->execute([
     'config' => json_encode($legacyConfig, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
@@ -64,6 +66,7 @@ $app = $apps->find((int) $app['id']);
 assert($app !== null);
 assert(is_object($app['config']['web']['custom_headers']));
 assert(get_object_vars($app['config']['web']['custom_headers']) === []);
+assert($app['config']['web']['cookie_persistence'] === 'persistent');
 
 $input['version_code'] = 999;
 $app = $apps->update((int) $app['id'], $input);
@@ -80,4 +83,4 @@ $builds->queue((int) $app['id'], 'compat/android-6-api23');
 $app = $apps->find((int) $app['id']);
 assert($app !== null && $app['version_code'] === 2);
 
-fwrite(STDOUT, "profile versioning and custom header contract: ok\n");
+fwrite(STDOUT, "profile versioning, custom header and cookie migration contracts: ok\n");
