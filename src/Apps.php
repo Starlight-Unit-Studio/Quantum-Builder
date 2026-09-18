@@ -107,7 +107,7 @@ final class Apps
             ],
             'web' => [
                 'user_agent_suffix' => ' QuantumMobileWrapper', 'custom_headers' => [],
-                'custom_css' => '', 'custom_js' => '', 'cookie_persistence' => 'default',
+                'custom_css' => '', 'custom_js' => '', 'cookie_persistence' => 'persistent',
             ],
             'plugins' => [
                 'quantum_nmp' => false, 'quantum_asset_store' => false, 'native_asset_downloader' => false,
@@ -130,6 +130,26 @@ final class Apps
             $config['web'] = $defaults['web'];
         }
         $config['web']['custom_headers'] = (object) $this->normalizeCustomHeaders($config['web']['custom_headers'] ?? []);
+
+        $customCss = $config['web']['custom_css'] ?? '';
+        $customJs = $config['web']['custom_js'] ?? '';
+        if (!is_string($customCss) || strlen($customCss) > 49152) {
+            throw new \InvalidArgumentException('Custom CSS must be text up to 48 KiB.');
+        }
+        if (!is_string($customJs) || strlen($customJs) > 49152) {
+            throw new \InvalidArgumentException('Custom JavaScript must be text up to 48 KiB.');
+        }
+        $config['web']['custom_css'] = $customCss;
+        $config['web']['custom_js'] = $customJs;
+
+        $cookieMode = strtolower(trim((string) ($config['web']['cookie_persistence'] ?? 'persistent')));
+        if ($cookieMode === 'default') {
+            $cookieMode = 'persistent';
+        }
+        if (!in_array($cookieMode, ['persistent', 'server', 'session'], true)) {
+            throw new \InvalidArgumentException('Cookie persistence mode is invalid.');
+        }
+        $config['web']['cookie_persistence'] = $cookieMode;
 
         if (!isset($config['theme']) || !is_array($config['theme'])) {
             $config['theme'] = $defaults['theme'];
@@ -194,6 +214,10 @@ final class Apps
             $config['web'] = [];
         }
         $config['web']['custom_headers'] = (object) $this->normalizeCustomHeaders($config['web']['custom_headers'] ?? []);
+        $cookieMode = strtolower(trim((string) ($config['web']['cookie_persistence'] ?? 'persistent')));
+        $config['web']['cookie_persistence'] = in_array($cookieMode, ['server', 'session'], true)
+            ? $cookieMode
+            : 'persistent';
         $row['config'] = $config;
         unset($row['config_json']);
         return $row;
