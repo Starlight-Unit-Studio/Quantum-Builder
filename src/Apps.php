@@ -126,6 +126,24 @@ final class Apps
             throw new \InvalidArgumentException('Trusted domain is invalid.');
         }
 
+        if (!isset($config['interface']) || !is_array($config['interface'])) {
+            $config['interface'] = $defaults['interface'];
+        }
+        foreach (['keep_screen_on', 'fullscreen', 'pull_to_refresh', 'pinch_to_zoom'] as $booleanField) {
+            if (!is_bool($config['interface'][$booleanField] ?? null)) {
+                throw new \InvalidArgumentException('Interface toggle values must be boolean.');
+            }
+        }
+        $fontScale = $config['interface']['font_scale'] ?? 100;
+        if (!is_int($fontScale) && !(is_string($fontScale) && ctype_digit($fontScale))) {
+            throw new \InvalidArgumentException('Font scale must be an integer percentage.');
+        }
+        $fontScale = (int) $fontScale;
+        if ($fontScale < 50 || $fontScale > 200) {
+            throw new \InvalidArgumentException('Font scale must be between 50 and 200 percent.');
+        }
+        $config['interface']['font_scale'] = $fontScale;
+
         if (!isset($config['web']) || !is_array($config['web'])) {
             $config['web'] = $defaults['web'];
         }
