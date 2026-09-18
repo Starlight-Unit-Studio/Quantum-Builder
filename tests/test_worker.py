@@ -36,6 +36,10 @@ class WorkerCompilerTests(unittest.TestCase):
             "interface": {
                 "keep_screen_on": False,
                 "orientation": "portrait",
+                "fullscreen": True,
+                "pull_to_refresh": True,
+                "pinch_to_zoom": True,
+                "font_scale": 125,
                 "loading_indicator_style": "bottom-bar",
                 "loading_indicator_color": "#ffaa00",
                 "loading_bar_thickness_dp": 5,
@@ -99,6 +103,10 @@ public final class AppConfig {
  public static final boolean ASSET_STORE_PAGE_WARMUP_ENABLED = true;
  public static final boolean NATIVE_ASSET_DOWNLOADER_ENABLED = false;
  public static final boolean KEEP_SCREEN_ON = true;
+ public static final boolean IMMERSIVE_FULLSCREEN_ENABLED = true;
+ public static final boolean PULL_TO_REFRESH_ENABLED = false;
+ public static final boolean PINCH_TO_ZOOM_ENABLED = false;
+ public static final int FONT_SCALE_PERCENT = 100;
 }
 """,
             encoding="utf-8",
@@ -109,6 +117,10 @@ public final class AppConfig {
         self.assertIn('TRUSTED_DOMAIN = "example.test";', text)
         self.assertIn('ASSET_STORE_TRUSTED_HOST = "example.test";', text)
         self.assertIn('KEEP_SCREEN_ON = false;', text)
+        self.assertIn('IMMERSIVE_FULLSCREEN_ENABLED = true;', text)
+        self.assertIn('PULL_TO_REFRESH_ENABLED = true;', text)
+        self.assertIn('PINCH_TO_ZOOM_ENABLED = true;', text)
+        self.assertIn('FONT_SCALE_PERCENT = 125;', text)
         self.assertIn('QUANTUM_ASSET_STORE_ENABLED = true;', text)
         self.assertIn('ASSET_STORE_PAGE_WARMUP_ENABLED = false;', text)
         self.assertIn('ASSET_MANIFEST_URL = "https://example.test/api/asset-manifest.json";', text)
@@ -144,6 +156,10 @@ public final class AppConfig {
  public static final boolean ASSET_STORE_PAGE_WARMUP_ENABLED = true;
  public static final boolean NATIVE_ASSET_DOWNLOADER_ENABLED = false;
  public static final boolean KEEP_SCREEN_ON = true;
+ public static final boolean IMMERSIVE_FULLSCREEN_ENABLED = true;
+ public static final boolean PULL_TO_REFRESH_ENABLED = false;
+ public static final boolean PINCH_TO_ZOOM_ENABLED = false;
+ public static final int FONT_SCALE_PERCENT = 100;
 }
 """,
             encoding="utf-8",

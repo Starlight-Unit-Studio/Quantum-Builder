@@ -59,13 +59,13 @@ Status legend:
 ## Interface
 
 - Dark mode setting - `PROFILE`
-- Orientation - `PROFILE`
-- Keep screen on - `PROFILE`
-- Immersive fullscreen - `PROFILE`
+- Orientation - `RUNTIME`
+- Keep screen on - `RUNTIME`
+- Immersive fullscreen - `RUNTIME`
 - Native page transitions - `PROFILE`
-- Pull-to-refresh - `PROFILE`
-- Pinch-to-zoom - `PROFILE`
-- Android font scaling - `PROFILE`
+- Pull-to-refresh - `RUNTIME`
+- Pinch-to-zoom - `RUNTIME`
+- Android font scaling - `RUNTIME`
 - Swipe navigation gestures - `PLANNED`
 - Transition alpha/transparency - `PLANNED`
 - Loading spinner styling - `RUNTIME`
