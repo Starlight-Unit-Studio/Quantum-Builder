@@ -23,7 +23,7 @@ Legend:
 | Branding | Primary/accent colors | Profile |
 | Branding | Status/navigation bar colors | Profile |
 | Branding | Splash background | Profile |
-| Branding | Icon upload / adaptive icon generator | Planned |
+| Branding | Per-app launcher icon upload | Runtime |
 | Branding | Splash image upload/editor | Planned |
 | Interface | Dark/light/auto mode | Profile |
 | Interface | Portrait/landscape | Runtime |
@@ -55,12 +55,12 @@ Legend:
 | Permissions | Background audio flag | Profile |
 | Web Overrides | Trusted domain | Runtime |
 | Web Overrides | User-Agent suffix | Runtime |
-| Web Overrides | Custom headers | Profile |
+| Web Overrides | Custom headers | Runtime for wrapper/native HTTP paths |
 | Web Overrides | Custom CSS | Profile |
 | Web Overrides | Custom JavaScript | Profile |
 | Web Overrides | Cookie persistence mode | Profile |
 | Plugins | Quantum NMP selection | Profile; module already exists in wrapper |
-| Plugins | Quantum Asset Store selection | Profile; module already exists in wrapper |
+| Plugins | Quantum Asset Store selection | Runtime |
 | Plugins | Share | Profile |
 | Plugins | Haptics | Profile |
 | Plugins | Biometrics | Profile |
