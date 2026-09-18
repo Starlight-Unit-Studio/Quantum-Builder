@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0-alpha5
+
+Runtime Web Overrides.
+
+- Custom CSS is now compiled into generated apps and injected only into trusted app pages.
+- Custom JavaScript is now compiled into generated apps and executed only on trusted app pages.
+- Cookie Persistence now offers encrypted persistent sessions, website/server defaults and session-only starts.
+- Legacy `default` cookie profiles migrate to persistent mode to preserve existing Quantum session behavior.
+- Custom CSS and JavaScript are capped at 48 KiB each to stay safely below Android/Java constant limits.
+- Builder version bump refreshes cached frontend assets after update.
+
 ## 0.1.0-alpha4
 
 Native loading indicator controls.
