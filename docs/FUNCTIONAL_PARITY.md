@@ -84,9 +84,10 @@ Status legend:
 
 ### Top Navigation Bar
 
-- Enable/display mode - `PROFILE`
+- Enable/display mode - `RUNTIME`
 - Hide with scroll - `PLANNED`
-- App image/title - `PLANNED`
+- App title - `RUNTIME`
+- App image - `PLANNED`
 - Light/dark colors - `PLANNED`
 - Visual menu editor - `PLANNED`
 - Multiple menus - `PLANNED`
@@ -96,12 +97,13 @@ Status legend:
 
 ### Sidebar Navigation
 
-- Enable - `PROFILE`
+- Enable - `RUNTIME`
 - App image/name - `PLANNED`
 - Font/style controls - `PLANNED`
 - Light/dark background/foreground/separator/highlight - `PLANNED`
 - Visual menu editor - `PLANNED`
-- Icon/label/link items - `PLANNED`
+- Label/link items - `RUNTIME`
+- Item icons - `PLANNED`
 - Grouping/collapsible groups - `PLANNED`
 - Drag/drop ordering - `PLANNED`
 - Restore defaults / clear all - `PLANNED`
@@ -109,19 +111,21 @@ Status legend:
 
 ### Bottom Tab Bar
 
-- Enable/default mode - `PROFILE`
+- Enable/default mode - `RUNTIME`
 - Hide with scroll - `PLANNED`
 - Light/dark styling - `PLANNED`
 - Active/inactive tab colors - `PLANNED`
 - Visual tab editor - `PLANNED`
 - Multiple tab menus - `PLANNED`
 - Visibility rules - `PLANNED`
-- Icons/text/links - `PLANNED`
+- Text/links - `RUNTIME`
+- Tab icons - `PLANNED`
 - Advanced mode - `PLANNED`
 
 ### Contextual Navigation Toolbar
 
-- Enable - `PROFILE`
+- Enable - `RUNTIME`
+- Built-in Back/Home/Reload/Forward actions - `RUNTIME`
 - Visibility by pages - `PLANNED`
 - Visibility by back-button status - `PLANNED`
 - Back button label/pages - `PLANNED`
