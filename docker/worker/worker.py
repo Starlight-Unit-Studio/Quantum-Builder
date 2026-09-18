@@ -277,6 +277,9 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
     start_host = parsed.hostname or str(config.get("trusted_domain") or "")
     trusted = str(config.get("trusted_domain") or start_host)
     web = config.get("web", {})
+    interface = config.get("interface", {})
+    if not isinstance(interface, dict):
+        interface = {}
     plugins = config.get("plugins", {})
     custom_headers = web.get("custom_headers", {})
     if not isinstance(custom_headers, dict):
@@ -298,6 +301,8 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
         "CUSTOM_REQUEST_HEADERS_JSON": json.dumps(custom_headers, ensure_ascii=False, separators=(",", ":")),
         "ASSET_MANIFEST_URL": manifest_url,
         "ASSET_DOWNLOADER_ROOTS": str(asset_sync.get("roots") or ""),
+        "LOADING_INDICATOR_STYLE": str(interface.get("loading_indicator_style") or "top-bar"),
+        "LOADING_INDICATOR_COLOR": str(interface.get("loading_indicator_color") or "#6fc7ff"),
     }
     for constant, value in string_values.items():
         text = replace_once(
@@ -319,6 +324,19 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
             text,
             rf'(public static final boolean {re.escape(constant)}\s*=\s*)(true|false)(;)',
             rf'\g<1>{value}\g<3>',
+            f"AppConfig.{constant}",
+        )
+
+    integer_values = {
+        "LOADING_BAR_THICKNESS_DP": max(1, min(12, int(interface.get("loading_bar_thickness_dp") or 3))),
+        "LOADING_SPINNER_SIZE_DP": max(24, min(128, int(interface.get("loading_spinner_size_dp") or 56))),
+        "LOADING_OVERLAY_DIM_PERCENT": max(0, min(90, int(interface.get("loading_overlay_dim_percent") or 35))),
+    }
+    for constant, value in integer_values.items():
+        text = replace_once(
+            text,
+            rf'(public static final int {re.escape(constant)}\s*=\s*)\d+(;)',
+            rf'\g<1>{value}\g<2>',
             f"AppConfig.{constant}",
         )
     path.write_text(text, encoding="utf-8")
