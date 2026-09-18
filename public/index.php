@@ -197,7 +197,7 @@ $authenticated = $auth->isLoggedIn();
                   <label class="span-2"><span class="field-label">Custom Headers (JSON)</span><textarea class="field mono" id="customHeaders" rows="5" placeholder='{"X-Starlight-App":"my-app"}'></textarea></label>
                   <label class="span-2"><span class="field-label">Custom CSS</span><textarea class="field mono" id="customCss" rows="7"></textarea></label>
                   <label class="span-2"><span class="field-label">Custom JavaScript</span><textarea class="field mono" id="customJs" rows="7"></textarea></label>
-                  <label><span class="field-label">Cookie Persistence</span><select class="field" id="cookiePersistence"><option value="default">Default</option><option value="persistent">Persistent</option><option value="session">Session only</option></select></label>
+                  <label><span class="field-label">Cookie Persistence</span><select class="field" id="cookiePersistence"><option value="persistent">Persistent (Quantum)</option><option value="server">Website / Server Default</option><option value="session">Session only</option></select></label>
                 </div>
               </section>
 
