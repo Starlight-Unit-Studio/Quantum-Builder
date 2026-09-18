@@ -21,15 +21,15 @@ Legend:
 | Build | Build history | Runtime |
 | Build | Authenticated downloads | Runtime |
 | Branding | Primary/accent colors | Profile |
-| Branding | Status/navigation bar colors | Profile |
-| Branding | Splash background | Profile |
+| Branding | Status/navigation bar colors | Runtime |
+| Branding | Splash background | Runtime |
 | Branding | Per-app launcher icon upload | Runtime |
 | Branding | Splash image upload/editor | Planned |
-| Interface | Dark/light/auto mode | Profile |
+| Interface | Dark/light/auto mode | Runtime |
 | Interface | Portrait/landscape | Runtime |
 | Interface | Keep screen on | Runtime |
 | Interface | Immersive fullscreen switch | Runtime |
-| Interface | Page transitions | Profile |
+| Interface | Page transitions | Runtime |
 | Interface | Pull-to-refresh | Runtime |
 | Interface | Pinch-to-zoom | Runtime |
 | Interface | Font scaling | Runtime |
