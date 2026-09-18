@@ -38,6 +38,20 @@ class WorkerCompilerTests(unittest.TestCase):
                 "navigation_bar": "#101820",
                 "splash_background": "#001122",
             },
+            "navigation": {
+                "top_bar": True,
+                "sidebar": True,
+                "bottom_tabs": True,
+                "contextual_toolbar": True,
+                "title": "Quantum Native",
+                "background": "#112233",
+                "foreground": "#fefefe",
+                "accent": "#44ccff",
+                "items": [
+                    {"label": "Home", "url": "/"},
+                    {"label": "News", "url": "/news"},
+                ],
+            },
             "interface": {
                 "keep_screen_on": False,
                 "orientation": "portrait",
@@ -103,6 +117,11 @@ public final class AppConfig {
  public static final String STATUS_BAR_COLOR = "#020611";
  public static final String NAVIGATION_BAR_COLOR = "#020611";
  public static final String SPLASH_BACKGROUND_COLOR = "#020611";
+ public static final String NATIVE_NAVIGATION_TITLE = "Old";
+ public static final String NATIVE_NAVIGATION_ITEMS_JSON = "[]";
+ public static final String NATIVE_NAVIGATION_BACKGROUND_COLOR = "#020611";
+ public static final String NATIVE_NAVIGATION_FOREGROUND_COLOR = "#ffffff";
+ public static final String NATIVE_NAVIGATION_ACCENT_COLOR = "#6fc7ff";
  public static final String ASSET_MANIFEST_URL = "";
  public static final String ASSET_DOWNLOADER_ROOTS = "";
  public static final String LOADING_INDICATOR_STYLE = "top-bar";
@@ -115,6 +134,10 @@ public final class AppConfig {
  public static final boolean NATIVE_ASSET_DOWNLOADER_ENABLED = false;
  public static final boolean KEEP_SCREEN_ON = true;
  public static final boolean PAGE_TRANSITIONS_ENABLED = false;
+ public static final boolean TOP_NAVIGATION_ENABLED = false;
+ public static final boolean SIDEBAR_NAVIGATION_ENABLED = false;
+ public static final boolean BOTTOM_TABS_ENABLED = false;
+ public static final boolean CONTEXTUAL_TOOLBAR_ENABLED = false;
  public static final boolean PUBLIC_DOWNLOADS_ENABLED = true;
  public static final boolean IMMERSIVE_FULLSCREEN_ENABLED = true;
  public static final boolean PULL_TO_REFRESH_ENABLED = false;
@@ -131,6 +154,15 @@ public final class AppConfig {
         self.assertIn('ASSET_STORE_TRUSTED_HOST = "example.test";', text)
         self.assertIn('KEEP_SCREEN_ON = false;', text)
         self.assertIn('PAGE_TRANSITIONS_ENABLED = true;', text)
+        self.assertIn('TOP_NAVIGATION_ENABLED = true;', text)
+        self.assertIn('SIDEBAR_NAVIGATION_ENABLED = true;', text)
+        self.assertIn('BOTTOM_TABS_ENABLED = true;', text)
+        self.assertIn('CONTEXTUAL_TOOLBAR_ENABLED = true;', text)
+        self.assertIn('NATIVE_NAVIGATION_TITLE = "Quantum Native";', text)
+        self.assertIn('NATIVE_NAVIGATION_BACKGROUND_COLOR = "#112233";', text)
+        self.assertIn('NATIVE_NAVIGATION_FOREGROUND_COLOR = "#fefefe";', text)
+        self.assertIn('NATIVE_NAVIGATION_ACCENT_COLOR = "#44ccff";', text)
+        self.assertIn('NATIVE_NAVIGATION_ITEMS_JSON = "[{\\\"label\\\":\\\"Home\\\",\\\"url\\\":\\\"/\\\"},{\\\"label\\\":\\\"News\\\",\\\"url\\\":\\\"/news\\\"}]";', text)
         self.assertIn('WEB_DARK_MODE = "auto";', text)
         self.assertIn('STATUS_BAR_COLOR = "#f5f6f8";', text)
         self.assertIn('NAVIGATION_BAR_COLOR = "#101820";', text)
@@ -168,6 +200,11 @@ public final class AppConfig {
  public static final String STATUS_BAR_COLOR = "#020611";
  public static final String NAVIGATION_BAR_COLOR = "#020611";
  public static final String SPLASH_BACKGROUND_COLOR = "#020611";
+ public static final String NATIVE_NAVIGATION_TITLE = "Old";
+ public static final String NATIVE_NAVIGATION_ITEMS_JSON = "[]";
+ public static final String NATIVE_NAVIGATION_BACKGROUND_COLOR = "#020611";
+ public static final String NATIVE_NAVIGATION_FOREGROUND_COLOR = "#ffffff";
+ public static final String NATIVE_NAVIGATION_ACCENT_COLOR = "#6fc7ff";
  public static final String ASSET_MANIFEST_URL = "";
  public static final String ASSET_DOWNLOADER_ROOTS = "";
  public static final String LOADING_INDICATOR_STYLE = "top-bar";
@@ -180,6 +217,10 @@ public final class AppConfig {
  public static final boolean NATIVE_ASSET_DOWNLOADER_ENABLED = false;
  public static final boolean KEEP_SCREEN_ON = true;
  public static final boolean PAGE_TRANSITIONS_ENABLED = false;
+ public static final boolean TOP_NAVIGATION_ENABLED = false;
+ public static final boolean SIDEBAR_NAVIGATION_ENABLED = false;
+ public static final boolean BOTTOM_TABS_ENABLED = false;
+ public static final boolean CONTEXTUAL_TOOLBAR_ENABLED = false;
  public static final boolean PUBLIC_DOWNLOADS_ENABLED = true;
  public static final boolean IMMERSIVE_FULLSCREEN_ENABLED = true;
  public static final boolean PULL_TO_REFRESH_ENABLED = false;
