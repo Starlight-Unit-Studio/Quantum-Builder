@@ -47,7 +47,7 @@ Status legend:
 - Status bar color - `PROFILE`
 - Android system navigation bar color - `PROFILE`
 - Splash background - `PROFILE`
-- App icon upload - `PLANNED`
+- App icon upload - `RUNTIME`
 - Adaptive Android icon generation - `PLANNED`
 - Splash image upload - `PLANNED`
 - Light/dark splash variants - `PLANNED`
@@ -68,7 +68,7 @@ Status legend:
 - Android font scaling - `PROFILE`
 - Swipe navigation gestures - `PLANNED`
 - Transition alpha/transparency - `PLANNED`
-- Loading spinner styling - `PLANNED`
+- Loading spinner styling - `RUNTIME`
 - Pull-to-refresh styling - `PLANNED`
 - Maximum windows - `PLANNED`
 - Viewport/page-width scaling - `PLANNED`
@@ -144,9 +144,9 @@ Status legend:
 
 ## Permissions
 
-- Location - `PROFILE`
-- Microphone/WebRTC audio - `PROFILE`
-- Camera/WebRTC video - `PROFILE`
+- Location - `RUNTIME`
+- Microphone/WebRTC audio - `RUNTIME`
+- Camera/WebRTC video - `RUNTIME`
 - Public downloads - `PROFILE`
 - Background audio - `PROFILE`
 - JavaScript bridge allowed URLs - `PLANNED`
@@ -159,11 +159,11 @@ Status legend:
 
 ## Web Overrides
 
-- User-agent suffix - `PROFILE`
-- Custom HTTP headers - `PROFILE`
-- Custom CSS - `PROFILE`
-- Custom JavaScript - `PROFILE`
-- Cookie persistence mode - `PROFILE`
+- User-agent suffix - `RUNTIME`
+- Custom HTTP headers - `RUNTIME`
+- Custom CSS - `RUNTIME`
+- Custom JavaScript - `RUNTIME`
+- Cookie persistence mode - `RUNTIME`
 - Complete user-agent replacement - `PLANNED`
 - Android/iOS-specific CSS - `PLANNED`
 - Android/iOS-specific JavaScript - `PLANNED`
