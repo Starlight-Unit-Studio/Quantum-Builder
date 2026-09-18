@@ -33,6 +33,7 @@ Legend:
 | Interface | Pull-to-refresh | Profile |
 | Interface | Pinch-to-zoom | Profile |
 | Interface | Font scaling | Profile |
+| Interface | Native loading indicator styles / color / size | Runtime |
 | Interface | Viewport width/scale | Planned |
 | Interface | Maximum windows | Planned |
 | Interface | Localization selection | Planned |
