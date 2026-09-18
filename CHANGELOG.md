@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.0-alpha9
+
+Native Navigation runtime foundation.
+
+- Top Navigation Bar now renders natively with the configured app title, Home action and Sidebar launcher when enabled.
+- Sidebar Navigation now renders trusted configured menu items in a native drawer overlay.
+- Bottom Tab Bar now renders the first five configured menu items and highlights the active destination.
+- Contextual Toolbar now provides native Back, Home, Reload and Forward controls tied to WebView history.
+- Sidebar and Bottom Tabs share one ordered menu definition with up to 12 trusted destinations.
+- Navigation targets may be relative paths or trusted HTTPS URLs; external and non-web schemes are rejected by Builder validation and still pass through the wrapper trusted-domain boundary.
+- Navigation background, foreground and accent colors compile into the generated app.
+- Native bars reserve WebView layout space rather than covering page content.
+- Builder version bump refreshes cached frontend assets after update.
+
 ## 0.1.0-alpha8
 
 Runtime theme controls and page transitions.
