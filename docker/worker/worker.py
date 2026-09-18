@@ -338,6 +338,7 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
         "QUANTUM_ASSET_STORE_ENABLED": bool(plugins.get("quantum_asset_store")),
         "ASSET_STORE_PAGE_WARMUP_ENABLED": False,
         "NATIVE_ASSET_DOWNLOADER_ENABLED": bool(plugins.get("native_asset_downloader")),
+        "PUBLIC_DOWNLOADS_ENABLED": bool(config.get("permissions", {}).get("public_downloads", True)),
     }
     for constant, enabled in boolean_values.items():
         value = "true" if enabled else "false"
