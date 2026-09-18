@@ -199,6 +199,11 @@
     $('sidebarNav').checked = Boolean(get(config, 'navigation.sidebar', false));
     $('bottomTabs').checked = Boolean(get(config, 'navigation.bottom_tabs', false));
     $('contextualToolbar').checked = Boolean(get(config, 'navigation.contextual_toolbar', false));
+    $('nativeNavigationTitle').value = get(config, 'navigation.title', app.name || '');
+    $('nativeNavigationBackground').value = get(config, 'navigation.background', '#020611');
+    $('nativeNavigationForeground').value = get(config, 'navigation.foreground', '#ffffff');
+    $('nativeNavigationAccent').value = get(config, 'navigation.accent', '#6fc7ff');
+    $('nativeNavigationItems').value = JSON.stringify(get(config, 'navigation.items', []), null, 2);
 
     $('newWindows').value = get(config, 'links.new_windows', 'blocked');
     $('deepLinkScheme').value = get(config, 'links.deep_link_scheme', '');
@@ -241,6 +246,14 @@
       if (!headers || Array.isArray(headers) || typeof headers !== 'object') throw new Error('Custom Headers müssen ein JSON-Objekt sein.');
     }
 
+    let nativeNavigationItems = [];
+    const rawNavigationItems = $('nativeNavigationItems').value.trim();
+    if (rawNavigationItems) {
+      nativeNavigationItems = JSON.parse(rawNavigationItems);
+      if (!Array.isArray(nativeNavigationItems)) throw new Error('Native Navigation Items müssen ein JSON-Array sein.');
+      if (nativeNavigationItems.length > 12) throw new Error('Native Navigation unterstützt maximal 12 Menüeinträge.');
+    }
+
     return {
       id: Number($('appId').value),
       name: $('appName').value.trim(),
@@ -272,6 +285,11 @@
         navigation: {
           top_bar: $('topBar').checked, sidebar: $('sidebarNav').checked, bottom_tabs: $('bottomTabs').checked,
           contextual_toolbar: $('contextualToolbar').checked,
+          title: $('nativeNavigationTitle').value.trim(),
+          background: $('nativeNavigationBackground').value,
+          foreground: $('nativeNavigationForeground').value,
+          accent: $('nativeNavigationAccent').value,
+          items: nativeNavigationItems,
         },
         links: { new_windows: $('newWindows').value, deep_link_scheme: $('deepLinkScheme').value.trim() },
         permissions: {
