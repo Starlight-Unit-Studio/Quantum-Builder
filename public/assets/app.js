@@ -436,10 +436,10 @@
   const buildRow = (build) => {
     const complete = build.status === 'complete';
     const links = complete ? `
-      <a class="btn compact" href="/download.php?build=${build.id}&artifact=apk">APK</a>
-      <a class="btn compact" href="/download.php?build=${build.id}&artifact=aab">AAB</a>
-      <a class="btn compact" href="/download.php?build=${build.id}&artifact=source">SOURCE</a>
-      <a class="btn compact" href="/download.php?build=${build.id}&artifact=sha256">SHA256</a>` : '';
+      <a class="btn compact" href="/download.php?build=${build.id}&artifact=apk" download data-quantum-download="apk">APK</a>
+      <a class="btn compact" href="/download.php?build=${build.id}&artifact=aab" download data-quantum-download="aab">AAB</a>
+      <a class="btn compact" href="/download.php?build=${build.id}&artifact=source" download data-quantum-download="source">SOURCE</a>
+      <a class="btn compact" href="/download.php?build=${build.id}&artifact=sha256" download data-quantum-download="sha256">SHA256</a>` : '';
     return `<div class="build-row is-${escapeHtml(build.status)}">
       <div class="build-id">#${build.id}</div>
       <div class="build-copy"><strong>${escapeHtml(build.status.toUpperCase())} · ${escapeHtml(build.stage)}</strong><span>${escapeHtml(build.message || '')}</span></div>
