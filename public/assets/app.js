@@ -212,6 +212,9 @@
 
     $('pluginNmp').checked = Boolean(get(config, 'plugins.quantum_nmp', false));
     $('pluginAssetStore').checked = Boolean(get(config, 'plugins.quantum_asset_store', false));
+    $('pluginAssetDownloader').checked = Boolean(get(config, 'plugins.native_asset_downloader', false));
+    $('assetManifestUrl').value = get(config, 'asset_sync.manifest_url', '');
+    $('assetRoots').value = get(config, 'asset_sync.roots', '/assets/portraits/');
     $('pluginShare').checked = Boolean(get(config, 'plugins.share', false));
     $('pluginHaptics').checked = Boolean(get(config, 'plugins.haptics', false));
     $('pluginBiometrics').checked = Boolean(get(config, 'plugins.biometrics', false));
@@ -268,8 +271,13 @@
         },
         plugins: {
           quantum_nmp: $('pluginNmp').checked, quantum_asset_store: $('pluginAssetStore').checked,
+          native_asset_downloader: $('pluginAssetDownloader').checked,
           share: $('pluginShare').checked, haptics: $('pluginHaptics').checked, biometrics: $('pluginBiometrics').checked,
           qr_scanner: $('pluginQr').checked, push_fcm: $('pluginFcm').checked,
+        },
+        asset_sync: {
+          manifest_url: $('assetManifestUrl').value.trim(),
+          roots: $('assetRoots').value.trim(),
         },
       },
     };
