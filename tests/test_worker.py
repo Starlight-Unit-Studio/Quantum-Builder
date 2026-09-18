@@ -34,7 +34,8 @@ class WorkerCompilerTests(unittest.TestCase):
         self.config = {
             "trusted_domain": "example.test",
             "interface": {"keep_screen_on": False, "orientation": "portrait"},
-            "web": {"user_agent_suffix": " QuantumTest"},
+            "web": {"user_agent_suffix": " QuantumTest", "custom_headers": {"X-Test-Client": "phone"}},
+            "plugins": {"quantum_asset_store": True},
             "permissions": {"location": True, "microphone": True, "camera": True},
         }
 
@@ -69,6 +70,25 @@ class WorkerCompilerTests(unittest.TestCase):
         self.assertIn('TRUSTED_DOMAIN = "example.test";', text)
         self.assertIn('ASSET_STORE_TRUSTED_HOST = "example.test";', text)
         self.assertIn('KEEP_SCREEN_ON = false;', text)
+        self.assertIn('QUANTUM_ASSET_STORE_ENABLED = true;', text)
+        self.assertIn('ASSET_STORE_PAGE_WARMUP_ENABLED = false;', text)
+        self.assertIn('CUSTOM_REQUEST_HEADERS_JSON = "{\\\"X-Test-Client\\\":\\\"phone\\\"}";', text)
+
+    def test_profile_launcher_icon_replaces_manifest_launcher_resource(self):
+        manifest = self.root / "app/src/main/AndroidManifest.xml"
+        manifest.write_text(
+            '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher"></application></manifest>',
+            encoding="utf-8",
+        )
+        png = b"\x89PNG\r\n\x1a\n" + b"icon"
+        import base64
+        config = {"theme": {"app_icon_data_url": "data:image/png;base64," + base64.b64encode(png).decode("ascii")}}
+        worker.install_profile_launcher_icon(self.root, config)
+        icon = self.root / "app/src/main/res/drawable-nodpi/quantum_app_icon.png"
+        self.assertEqual(icon.read_bytes(), png)
+        text = manifest.read_text(encoding="utf-8")
+        self.assertIn('android:icon="@drawable/quantum_app_icon"', text)
+        self.assertIn('android:roundIcon="@drawable/quantum_app_icon"', text)
 
     def test_manifest_adds_only_requested_runtime_permissions(self):
         manifest = self.root / "app/src/main/AndroidManifest.xml"
