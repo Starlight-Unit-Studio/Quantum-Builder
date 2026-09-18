@@ -166,7 +166,12 @@ $authenticated = $auth->isLoggedIn();
                   <label class="toggle"><input id="sidebarNav" type="checkbox"><span>Sidebar Navigation</span></label>
                   <label class="toggle"><input id="bottomTabs" type="checkbox"><span>Bottom Tab Bar</span></label>
                   <label class="toggle"><input id="contextualToolbar" type="checkbox"><span>Contextual Toolbar</span></label>
-                  <div class="notice span-2">Visual Editors für Menüeinträge, Icons, Sichtbarkeitsregeln und Light/Dark-Styling sind für die nächste Ausbaustufe vorgesehen.</div>
+                  <label class="span-2"><span class="field-label">Native App Title</span><input class="field" id="nativeNavigationTitle" maxlength="80" placeholder="Meine App"></label>
+                  <label><span class="field-label">Navigation Background</span><input class="field color-field" id="nativeNavigationBackground" type="color"></label>
+                  <label><span class="field-label">Navigation Foreground</span><input class="field color-field" id="nativeNavigationForeground" type="color"></label>
+                  <label><span class="field-label">Navigation Accent</span><input class="field color-field" id="nativeNavigationAccent" type="color"></label>
+                  <label class="span-2"><span class="field-label">Menu Items (JSON)</span><textarea class="field mono" id="nativeNavigationItems" rows="9" placeholder='[{"label":"Home","url":"/"},{"label":"News","url":"/news"}]'></textarea></label>
+                  <div class="notice span-2">Sidebar und Bottom Tabs verwenden dieselbe geordnete Menü-Liste. Maximal 12 Ziele; die Bottom Tab Bar zeigt die ersten 5. Relative Pfade werden gegen die Start-URL aufgelöst und bleiben unter der Trusted-Domain-Policy. Die Contextual Toolbar liefert Back, Home, Reload und Forward nativ.</div>
                 </div>
               </section>
 

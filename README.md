@@ -6,7 +6,7 @@ The project turns one maintained Android wrapper runtime into reusable app profi
 
 The interface uses the **Terran terminal design language** from *Starlight Unit: The Game* and its mobile Admin Console. Median is used only as a feature reference for the builder workflow, not as a design source.
 
-Current version: `0.1.0-alpha8`
+Current version: `0.1.0-alpha9`
 
 ## Studio quick installer
 

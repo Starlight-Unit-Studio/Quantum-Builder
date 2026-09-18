@@ -48,6 +48,23 @@ assert(isset($app['config']['web']['custom_headers']));
 assert(is_object($app['config']['web']['custom_headers']));
 assert(get_object_vars($app['config']['web']['custom_headers']) === []);
 assert($app['config']['web']['cookie_persistence'] === 'persistent');
+assert($app['config']['navigation']['items'] === []);
+assert($app['config']['navigation']['title'] === 'Version Test');
+
+$unsafeInput = $input;
+$unsafeInput['package_id'] = 'de.starlightunit.unsafenav';
+$unsafeInput['config'] = [
+    'navigation' => [
+        'items' => [['label' => 'Outside', 'url' => 'https://evil.example/']],
+    ],
+];
+$unsafeRejected = false;
+try {
+    $apps->create($unsafeInput);
+} catch (InvalidArgumentException) {
+    $unsafeRejected = true;
+}
+assert($unsafeRejected === true);
 
 $storedJson = (string) $db->pdo()->query('SELECT config_json FROM apps WHERE id=' . (int) $app['id'])->fetchColumn();
 $storedConfig = json_decode($storedJson);
@@ -83,4 +100,4 @@ $builds->queue((int) $app['id'], 'compat/android-6-api23');
 $app = $apps->find((int) $app['id']);
 assert($app !== null && $app['version_code'] === 2);
 
-fwrite(STDOUT, "profile versioning, custom header and cookie migration contracts: ok\n");
+fwrite(STDOUT, "profile versioning, navigation trust, custom header and cookie migration contracts: ok\n");

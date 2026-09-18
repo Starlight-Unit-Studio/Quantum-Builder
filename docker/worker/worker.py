@@ -285,6 +285,9 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
     theme = config.get("theme", {})
     if not isinstance(theme, dict):
         theme = {}
+    navigation = config.get("navigation", {})
+    if not isinstance(navigation, dict):
+        navigation = {}
     plugins = config.get("plugins", {})
     custom_headers = web.get("custom_headers", {})
     if not isinstance(custom_headers, dict):
@@ -322,6 +325,14 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
     status_bar_color = normalized_hex_color(theme.get("status_bar"), "#020611")
     navigation_bar_color = normalized_hex_color(theme.get("navigation_bar"), "#020611")
     splash_background_color = normalized_hex_color(theme.get("splash_background"), "#020611")
+    native_navigation_background = normalized_hex_color(navigation.get("background"), "#020611")
+    native_navigation_foreground = normalized_hex_color(navigation.get("foreground"), "#ffffff")
+    native_navigation_accent = normalized_hex_color(navigation.get("accent"), "#6fc7ff")
+    native_navigation_items = navigation.get("items", [])
+    if not isinstance(native_navigation_items, list):
+        raise RuntimeError("Native navigation items must be a list")
+    if len(native_navigation_items) > 12:
+        raise RuntimeError("Native navigation supports at most 12 items")
 
     string_values = {
         "START_URL": str(app["start_url"]),
@@ -338,6 +349,11 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
         "STATUS_BAR_COLOR": status_bar_color,
         "NAVIGATION_BAR_COLOR": navigation_bar_color,
         "SPLASH_BACKGROUND_COLOR": splash_background_color,
+        "NATIVE_NAVIGATION_TITLE": str(navigation.get("title") or app["name"]),
+        "NATIVE_NAVIGATION_ITEMS_JSON": json.dumps(native_navigation_items, ensure_ascii=False, separators=(",", ":")),
+        "NATIVE_NAVIGATION_BACKGROUND_COLOR": native_navigation_background,
+        "NATIVE_NAVIGATION_FOREGROUND_COLOR": native_navigation_foreground,
+        "NATIVE_NAVIGATION_ACCENT_COLOR": native_navigation_accent,
         "ASSET_MANIFEST_URL": manifest_url,
         "ASSET_DOWNLOADER_ROOTS": str(asset_sync.get("roots") or ""),
         "LOADING_INDICATOR_STYLE": str(interface.get("loading_indicator_style") or "top-bar"),
@@ -354,6 +370,10 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
     boolean_values = {
         "KEEP_SCREEN_ON": bool(interface.get("keep_screen_on")),
         "PAGE_TRANSITIONS_ENABLED": bool(interface.get("page_transitions")),
+        "TOP_NAVIGATION_ENABLED": bool(navigation.get("top_bar")),
+        "SIDEBAR_NAVIGATION_ENABLED": bool(navigation.get("sidebar")),
+        "BOTTOM_TABS_ENABLED": bool(navigation.get("bottom_tabs")),
+        "CONTEXTUAL_TOOLBAR_ENABLED": bool(navigation.get("contextual_toolbar")),
         "IMMERSIVE_FULLSCREEN_ENABLED": bool(interface.get("fullscreen")),
         "PULL_TO_REFRESH_ENABLED": bool(interface.get("pull_to_refresh")),
         "PINCH_TO_ZOOM_ENABLED": bool(interface.get("pinch_to_zoom")),

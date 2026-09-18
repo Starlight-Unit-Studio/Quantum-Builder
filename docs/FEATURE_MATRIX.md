@@ -38,11 +38,12 @@ Legend:
 | Interface | Maximum windows | Planned |
 | Interface | Localization selection | Planned |
 | Interface | Custom offline page | Planned |
-| Navigation | Top bar enable | Profile |
-| Navigation | Sidebar enable | Profile |
-| Navigation | Bottom tabs enable | Profile |
-| Navigation | Contextual toolbar enable | Profile |
-| Navigation | Visual menu editors | Planned |
+| Navigation | Top bar enable | Runtime |
+| Navigation | Sidebar enable | Runtime |
+| Navigation | Bottom tabs enable | Runtime |
+| Navigation | Contextual toolbar enable | Runtime |
+| Navigation | Shared ordered menu JSON | Runtime |
+| Navigation | Visual drag/drop menu editor | Planned |
 | Navigation | Page visibility rules | Planned |
 | Links | New-window behavior | Profile |
 | Links | Deep-link scheme | Profile |
