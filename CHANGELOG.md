@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.0-alpha4
+
+Native loading indicator controls.
+
+- exposes per-app loading indicator mode, color, bar thickness, spinner size and overlay dimming under Interface
+- compiles the selected values into the Android wrapper runtime
+- preserves the existing top loading bar as the default for older profiles
+- bumps the Builder version so browser assets receive a fresh cache-busting version after update
+
 ## Unreleased
 
 Per-app native loading indicator controls.
