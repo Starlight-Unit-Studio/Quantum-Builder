@@ -189,6 +189,11 @@
     $('pullToRefresh').checked = Boolean(get(config, 'interface.pull_to_refresh', false));
     $('pinchToZoom').checked = Boolean(get(config, 'interface.pinch_to_zoom', false));
     $('fontScale').value = get(config, 'interface.font_scale', 100);
+    $('loadingIndicatorStyle').value = get(config, 'interface.loading_indicator_style', 'top-bar');
+    $('loadingIndicatorColor').value = get(config, 'interface.loading_indicator_color', '#6fc7ff');
+    $('loadingBarThickness').value = get(config, 'interface.loading_bar_thickness_dp', 3);
+    $('loadingSpinnerSize').value = get(config, 'interface.loading_spinner_size_dp', 56);
+    $('loadingOverlayDim').value = get(config, 'interface.loading_overlay_dim_percent', 35);
 
     $('topBar').checked = Boolean(get(config, 'navigation.top_bar', false));
     $('sidebarNav').checked = Boolean(get(config, 'navigation.sidebar', false));
@@ -255,6 +260,11 @@
           dark_mode: $('darkMode').value, orientation: $('orientation').value, keep_screen_on: $('keepScreenOn').checked,
           fullscreen: $('fullscreen').checked, page_transitions: $('pageTransitions').checked,
           pull_to_refresh: $('pullToRefresh').checked, pinch_to_zoom: $('pinchToZoom').checked, font_scale: Number($('fontScale').value),
+          loading_indicator_style: $('loadingIndicatorStyle').value,
+          loading_indicator_color: $('loadingIndicatorColor').value,
+          loading_bar_thickness_dp: Number($('loadingBarThickness').value),
+          loading_spinner_size_dp: Number($('loadingSpinnerSize').value),
+          loading_overlay_dim_percent: Number($('loadingOverlayDim').value),
         },
         navigation: {
           top_bar: $('topBar').checked, sidebar: $('sidebarNav').checked, bottom_tabs: $('bottomTabs').checked,
