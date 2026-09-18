@@ -6,7 +6,7 @@ The project turns one maintained Android wrapper runtime into reusable app profi
 
 The interface uses the **Terran terminal design language** from *Starlight Unit: The Game* and its mobile Admin Console. Median is used only as a feature reference for the builder workflow, not as a design source.
 
-Current version: `0.1.0-alpha6`
+Current version: `0.1.0-alpha7`
 
 ## Studio quick installer
 
@@ -56,6 +56,14 @@ Running the same one-liner again performs an update. The installer preserves:
 - Gradle cache
 
 The per-app signing identity is deliberately persistent. As long as the package ID remains unchanged and each new build uses a higher `versionCode`, later generated APKs can be installed as normal Android updates instead of requiring an uninstall.
+
+## Running Quantum Builder inside Quantum Mobile Wrapper
+
+Quantum Builder is designed to work as a first-party workload inside Quantum Mobile Wrapper as well as in a normal browser. A Builder wrapper profile should use the public Builder HTTPS origin as its start URL, persistent cookies for the authenticated session, and **Public Downloads enabled** so generated APK, AAB, Source ZIP and SHA256 artifacts are written to Android's user-visible Downloads directory.
+
+On Android 10 and newer the wrapper can write enabled public downloads directly to the shared Downloads directory. Android 6 through 9 require the legacy storage permission; if that permission is denied, Quantum falls back to app-specific external storage instead of failing the download.
+
+The Builder's artifact links and authenticated download endpoint intentionally use ordinary HTTPS download semantics so the wrapper can forward the active session cookies and compiled request headers through Android DownloadManager.
 
 ## Production hosting and KeyHelp
 
