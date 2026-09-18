@@ -130,7 +130,12 @@ $authenticated = $auth->isLoggedIn();
                   <label><span class="field-label">Status Bar</span><input class="field color-field" id="statusBarColor" type="color"></label>
                   <label><span class="field-label">Navigation Bar</span><input class="field color-field" id="navigationBarColor" type="color"></label>
                   <label><span class="field-label">Splash Background</span><input class="field color-field" id="splashBackground" type="color"></label>
-                  <div class="notice span-2">Icon- und Splash-Datei-Uploads folgen als eigenes Asset-Modul. Die Farb- und Runtime-Werte werden bereits im Profil gespeichert.</div>
+                  <label class="span-2"><span class="field-label">App Icon</span><input class="field" id="appIconFile" type="file" accept="image/png,image/jpeg,image/webp"></label>
+                  <div class="span-2 app-icon-actions">
+                    <span id="appIconState" class="muted">Standard-Icon aktiv</span>
+                    <button id="removeAppIconButton" class="btn compact" type="button">Eigenes Icon entfernen</button>
+                  </div>
+                  <div class="notice span-2">Das hochgeladene Icon wird pro App-Profil gespeichert und beim nächsten Build direkt als Android-Launcher-Icon eingebaut. Maximal ca. 600 KB, PNG/JPEG/WebP.</div>
                 </div>
               </section>
 
