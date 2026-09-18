@@ -147,7 +147,7 @@ Status legend:
 - Location - `RUNTIME`
 - Microphone/WebRTC audio - `RUNTIME`
 - Camera/WebRTC video - `RUNTIME`
-- Public downloads - `PROFILE`
+- Public downloads - `RUNTIME`
 - Background audio - `PROFILE`
 - JavaScript bridge allowed URLs - `PLANNED`
 - Runtime permission bridge - `PLANNED`
