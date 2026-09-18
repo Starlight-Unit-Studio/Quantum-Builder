@@ -180,7 +180,8 @@ $authenticated = $auth->isLoggedIn();
                 <div class="field-grid">
                   <label><span class="field-label">New Windows</span><select class="field" id="newWindows"><option value="blocked">Blocked</option><option value="internal">Internal</option><option value="external">External</option></select></label>
                   <label><span class="field-label">Deep Link Scheme</span><input class="field mono" id="deepLinkScheme" placeholder="stu"></label>
-                  <div class="notice span-2">Die vollständige regelbasierte Link-Engine wird als geordnete Rule-Liste umgesetzt. Das Datenmodell ist dafür bereits getrennt vom WebView-Core.</div>
+                  <label class="span-2"><span class="field-label">Ordered Link Rules (JSON)</span><textarea class="field mono" id="linkRules" rows="9" placeholder='[{"host":"example.com","path_prefix":"/docs/","action":"internal"},{"scheme":"mailto","action":"external"},{"host":"ads.example.com","action":"block"}]'></textarea></label>
+                  <div class="notice span-2">Erste passende Regel gewinnt. action: internal, external oder block. Optional matchbar über scheme, host und path_prefix. Internal darf weiterhin nur auf vertrauenswürdige WebView-Ziele führen.</div>
                 </div>
               </section>
 
