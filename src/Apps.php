@@ -92,6 +92,7 @@ final class Apps
             'theme' => [
                 'primary' => '#6fc7ff', 'accent' => '#ffd978', 'status_bar' => '#020611',
                 'navigation_bar' => '#020611', 'splash_background' => '#020611',
+                'app_icon_data_url' => '',
             ],
             'interface' => [
                 'dark_mode' => 'dark', 'orientation' => 'auto', 'keep_screen_on' => false,
@@ -126,6 +127,13 @@ final class Apps
         }
         $config['web']['custom_headers'] = (object) $this->normalizeCustomHeaders($config['web']['custom_headers'] ?? []);
 
+        if (!isset($config['theme']) || !is_array($config['theme'])) {
+            $config['theme'] = $defaults['theme'];
+        }
+        $config['theme']['app_icon_data_url'] = $this->normalizeAppIconDataUrl(
+            $config['theme']['app_icon_data_url'] ?? ''
+        );
+
         return [
             'name' => $name,
             'package_id' => $packageId,
@@ -137,6 +145,20 @@ final class Apps
             'target_sdk' => $targetSdk,
             'config_json' => json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
         ];
+    }
+
+    private function normalizeAppIconDataUrl(mixed $value): string
+    {
+        if (!is_string($value) || $value === '') {
+            return '';
+        }
+        if (strlen($value) > 900000) {
+            throw new \InvalidArgumentException('App icon is too large.');
+        }
+        if (!preg_match('#^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$#', $value)) {
+            throw new \InvalidArgumentException('App icon must be PNG, JPEG or WebP.');
+        }
+        return $value;
     }
 
     private function normalizeCustomHeaders(mixed $headers): array
