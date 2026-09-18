@@ -207,6 +207,7 @@
 
     $('newWindows').value = get(config, 'links.new_windows', 'blocked');
     $('deepLinkScheme').value = get(config, 'links.deep_link_scheme', '');
+    $('linkRules').value = JSON.stringify(get(config, 'links.rules', []), null, 2);
 
     $('permLocation').checked = Boolean(get(config, 'permissions.location', false));
     $('permMicrophone').checked = Boolean(get(config, 'permissions.microphone', false));
@@ -254,6 +255,14 @@
       if (nativeNavigationItems.length > 12) throw new Error('Native Navigation unterstützt maximal 12 Menüeinträge.');
     }
 
+    let linkRules = [];
+    const rawLinkRules = $('linkRules').value.trim();
+    if (rawLinkRules) {
+      linkRules = JSON.parse(rawLinkRules);
+      if (!Array.isArray(linkRules)) throw new Error('Link Rules müssen ein JSON-Array sein.');
+      if (linkRules.length > 64) throw new Error('Link Handling unterstützt maximal 64 Regeln.');
+    }
+
     return {
       id: Number($('appId').value),
       name: $('appName').value.trim(),
@@ -291,7 +300,11 @@
           accent: $('nativeNavigationAccent').value,
           items: nativeNavigationItems,
         },
-        links: { new_windows: $('newWindows').value, deep_link_scheme: $('deepLinkScheme').value.trim() },
+        links: {
+          new_windows: $('newWindows').value,
+          deep_link_scheme: $('deepLinkScheme').value.trim(),
+          rules: linkRules,
+        },
         permissions: {
           location: $('permLocation').checked, microphone: $('permMicrophone').checked, camera: $('permCamera').checked,
           public_downloads: $('publicDownloads').checked, background_audio: $('backgroundAudio').checked,
