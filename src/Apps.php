@@ -104,7 +104,7 @@ final class Apps
                 'title' => $name, 'background' => '#020611', 'foreground' => '#ffffff', 'accent' => '#6fc7ff',
                 'items' => [],
             ],
-            'links' => ['new_windows' => 'blocked', 'deep_link_scheme' => ''],
+            'links' => ['new_windows' => 'blocked', 'deep_link_scheme' => '', 'rules' => []],
             'permissions' => [
                 'location' => false, 'microphone' => false, 'camera' => false,
                 'public_downloads' => true, 'background_audio' => false,
@@ -213,6 +213,76 @@ final class Apps
             $normalizedNavigationItems[] = ['label' => $label, 'url' => $target];
         }
         $config['navigation']['items'] = $normalizedNavigationItems;
+
+        if (!isset($config['links']) || !is_array($config['links'])) {
+            $config['links'] = $defaults['links'];
+        }
+        $newWindowPolicy = strtolower(trim((string) ($config['links']['new_windows'] ?? 'blocked')));
+        if (!in_array($newWindowPolicy, ['blocked', 'internal', 'external'], true)) {
+            throw new \InvalidArgumentException('New-window policy is invalid.');
+        }
+        $config['links']['new_windows'] = $newWindowPolicy;
+
+        $deepLinkScheme = strtolower(trim((string) ($config['links']['deep_link_scheme'] ?? '')));
+        if ($deepLinkScheme !== '' && !preg_match('/^[a-z][a-z0-9+.-]{1,31}$/', $deepLinkScheme)) {
+            throw new \InvalidArgumentException('Deep-link scheme is invalid.');
+        }
+        if (in_array($deepLinkScheme, ['http', 'https', 'mailto', 'tel', 'geo', 'market', 'intent'], true)) {
+            throw new \InvalidArgumentException('Deep-link scheme conflicts with a reserved protocol.');
+        }
+        $config['links']['deep_link_scheme'] = $deepLinkScheme;
+
+        $linkRules = $config['links']['rules'] ?? [];
+        if (!is_array($linkRules) || ($linkRules !== [] && !array_is_list($linkRules))) {
+            throw new \InvalidArgumentException('Link rules must be a JSON array.');
+        }
+        if (count($linkRules) > 64) {
+            throw new \InvalidArgumentException('Link handling supports at most 64 rules.');
+        }
+        $normalizedLinkRules = [];
+        foreach ($linkRules as $rule) {
+            if (!is_array($rule)) {
+                throw new \InvalidArgumentException('Each link rule must be an object.');
+            }
+            $action = strtolower(trim((string) ($rule['action'] ?? '')));
+            if (!in_array($action, ['internal', 'external', 'block'], true)) {
+                throw new \InvalidArgumentException('Link rule action must be internal, external or block.');
+            }
+            $scheme = strtolower(trim((string) ($rule['scheme'] ?? '')));
+            $host = strtolower(trim((string) ($rule['host'] ?? '')));
+            $pathPrefix = trim((string) ($rule['path_prefix'] ?? ''));
+            if ($scheme !== '' && !preg_match('/^[a-z][a-z0-9+.-]*$/', $scheme)) {
+                throw new \InvalidArgumentException('Link rule scheme is invalid.');
+            }
+            if ($host !== '' && !preg_match('/^(\*\.)?[a-z0-9.-]+$/', $host)) {
+                throw new \InvalidArgumentException('Link rule host is invalid.');
+            }
+            if ($pathPrefix !== '' && !str_starts_with($pathPrefix, '/')) {
+                throw new \InvalidArgumentException('Link rule path_prefix must start with /.');
+            }
+            if ($scheme === '' && $host === '' && $pathPrefix === '') {
+                throw new \InvalidArgumentException('Link rules need at least one matcher.');
+            }
+            if ($action === 'internal') {
+                if ($scheme !== '' && $scheme !== 'https') {
+                    throw new \InvalidArgumentException('Internal link rules may only match HTTPS.');
+                }
+                if ($host !== '') {
+                    $plainHost = str_starts_with($host, '*.') ? substr($host, 2) : $host;
+                    $trustedDomain = strtolower($config['trusted_domain']);
+                    if ($plainHost !== $trustedDomain && !str_ends_with($plainHost, '.' . $trustedDomain)) {
+                        throw new \InvalidArgumentException('Internal link rules must stay inside the trusted domain.');
+                    }
+                }
+            }
+            $normalizedLinkRules[] = array_filter([
+                'scheme' => $scheme,
+                'host' => $host,
+                'path_prefix' => $pathPrefix,
+                'action' => $action,
+            ], static fn ($value) => $value !== '');
+        }
+        $config['links']['rules'] = $normalizedLinkRules;
 
         if (!isset($config['web']) || !is_array($config['web'])) {
             $config['web'] = $defaults['web'];
