@@ -18,7 +18,7 @@ final class Config
 
     public static function version(): string
     {
-        return (string) (getenv('QB_VERSION') ?: '0.1.0-alpha9');
+        return (string) (getenv('QB_VERSION') ?: '0.1.0-alpha10');
     }
 
     public static function sessionSecret(): string
