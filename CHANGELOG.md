@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.0-alpha8
+
+Runtime theme controls and page transitions.
+
+- Dark / Light / Auto now compile into the Android WebView runtime.
+- Trusted pages receive a Quantum theme contract through `data-quantum-theme` and CSS `color-scheme`.
+- WebView algorithmic/force-dark support is used when the installed Android System WebView exposes it.
+- Status bar and Android navigation bar colors now compile into the generated app.
+- System-bar icon appearance automatically switches for bright and dark configured colors.
+- Splash background color now applies behind the mandatory STU production splash without replacing the splash image.
+- Page Transitions now drive a lightweight native WebView fade on page navigation.
+- Theme fields receive Builder-side validation before a build can be queued.
+- Builder version bump refreshes cached frontend assets after update.
+
 ## 0.1.0-alpha7
 
 Wrapper-aware public artifact downloads.

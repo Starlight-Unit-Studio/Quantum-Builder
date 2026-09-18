@@ -129,7 +129,7 @@ final class Apps
         if (!isset($config['interface']) || !is_array($config['interface'])) {
             $config['interface'] = $defaults['interface'];
         }
-        foreach (['keep_screen_on', 'fullscreen', 'pull_to_refresh', 'pinch_to_zoom'] as $booleanField) {
+        foreach (['keep_screen_on', 'fullscreen', 'page_transitions', 'pull_to_refresh', 'pinch_to_zoom'] as $booleanField) {
             if (!is_bool($config['interface'][$booleanField] ?? null)) {
                 throw new \InvalidArgumentException('Interface toggle values must be boolean.');
             }
@@ -143,6 +143,23 @@ final class Apps
             throw new \InvalidArgumentException('Font scale must be between 50 and 200 percent.');
         }
         $config['interface']['font_scale'] = $fontScale;
+
+        $darkMode = strtolower(trim((string) ($config['interface']['dark_mode'] ?? 'dark')));
+        if (!in_array($darkMode, ['dark', 'light', 'auto'], true)) {
+            throw new \InvalidArgumentException('Dark mode must be dark, light or auto.');
+        }
+        $config['interface']['dark_mode'] = $darkMode;
+
+        if (!isset($config['theme']) || !is_array($config['theme'])) {
+            $config['theme'] = $defaults['theme'];
+        }
+        foreach (['primary', 'accent', 'status_bar', 'navigation_bar', 'splash_background'] as $colorField) {
+            $color = strtolower(trim((string) ($config['theme'][$colorField] ?? $defaults['theme'][$colorField])));
+            if (!preg_match('/^#[0-9a-f]{6}$/', $color)) {
+                throw new \InvalidArgumentException('Theme colors must use #RRGGBB.');
+            }
+            $config['theme'][$colorField] = $color;
+        }
 
         if (!isset($config['web']) || !is_array($config['web'])) {
             $config['web'] = $defaults['web'];
@@ -169,9 +186,6 @@ final class Apps
         }
         $config['web']['cookie_persistence'] = $cookieMode;
 
-        if (!isset($config['theme']) || !is_array($config['theme'])) {
-            $config['theme'] = $defaults['theme'];
-        }
         $config['theme']['app_icon_data_url'] = $this->normalizeAppIconDataUrl(
             $config['theme']['app_icon_data_url'] ?? ''
         );

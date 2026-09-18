@@ -33,10 +33,17 @@ class WorkerCompilerTests(unittest.TestCase):
         }
         self.config = {
             "trusted_domain": "example.test",
+            "theme": {
+                "status_bar": "#f5f6f8",
+                "navigation_bar": "#101820",
+                "splash_background": "#001122",
+            },
             "interface": {
                 "keep_screen_on": False,
                 "orientation": "portrait",
                 "fullscreen": True,
+                "page_transitions": True,
+                "dark_mode": "auto",
                 "pull_to_refresh": True,
                 "pinch_to_zoom": True,
                 "font_scale": 125,
@@ -92,6 +99,10 @@ public final class AppConfig {
  public static final String CUSTOM_CSS = "";
  public static final String CUSTOM_JAVASCRIPT = "";
  public static final String COOKIE_PERSISTENCE_MODE = "persistent";
+ public static final String WEB_DARK_MODE = "dark";
+ public static final String STATUS_BAR_COLOR = "#020611";
+ public static final String NAVIGATION_BAR_COLOR = "#020611";
+ public static final String SPLASH_BACKGROUND_COLOR = "#020611";
  public static final String ASSET_MANIFEST_URL = "";
  public static final String ASSET_DOWNLOADER_ROOTS = "";
  public static final String LOADING_INDICATOR_STYLE = "top-bar";
@@ -103,6 +114,7 @@ public final class AppConfig {
  public static final boolean ASSET_STORE_PAGE_WARMUP_ENABLED = true;
  public static final boolean NATIVE_ASSET_DOWNLOADER_ENABLED = false;
  public static final boolean KEEP_SCREEN_ON = true;
+ public static final boolean PAGE_TRANSITIONS_ENABLED = false;
  public static final boolean PUBLIC_DOWNLOADS_ENABLED = true;
  public static final boolean IMMERSIVE_FULLSCREEN_ENABLED = true;
  public static final boolean PULL_TO_REFRESH_ENABLED = false;
@@ -118,6 +130,11 @@ public final class AppConfig {
         self.assertIn('TRUSTED_DOMAIN = "example.test";', text)
         self.assertIn('ASSET_STORE_TRUSTED_HOST = "example.test";', text)
         self.assertIn('KEEP_SCREEN_ON = false;', text)
+        self.assertIn('PAGE_TRANSITIONS_ENABLED = true;', text)
+        self.assertIn('WEB_DARK_MODE = "auto";', text)
+        self.assertIn('STATUS_BAR_COLOR = "#f5f6f8";', text)
+        self.assertIn('NAVIGATION_BAR_COLOR = "#101820";', text)
+        self.assertIn('SPLASH_BACKGROUND_COLOR = "#001122";', text)
         self.assertIn('PUBLIC_DOWNLOADS_ENABLED = true;', text)
         self.assertIn('IMMERSIVE_FULLSCREEN_ENABLED = true;', text)
         self.assertIn('PULL_TO_REFRESH_ENABLED = true;', text)
@@ -147,6 +164,10 @@ public final class AppConfig {
  public static final String CUSTOM_CSS = "";
  public static final String CUSTOM_JAVASCRIPT = "";
  public static final String COOKIE_PERSISTENCE_MODE = "persistent";
+ public static final String WEB_DARK_MODE = "dark";
+ public static final String STATUS_BAR_COLOR = "#020611";
+ public static final String NAVIGATION_BAR_COLOR = "#020611";
+ public static final String SPLASH_BACKGROUND_COLOR = "#020611";
  public static final String ASSET_MANIFEST_URL = "";
  public static final String ASSET_DOWNLOADER_ROOTS = "";
  public static final String LOADING_INDICATOR_STYLE = "top-bar";
@@ -158,6 +179,7 @@ public final class AppConfig {
  public static final boolean ASSET_STORE_PAGE_WARMUP_ENABLED = true;
  public static final boolean NATIVE_ASSET_DOWNLOADER_ENABLED = false;
  public static final boolean KEEP_SCREEN_ON = true;
+ public static final boolean PAGE_TRANSITIONS_ENABLED = false;
  public static final boolean PUBLIC_DOWNLOADS_ENABLED = true;
  public static final boolean IMMERSIVE_FULLSCREEN_ENABLED = true;
  public static final boolean PULL_TO_REFRESH_ENABLED = false;
