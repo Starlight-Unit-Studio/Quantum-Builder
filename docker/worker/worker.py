@@ -528,6 +528,26 @@ def patch_manifest(project: Path, config: dict[str, Any]) -> None:
             f'android:launchMode="singleTask"\n            android:screenOrientation="{orientation}">',
             1,
         )
+
+    links = config.get("links", {}) if isinstance(config.get("links", {}), dict) else {}
+    deep_link_scheme = str(links.get("deep_link_scheme") or "").strip().lower()
+    if deep_link_scheme:
+        launcher_filter = """            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+"""
+        deep_link_filter = f"""            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="{xml_escape(deep_link_scheme)}" />
+            </intent-filter>
+"""
+        if launcher_filter not in text:
+            raise RuntimeError("Wrapper compiler could not locate launcher intent filter")
+        text = text.replace(launcher_filter, launcher_filter + deep_link_filter, 1)
+
     path.write_text(text, encoding="utf-8")
 
 
