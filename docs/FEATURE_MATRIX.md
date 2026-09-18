@@ -61,6 +61,7 @@ Legend:
 | Web Overrides | Cookie persistence mode | Profile |
 | Plugins | Quantum NMP selection | Profile; module already exists in wrapper |
 | Plugins | Quantum Asset Store selection | Runtime |
+| Plugins | Native Asset Downloader manifest startup sync | Runtime |
 | Plugins | Share | Profile |
 | Plugins | Haptics | Profile |
 | Plugins | Biometrics | Profile |
