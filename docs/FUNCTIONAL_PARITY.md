@@ -44,15 +44,15 @@ Status legend:
 ## Branding
 
 - Primary/accent colors - `PROFILE`
-- Status bar color - `PROFILE`
-- Android system navigation bar color - `PROFILE`
-- Splash background - `PROFILE`
+- Status bar color - `RUNTIME`
+- Android system navigation bar color - `RUNTIME`
+- Splash background - `RUNTIME`
 - App icon upload - `RUNTIME`
 - Adaptive Android icon generation - `PLANNED`
 - Splash image upload - `PLANNED`
 - Light/dark splash variants - `PLANNED`
 - Light/dark theme colors - `PLANNED`
-- Status bar text appearance - `PLANNED`
+- Status bar text appearance - `RUNTIME`
 - Image crop/preview tooling - `PLANNED`
 - iOS branding variants - `IOS-LATER`
 
