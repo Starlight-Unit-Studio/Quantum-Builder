@@ -28,11 +28,11 @@ Legend:
 | Interface | Dark/light/auto mode | Profile |
 | Interface | Portrait/landscape | Runtime |
 | Interface | Keep screen on | Runtime |
-| Interface | Immersive fullscreen switch | Profile |
+| Interface | Immersive fullscreen switch | Runtime |
 | Interface | Page transitions | Profile |
-| Interface | Pull-to-refresh | Profile |
-| Interface | Pinch-to-zoom | Profile |
-| Interface | Font scaling | Profile |
+| Interface | Pull-to-refresh | Runtime |
+| Interface | Pinch-to-zoom | Runtime |
+| Interface | Font scaling | Runtime |
 | Interface | Native loading indicator styles / color / size | Runtime |
 | Interface | Viewport width/scale | Planned |
 | Interface | Maximum windows | Planned |
