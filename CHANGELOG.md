@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.0-alpha7
+
+Wrapper-aware public artifact downloads.
+
+- Public Downloads is now compiled into the Android runtime instead of remaining profile-only.
+- Android 10+ writes enabled downloads into the public Downloads directory.
+- Android 6 through 9 request legacy storage permission when public downloads are enabled and fall back safely to app-specific storage if permission is unavailable.
+- Disabled Public Downloads deliberately keeps files in app-specific external storage.
+- Build artifact links now carry explicit browser/WebView download semantics.
+- Documents Quantum Builder as a supported first-party Quantum Wrapper workload.
+- Builder version bump refreshes cached frontend assets after update.
+
 ## 0.1.0-alpha6
 
 Native interface controls.
