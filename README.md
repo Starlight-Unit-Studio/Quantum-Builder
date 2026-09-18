@@ -6,7 +6,7 @@ The project turns one maintained Android wrapper runtime into reusable app profi
 
 The interface uses the **Terran terminal design language** from *Starlight Unit: The Game* and its mobile Admin Console. Median is used only as a feature reference for the builder workflow, not as a design source.
 
-Current version: `0.1.0-alpha10`
+Current version: `0.1.0-alpha11`
 
 ## Studio quick installer
 
@@ -64,6 +64,8 @@ Quantum Builder is designed to work as a first-party workload inside Quantum Mob
 On Android 10 and newer the wrapper can write enabled public downloads directly to the shared Downloads directory. Android 6 through 9 require the legacy storage permission; if that permission is denied, Quantum falls back to app-specific external storage instead of failing the download.
 
 The Builder's artifact links and authenticated download endpoint intentionally use ordinary HTTPS download semantics so the wrapper can forward the active session cookies and compiled request headers through Android DownloadManager.
+
+Branding profiles may keep the canonical STU production splash or replace the visible startup splash with a custom PNG/JPEG/WebP image. When a custom splash is used, the generated app preserves Starlight Quantum Builder attribution with the canonical floating STU footer banner shown once after the first successful page load for 2 to 4 seconds. The custom splash and attribution banner are lifecycle-separated and are never displayed at the same time.
 
 ## Production hosting and KeyHelp
 
