@@ -52,7 +52,7 @@ Legend:
 | Permissions | Location permission | Runtime |
 | Permissions | Microphone permission | Runtime |
 | Permissions | Camera permission | Runtime |
-| Permissions | Public downloads mode | Profile |
+| Permissions | Public downloads mode | Runtime |
 | Permissions | Background audio flag | Profile |
 | Web Overrides | Trusted domain | Runtime |
 | Web Overrides | User-Agent suffix | Runtime |
