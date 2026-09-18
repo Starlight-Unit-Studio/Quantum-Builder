@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0-alpha6
+
+Native interface controls.
+
+- Immersive Fullscreen is now compiled into the generated Android runtime.
+- Pull-to-Refresh is now a real native SwipeRefreshLayout gesture and reloads through Quantum's trusted navigation/header path.
+- Pinch-to-Zoom now controls Android WebView zoom support without legacy on-screen zoom buttons.
+- Font Scale now compiles to Android WebView text scaling from 50% through 200%.
+- Interface values receive Builder-side validation and worker-side bounds.
+- Builder version bump refreshes cached frontend assets after update.
+
 ## 0.1.0-alpha5
 
 Runtime Web Overrides.
