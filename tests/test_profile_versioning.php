@@ -66,6 +66,39 @@ try {
 }
 assert($unsafeRejected === true);
 
+$linkInput = $input;
+$linkInput['package_id'] = 'de.starlightunit.linkrules';
+$linkInput['config'] = [
+    'links' => [
+        'new_windows' => 'internal',
+        'deep_link_scheme' => 'quantum',
+        'rules' => [
+            ['host' => 'example.test', 'path_prefix' => '/docs/', 'action' => 'internal'],
+            ['scheme' => 'mailto', 'action' => 'external'],
+        ],
+    ],
+];
+$linkApp = $apps->create($linkInput);
+assert($linkApp['config']['links']['new_windows'] === 'internal');
+assert($linkApp['config']['links']['deep_link_scheme'] === 'quantum');
+assert(count($linkApp['config']['links']['rules']) === 2);
+
+$badLinks = $input;
+$badLinks['package_id'] = 'de.starlightunit.badlinks';
+$badLinks['config'] = [
+    'links' => [
+        'deep_link_scheme' => 'https',
+        'rules' => [['host' => 'evil.example', 'action' => 'internal']],
+    ],
+];
+$badLinksRejected = false;
+try {
+    $apps->create($badLinks);
+} catch (InvalidArgumentException) {
+    $badLinksRejected = true;
+}
+assert($badLinksRejected === true);
+
 $storedJson = (string) $db->pdo()->query('SELECT config_json FROM apps WHERE id=' . (int) $app['id'])->fetchColumn();
 $storedConfig = json_decode($storedJson);
 assert(is_object($storedConfig));
@@ -100,4 +133,4 @@ $builds->queue((int) $app['id'], 'compat/android-6-api23');
 $app = $apps->find((int) $app['id']);
 assert($app !== null && $app['version_code'] === 2);
 
-fwrite(STDOUT, "profile versioning, navigation trust, custom header and cookie migration contracts: ok\n");
+fwrite(STDOUT, "profile versioning, navigation/link trust, custom header and cookie migration contracts: ok\n");

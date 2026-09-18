@@ -45,9 +45,9 @@ Legend:
 | Navigation | Shared ordered menu JSON | Runtime |
 | Navigation | Visual drag/drop menu editor | Planned |
 | Navigation | Page visibility rules | Planned |
-| Links | New-window behavior | Profile |
-| Links | Deep-link scheme | Profile |
-| Links | Ordered URL rule engine | Planned |
+| Links | New-window behavior | Runtime |
+| Links | Deep-link scheme | Runtime |
+| Links | Ordered URL rule engine | Runtime |
 | Links | Universal/App Links | Planned |
 | Links | Context menu | Planned |
 | Permissions | Location permission | Runtime |

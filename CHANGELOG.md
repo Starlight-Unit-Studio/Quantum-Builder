@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.0-alpha10
+
+Native link handling runtime.
+
+- New-window policy now controls target-blank/window.open behavior as Blocked, Internal or External.
+- Internal new windows are folded into the current trusted WebView rather than creating permanent secondary WebViews.
+- External new windows are delegated to Android only when Quantum's link-routing policy permits the target.
+- Custom deep-link schemes now generate a browsable Android intent filter and resolve only to trusted app URLs.
+- Adds an ordered link-rule engine with first-match-wins semantics for scheme, host and path-prefix matching.
+- Rules support internal, external and block actions while preserving the existing trusted-domain boundary.
+- Builder validates reserved deep-link schemes and rejects unsafe internal routing rules before queueing a build.
+- Builder version bump refreshes cached frontend assets after update.
+
 ## 0.1.0-alpha9
 
 Native Navigation runtime foundation.

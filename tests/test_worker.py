@@ -52,6 +52,14 @@ class WorkerCompilerTests(unittest.TestCase):
                     {"label": "News", "url": "/news"},
                 ],
             },
+            "links": {
+                "new_windows": "external",
+                "deep_link_scheme": "quantum",
+                "rules": [
+                    {"host": "example.test", "path_prefix": "/docs/", "action": "internal"},
+                    {"scheme": "mailto", "action": "external"},
+                ],
+            },
             "interface": {
                 "keep_screen_on": False,
                 "orientation": "portrait",
@@ -122,6 +130,9 @@ public final class AppConfig {
  public static final String NATIVE_NAVIGATION_BACKGROUND_COLOR = "#020611";
  public static final String NATIVE_NAVIGATION_FOREGROUND_COLOR = "#ffffff";
  public static final String NATIVE_NAVIGATION_ACCENT_COLOR = "#6fc7ff";
+ public static final String NEW_WINDOW_POLICY = "blocked";
+ public static final String DEEP_LINK_SCHEME = "";
+ public static final String LINK_RULES_JSON = "[]";
  public static final String ASSET_MANIFEST_URL = "";
  public static final String ASSET_DOWNLOADER_ROOTS = "";
  public static final String LOADING_INDICATOR_STYLE = "top-bar";
@@ -162,6 +173,9 @@ public final class AppConfig {
         self.assertIn('NATIVE_NAVIGATION_BACKGROUND_COLOR = "#112233";', text)
         self.assertIn('NATIVE_NAVIGATION_FOREGROUND_COLOR = "#fefefe";', text)
         self.assertIn('NATIVE_NAVIGATION_ACCENT_COLOR = "#44ccff";', text)
+        self.assertIn('NEW_WINDOW_POLICY = "external";', text)
+        self.assertIn('DEEP_LINK_SCHEME = "quantum";', text)
+        self.assertIn('LINK_RULES_JSON = "[{\\\"host\\\":\\\"example.test\\\",\\\"path_prefix\\\":\\\"/docs/\\\",\\\"action\\\":\\\"internal\\\"},{\\\"scheme\\\":\\\"mailto\\\",\\\"action\\\":\\\"external\\\"}]";', text)
         self.assertIn('NATIVE_NAVIGATION_ITEMS_JSON = "[{\\\"label\\\":\\\"Home\\\",\\\"url\\\":\\\"/\\\"},{\\\"label\\\":\\\"News\\\",\\\"url\\\":\\\"/news\\\"}]";', text)
         self.assertIn('WEB_DARK_MODE = "auto";', text)
         self.assertIn('STATUS_BAR_COLOR = "#f5f6f8";', text)
@@ -205,6 +219,9 @@ public final class AppConfig {
  public static final String NATIVE_NAVIGATION_BACKGROUND_COLOR = "#020611";
  public static final String NATIVE_NAVIGATION_FOREGROUND_COLOR = "#ffffff";
  public static final String NATIVE_NAVIGATION_ACCENT_COLOR = "#6fc7ff";
+ public static final String NEW_WINDOW_POLICY = "blocked";
+ public static final String DEEP_LINK_SCHEME = "";
+ public static final String LINK_RULES_JSON = "[]";
  public static final String ASSET_MANIFEST_URL = "";
  public static final String ASSET_DOWNLOADER_ROOTS = "";
  public static final String LOADING_INDICATOR_STYLE = "top-bar";
@@ -257,7 +274,7 @@ public final class AppConfig {
     def test_manifest_adds_only_requested_runtime_permissions(self):
         manifest = self.root / "app/src/main/AndroidManifest.xml"
         manifest.write_text(
-            """<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <uses-permission android:name=\"android.permission.INTERNET\" />\n    <application><activity android:name=\"de.starlightunit.wrapper.MainActivity\" android:launchMode=\"singleTask\"></activity></application>\n</manifest>\n""",
+            """<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <uses-permission android:name=\"android.permission.INTERNET\" />\n    <application><activity android:name=\"de.starlightunit.wrapper.MainActivity\" android:launchMode=\"singleTask\">\n            <intent-filter>\n                <action android:name=\"android.intent.action.MAIN\" />\n                <category android:name=\"android.intent.category.LAUNCHER\" />\n            </intent-filter>\n        </activity></application>\n</manifest>\n""",
             encoding="utf-8",
         )
         worker.patch_manifest(self.root, self.config)
@@ -266,6 +283,8 @@ public final class AppConfig {
         self.assertIn("android.permission.RECORD_AUDIO", text)
         self.assertIn("android.permission.CAMERA", text)
         self.assertIn('android:screenOrientation="portrait"', text)
+        self.assertIn('<data android:scheme="quantum" />', text)
+        self.assertIn('android.intent.category.BROWSABLE', text)
 
     def test_profile_never_contains_signing_material(self):
         worker.write_profile(self.root, self.app, self.config, 7)

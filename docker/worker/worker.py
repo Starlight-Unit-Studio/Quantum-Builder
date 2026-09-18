@@ -288,6 +288,9 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
     navigation = config.get("navigation", {})
     if not isinstance(navigation, dict):
         navigation = {}
+    links = config.get("links", {})
+    if not isinstance(links, dict):
+        links = {}
     plugins = config.get("plugins", {})
     custom_headers = web.get("custom_headers", {})
     if not isinstance(custom_headers, dict):
@@ -334,6 +337,16 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
     if len(native_navigation_items) > 12:
         raise RuntimeError("Native navigation supports at most 12 items")
 
+    new_window_policy = str(links.get("new_windows") or "blocked").strip().lower()
+    if new_window_policy not in {"blocked", "internal", "external"}:
+        raise RuntimeError("Unsupported new-window policy")
+    deep_link_scheme = str(links.get("deep_link_scheme") or "").strip().lower()
+    link_rules = links.get("rules", [])
+    if not isinstance(link_rules, list):
+        raise RuntimeError("Link rules must be a list")
+    if len(link_rules) > 64:
+        raise RuntimeError("Link handling supports at most 64 rules")
+
     string_values = {
         "START_URL": str(app["start_url"]),
         "TRUSTED_DOMAIN": trusted,
@@ -354,6 +367,9 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
         "NATIVE_NAVIGATION_BACKGROUND_COLOR": native_navigation_background,
         "NATIVE_NAVIGATION_FOREGROUND_COLOR": native_navigation_foreground,
         "NATIVE_NAVIGATION_ACCENT_COLOR": native_navigation_accent,
+        "NEW_WINDOW_POLICY": new_window_policy,
+        "DEEP_LINK_SCHEME": deep_link_scheme,
+        "LINK_RULES_JSON": json.dumps(link_rules, ensure_ascii=False, separators=(",", ":")),
         "ASSET_MANIFEST_URL": manifest_url,
         "ASSET_DOWNLOADER_ROOTS": str(asset_sync.get("roots") or ""),
         "LOADING_INDICATOR_STYLE": str(interface.get("loading_indicator_style") or "top-bar"),
@@ -512,6 +528,26 @@ def patch_manifest(project: Path, config: dict[str, Any]) -> None:
             f'android:launchMode="singleTask"\n            android:screenOrientation="{orientation}">',
             1,
         )
+
+    links = config.get("links", {}) if isinstance(config.get("links", {}), dict) else {}
+    deep_link_scheme = str(links.get("deep_link_scheme") or "").strip().lower()
+    if deep_link_scheme:
+        launcher_filter = """            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+"""
+        deep_link_filter = f"""            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="{xml_escape(deep_link_scheme)}" />
+            </intent-filter>
+"""
+        if launcher_filter not in text:
+            raise RuntimeError("Wrapper compiler could not locate launcher intent filter")
+        text = text.replace(launcher_filter, launcher_filter + deep_link_filter, 1)
+
     path.write_text(text, encoding="utf-8")
 
 
