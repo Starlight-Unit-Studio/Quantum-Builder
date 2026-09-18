@@ -331,7 +331,10 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
         )
 
     boolean_values = {
-        "KEEP_SCREEN_ON": bool(config.get("interface", {}).get("keep_screen_on")),
+        "KEEP_SCREEN_ON": bool(interface.get("keep_screen_on")),
+        "IMMERSIVE_FULLSCREEN_ENABLED": bool(interface.get("fullscreen")),
+        "PULL_TO_REFRESH_ENABLED": bool(interface.get("pull_to_refresh")),
+        "PINCH_TO_ZOOM_ENABLED": bool(interface.get("pinch_to_zoom")),
         "QUANTUM_ASSET_STORE_ENABLED": bool(plugins.get("quantum_asset_store")),
         "ASSET_STORE_PAGE_WARMUP_ENABLED": False,
         "NATIVE_ASSET_DOWNLOADER_ENABLED": bool(plugins.get("native_asset_downloader")),
@@ -346,6 +349,7 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
         )
 
     integer_values = {
+        "FONT_SCALE_PERCENT": max(50, min(200, int(interface.get("font_scale") or 100))),
         "LOADING_BAR_THICKNESS_DP": max(1, min(12, int(interface.get("loading_bar_thickness_dp") or 3))),
         "LOADING_SPINNER_SIZE_DP": max(24, min(128, int(interface.get("loading_spinner_size_dp") or 56))),
         "LOADING_OVERLAY_DIM_PERCENT": max(0, min(90, int(interface.get("loading_overlay_dim_percent") or 35))),
