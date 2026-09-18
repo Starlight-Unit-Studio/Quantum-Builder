@@ -136,14 +136,16 @@ Status legend:
 
 ## Link Handling
 
-- New-window policy - `PROFILE`
-- Deep-link scheme - `PROFILE`
-- Ordered link behavior rules - `PLANNED`
-- Internal / in-app browser / external behavior - `PLANNED`
-- Domain/path match rules - `PLANNED`
-- Non-web protocol rules - `PLANNED`
+- New-window policy - `RUNTIME`
+- Deep-link scheme - `RUNTIME`
+- Ordered link behavior rules - `RUNTIME`
+- Internal / external / block behavior - `RUNTIME`
+- In-app secondary browser window - `PLANNED`
+- Domain/path match rules - `RUNTIME`
+- Non-web protocol rules - `RUNTIME`
 - Universal/App Links domains - `PLANNED`
-- Android intent/deep-link manifest generation - `PLANNED`
+- Android custom-scheme intent generation - `RUNTIME`
+- Android verified App Links - `PLANNED`
 - Context menu - `PLANNED`
 
 ## Permissions
