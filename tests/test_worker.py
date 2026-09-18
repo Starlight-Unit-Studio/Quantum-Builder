@@ -35,7 +35,8 @@ class WorkerCompilerTests(unittest.TestCase):
             "trusted_domain": "example.test",
             "interface": {"keep_screen_on": False, "orientation": "portrait"},
             "web": {"user_agent_suffix": " QuantumTest", "custom_headers": {"X-Test-Client": "phone"}},
-            "plugins": {"quantum_asset_store": True},
+            "plugins": {"quantum_asset_store": True, "native_asset_downloader": True},
+            "asset_sync": {"manifest_url": "/api/asset-manifest.json", "roots": "/assets/portraits/"},
             "permissions": {"location": True, "microphone": True, "camera": True},
         }
 
