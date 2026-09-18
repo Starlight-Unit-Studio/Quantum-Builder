@@ -61,7 +61,7 @@ class WorkerCompilerTests(unittest.TestCase):
     def test_app_config_compiles_identity_and_keep_screen_on(self):
         path = self.root / "app/src/main/java/de/starlightunit/wrapper/config/AppConfig.java"
         path.write_text(
-            """package de.starlightunit.wrapper.config;\npublic final class AppConfig {\n public static final String START_URL = \"https://old.test/\";\n public static final String TRUSTED_DOMAIN = \"old.test\";\n public static final String VERSION_NAME = \"0.0.1\";\n public static final String USER_AGENT_SUFFIX = \" old/\" + VERSION_NAME;\n public static final String ASSET_STORE_TRUSTED_HOST = \"old.test\";\n public static final String APP_HEADER_VALUE = \"old\";\n public static final boolean KEEP_SCREEN_ON = true;\n}\n""",
+            """package de.starlightunit.wrapper.config;\npublic final class AppConfig {\n public static final String START_URL = \"https://old.test/\";\n public static final String TRUSTED_DOMAIN = \"old.test\";\n public static final String VERSION_NAME = \"0.0.1\";\n public static final String USER_AGENT_SUFFIX = \" old/\" + VERSION_NAME;\n public static final String ASSET_STORE_TRUSTED_HOST = \"old.test\";\n public static final String APP_HEADER_VALUE = \"old\";\n public static final String CUSTOM_REQUEST_HEADERS_JSON = \"{}\";\n public static final boolean QUANTUM_ASSET_STORE_ENABLED = false;\n public static final boolean ASSET_STORE_PAGE_WARMUP_ENABLED = true;\n public static final boolean KEEP_SCREEN_ON = true;\n}\n""",
             encoding="utf-8",
         )
         worker.patch_app_config(self.root, self.app, self.config)
