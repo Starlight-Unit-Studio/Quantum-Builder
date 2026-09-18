@@ -99,7 +99,11 @@ final class Apps
                 'fullscreen' => false, 'page_transitions' => true, 'pull_to_refresh' => false,
                 'pinch_to_zoom' => false, 'font_scale' => 100,
             ],
-            'navigation' => ['top_bar' => false, 'sidebar' => false, 'bottom_tabs' => false, 'contextual_toolbar' => false],
+            'navigation' => [
+                'top_bar' => false, 'sidebar' => false, 'bottom_tabs' => false, 'contextual_toolbar' => false,
+                'title' => $name, 'background' => '#020611', 'foreground' => '#ffffff', 'accent' => '#6fc7ff',
+                'items' => [],
+            ],
             'links' => ['new_windows' => 'blocked', 'deep_link_scheme' => ''],
             'permissions' => [
                 'location' => false, 'microphone' => false, 'camera' => false,
@@ -161,6 +165,55 @@ final class Apps
             $config['theme'][$colorField] = $color;
         }
 
+        if (!isset($config['navigation']) || !is_array($config['navigation'])) {
+            $config['navigation'] = $defaults['navigation'];
+        }
+        foreach (['top_bar', 'sidebar', 'bottom_tabs', 'contextual_toolbar'] as $booleanField) {
+            if (!is_bool($config['navigation'][$booleanField] ?? null)) {
+                throw new \InvalidArgumentException('Native navigation toggle values must be boolean.');
+            }
+        }
+        $navigationTitle = trim((string) ($config['navigation']['title'] ?? $name));
+        if (strlen($navigationTitle) > 160) {
+            throw new \InvalidArgumentException('Native navigation title is too long.');
+        }
+        $config['navigation']['title'] = $navigationTitle;
+
+        foreach (['background', 'foreground', 'accent'] as $colorField) {
+            $color = strtolower(trim((string) ($config['navigation'][$colorField] ?? $defaults['navigation'][$colorField])));
+            if (!preg_match('/^#[0-9a-f]{6}$/', $color)) {
+                throw new \InvalidArgumentException('Native navigation colors must use #RRGGBB.');
+            }
+            $config['navigation'][$colorField] = $color;
+        }
+
+        $navigationItems = $config['navigation']['items'] ?? [];
+        if (!is_array($navigationItems) || ($navigationItems !== [] && !array_is_list($navigationItems))) {
+            throw new \InvalidArgumentException('Native navigation items must be a JSON array.');
+        }
+        if (count($navigationItems) > 12) {
+            throw new \InvalidArgumentException('Native navigation supports at most 12 items.');
+        }
+        $normalizedNavigationItems = [];
+        foreach ($navigationItems as $item) {
+            if (!is_array($item)) {
+                throw new \InvalidArgumentException('Each native navigation item must be an object.');
+            }
+            $label = trim((string) ($item['label'] ?? ''));
+            $target = trim((string) ($item['url'] ?? ''));
+            if ($label === '' || strlen($label) > 80) {
+                throw new \InvalidArgumentException('Native navigation labels must contain 1 to 40 typical characters.');
+            }
+            if ($target === '' || strlen($target) > 2048 || preg_match('/[\r\n]/', $target)) {
+                throw new \InvalidArgumentException('Native navigation URL is invalid.');
+            }
+            if (!$this->isTrustedNavigationTarget($target, strtolower($config['trusted_domain']))) {
+                throw new \InvalidArgumentException('Native navigation targets must be relative or trusted HTTPS URLs.');
+            }
+            $normalizedNavigationItems[] = ['label' => $label, 'url' => $target];
+        }
+        $config['navigation']['items'] = $normalizedNavigationItems;
+
         if (!isset($config['web']) || !is_array($config['web'])) {
             $config['web'] = $defaults['web'];
         }
@@ -201,6 +254,23 @@ final class Apps
             'target_sdk' => $targetSdk,
             'config_json' => json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
         ];
+    }
+
+    private function isTrustedNavigationTarget(string $target, string $trustedDomain): bool
+    {
+        if (str_starts_with($target, '//')) {
+            return false;
+        }
+        if (!preg_match('/^[A-Za-z][A-Za-z0-9+.-]*:/', $target)) {
+            return true;
+        }
+
+        $url = parse_url($target);
+        if (!$url || strtolower((string) ($url['scheme'] ?? '')) !== 'https') {
+            return false;
+        }
+        $host = strtolower((string) ($url['host'] ?? ''));
+        return $host === $trustedDomain || str_ends_with($host, '.' . $trustedDomain);
     }
 
     private function normalizeAppIconDataUrl(mixed $value): string
