@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.0-alpha11
+
+Custom splash replacement with post-load STU attribution.
+
+- Adds per-app PNG/JPEG/WebP custom splash uploads up to 3 MiB.
+- A valid custom splash fully replaces the visible STU factory splash instead of playing after it.
+- The STU production splash remains packaged as a safe fallback resource when no valid custom splash is configured.
+- When a custom splash is used, the canonical STU footer attribution banner appears once only after both the splash has finished and the first main page has loaded successfully.
+- Attribution duration is configurable from 2 through 4 seconds, defaulting to 3 seconds.
+- The floating attribution banner automatically clears native Bottom Tabs and the Contextual Toolbar.
+- Banner display is suppressed for factory-splash builds and failed first-page loads.
+- Builder and worker validate real decoded image size and PNG/JPEG/WebP signatures before producing Android resources.
+- Builder version bump refreshes cached frontend assets after update.
+
 ## 0.1.0-alpha10
 
 Native link handling runtime.
