@@ -282,6 +282,9 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
     interface = config.get("interface", {})
     if not isinstance(interface, dict):
         interface = {}
+    theme = config.get("theme", {})
+    if not isinstance(theme, dict):
+        theme = {}
     plugins = config.get("plugins", {})
     custom_headers = web.get("custom_headers", {})
     if not isinstance(custom_headers, dict):
@@ -306,6 +309,20 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
     if cookie_mode not in {"persistent", "server", "session"}:
         raise RuntimeError("Unsupported cookie persistence mode")
 
+    dark_mode = str(interface.get("dark_mode") or "dark").strip().lower()
+    if dark_mode not in {"dark", "light", "auto"}:
+        raise RuntimeError("Unsupported dark mode")
+
+    def normalized_hex_color(value, fallback):
+        candidate = str(value or fallback).strip().lower()
+        if not re.fullmatch(r"#[0-9a-f]{6}", candidate):
+            raise RuntimeError("Theme colors must use #RRGGBB")
+        return candidate
+
+    status_bar_color = normalized_hex_color(theme.get("status_bar"), "#020611")
+    navigation_bar_color = normalized_hex_color(theme.get("navigation_bar"), "#020611")
+    splash_background_color = normalized_hex_color(theme.get("splash_background"), "#020611")
+
     string_values = {
         "START_URL": str(app["start_url"]),
         "TRUSTED_DOMAIN": trusted,
@@ -317,6 +334,10 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
         "CUSTOM_CSS": custom_css,
         "CUSTOM_JAVASCRIPT": custom_javascript,
         "COOKIE_PERSISTENCE_MODE": cookie_mode,
+        "WEB_DARK_MODE": dark_mode,
+        "STATUS_BAR_COLOR": status_bar_color,
+        "NAVIGATION_BAR_COLOR": navigation_bar_color,
+        "SPLASH_BACKGROUND_COLOR": splash_background_color,
         "ASSET_MANIFEST_URL": manifest_url,
         "ASSET_DOWNLOADER_ROOTS": str(asset_sync.get("roots") or ""),
         "LOADING_INDICATOR_STYLE": str(interface.get("loading_indicator_style") or "top-bar"),
@@ -332,6 +353,7 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
 
     boolean_values = {
         "KEEP_SCREEN_ON": bool(interface.get("keep_screen_on")),
+        "PAGE_TRANSITIONS_ENABLED": bool(interface.get("page_transitions")),
         "IMMERSIVE_FULLSCREEN_ENABLED": bool(interface.get("fullscreen")),
         "PULL_TO_REFRESH_ENABLED": bool(interface.get("pull_to_refresh")),
         "PINCH_TO_ZOOM_ENABLED": bool(interface.get("pinch_to_zoom")),
