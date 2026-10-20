@@ -17,6 +17,9 @@ Visual native-navigation editing and live navigation preview.
 - Clears preview state between profiles and validates every preview destination.
 - Records the complete dated Median expansion roadmap and the agreed brighter
   Quantum Enterprise design direction for the later redesign phase.
+- Extends planned reference coverage to MobiLoud, Twinr and CatDoes, including
+  website/commerce continuity, native screens and engagement, and a separate
+  generated-application workflow; no new runtime capability is implied.
 - Includes local URL-contract and integrated browser regressions for mobile and
   desktop. This tranche changes Builder editing/preview, not the Android runtime.
 - Bumps the Builder version to refresh browser assets on installer updates.

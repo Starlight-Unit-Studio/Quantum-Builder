@@ -7,7 +7,14 @@ The approved brighter Builder direction is retained separately in
 
 ## Goal
 
-Quantum Builder targets functional parity with the capabilities exposed by modern web-to-native builders such as Median while keeping its own Terran terminal design, codebase, runtime architecture and product identity.
+Quantum Builder targets the combined capability and workflow scope recorded for
+Median, MobiLoud, Twinr and CatDoes. Wrapper/native-screen capabilities and generated
+application projects retain separate engines and acceptance criteria. Quantum owns
+its codebase, runtime architecture and product identity, with the brighter
+Enterprise design planned after the functional phase.
+
+The dated evidence, reference IDs and additional acceptance scope are in
+[REFERENCE_PLATFORM_EXPANSION.md](REFERENCE_PLATFORM_EXPANSION.md).
 
 This is a capability/workflow target only. We do not copy proprietary source code, assets or a pixel-identical UI.
 
@@ -300,6 +307,61 @@ Third-party plugins may require the user's own provider account, credentials or 
 - Global settings - `PLANNED`
 - Store/deployment accounts - `PLANNED`
 - iOS testers/App Store Connect - `IOS-LATER`
+
+## Additional platform scope
+
+All additional items below are `PLANNED`. Their reference IDs resolve to the
+additional-platform inventory. Existing features elsewhere in this matrix retain
+their own status; an overlapping provider or UI control does not complete these
+broader requirements.
+
+### Native screens, navigation and website continuity
+
+- Retained tab state, selective background refresh and cart/wishlist invalidation
+  (ML-02, TW-05) - `PLANNED`
+- Per-tab rule precedence, component visibility and typed page-element actions
+  (TW-03, TW-04) - `PLANNED`
+- Native-screen component editor and Android/iOS renderer coverage (TW-01) - `PLANNED`
+- REST request configuration, response mapping and screen data states (TW-02) - `PLANNED`
+- First-run onboarding, completion state and permission timing (ML-03, TW-06) - `PLANNED`
+- Website journey compatibility, app-context content and verified session lifecycle
+  (ML-01, ML-04, ML-05) - `PLANNED`
+
+### Engagement, commerce and analytics
+
+- Provider identity association/reset, attributes and merge behavior (ML-06) - `PLANNED`
+- Audience segmentation and event/scheduled push campaigns (TW-07, TW-08) - `PLANNED`
+- Visual/HTML in-app messages, targeting and interaction reporting (TW-09) - `PLANNED`
+- Native notification inbox, read state and destinations (TW-10) - `PLANNED`
+- Commerce and marketplace adapters, including app-only offers, loyalty and
+  Sharetribe inbox events (ML-07, TW-12) - `PLANNED`
+- Acquisition, retention, revenue and attribution-aware reporting (ML-08, TW-11) - `PLANNED`
+
+### Delivery and operations
+
+- Same-phone native preview links and QR sharing (TW-14, CD-05) - `PLANNED`
+- Website install/promotional widgets and device-aware redirects (ML-09, TW-13) - `PLANNED`
+- Configuration templates/versions, remote rollout and rollback (TW-14, TW-15) - `PLANNED`
+- Store description/screenshot tooling, release tasks and OS/SDK maintenance
+  (ML-11, TW-17) - `PLANNED`
+- Supported app-listing migration and signing continuity workflow (ML-12) - `PLANNED`
+
+### Generated application projects
+
+- Prompt/website/repository inputs and editable generation plans (CD-01, CD-02) - `PLANNED`
+- Durable agent jobs, visible progress, cancellation and recovery (CD-01) - `PLANNED`
+- Separate mobile/web generation engines and multi-app projects (CD-03) - `PLANNED`
+- Phone-based source editing, file context and screenshot feedback (CD-04) - `PLANNED`
+- Per-engine browser/device previews and logs (CD-05) - `PLANNED`
+- Source/configuration checkpoints with defined restore scope (CD-06) - `PLANNED`
+- GitHub import, synchronization, branch/conflict handling and source round trips
+  (CD-07) - `PLANNED`
+- Optional application backend and external provider adapters (CD-08) - `PLANNED`
+- Target-specific build profiles and generated-web/domain deployment
+  (CD-09, CD-10) - `PLANNED`
+- Required-configuration checks and release-readiness findings (CD-09) - `PLANNED`
+- Error monitoring and reproducible repair jobs (CD-11) - `PLANNED`
+- Complete generated-source export and independent builds (CD-12) - `PLANNED`
 
 ## Rule for future work
 

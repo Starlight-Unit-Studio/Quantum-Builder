@@ -1,4 +1,4 @@
-# Quantum Builder: Median Functional Parity Roadmap
+# Quantum Builder: Platform Functional Parity Roadmap
 
 Updated: **2026-10-20**. Public reference inventory reviewed on the same date.
 
@@ -7,13 +7,19 @@ feature lists remain in [FEATURE_MATRIX.md](FEATURE_MATRIX.md) and
 [FUNCTIONAL_PARITY.md](FUNCTIONAL_PARITY.md). A capability is complete only within
 its stated platform and tested scope; a saved profile field is not native support.
 
+The reference scope now includes **Median, MobiLoud, Twinr and CatDoes**. The three
+additional platforms were requested on 2026-10-20. Their source-backed inventory
+and Quantum acceptance targets are in
+[REFERENCE_PLATFORM_EXPANSION.md](REFERENCE_PLATFORM_EXPANSION.md). This filename
+is retained so existing links and handoffs continue to work.
+
 ## Binding product decisions
 
 - The 2026-09-18 agreement sets **functional parity first, then the brighter
   Quantum Enterprise redesign**. The user reaffirmed the full scope and brighter
   design direction on 2026-10-20. The design direction is retained
   in [QUANTUM_ENTERPRISE_DESIGN.md](QUANTUM_ENTERPRISE_DESIGN.md).
-- Median is a reference for capabilities and workflows. Quantum owns its code,
+- The four platforms are references for capabilities and workflows. Quantum owns its code,
   profile contracts, runtime modules and visual identity.
 - The custom splash and STU attribution work is **closed**. The user confirmed
   completion on 2026-10-20; an old device-test note must not reopen this work or
@@ -22,6 +28,9 @@ its stated platform and tested scope; a saved profile field is not native suppor
   management and deployment. No artificial Quantum product-tier locks are planned.
 - Android remains the active engine. iOS stays a separate planned engine, with
   explicit platform status rather than an implied Android equivalent.
+- CatDoes adds a planned generated-application mode. It is a separate project
+  capability alongside the existing website-wrapper workflow; framework selection
+  remains an implementation decision. All newly added scope remains `PLANNED`.
 
 ## Recorded baseline and current tranche
 
@@ -103,6 +112,10 @@ while delivering useful complete blocks instead of adding inactive switches.
 - [ ] Add scroll visibility, per-surface styling and contextual-toolbar rules.
 - [ ] Expand simulator controls, device presets and preview coverage alongside
   each implemented native capability.
+- [ ] Add explicit per-tab state, background invalidation and refresh rules, with
+  account/cart/wishlist changes as acceptance cases (ML-02, TW-05).
+- [ ] Include per-tab rule precedence, screen/device/user-state targeting and
+  typed page-element actions in the navigation contract (TW-03, TW-04).
 
 Reference: [native navigation](https://docs.median.co/docs/native-navigation-overview),
 [sidebar editor](https://docs.median.co/docs/sidebar-configuration),
@@ -127,6 +140,8 @@ Reference: [native navigation](https://docs.median.co/docs/native-navigation-ove
   permission requests and the app-settings action.
 - [ ] Wire the existing Share and Haptics profiles into real native modules first;
   then connect NMP selection, biometrics, QR scanning and push configuration.
+- [ ] Define web/native screen events, authenticated identity handoff, reusable
+  data-source requests and page-element action results for the expanded scope.
 
 Reference: [JavaScript Bridge](https://docs.median.co/docs/javascript-bridge),
 [permissions](https://docs.median.co/docs/permissions-overview),
@@ -150,6 +165,14 @@ Reference: [JavaScript Bridge](https://docs.median.co/docs/javascript-bridge),
 - [ ] Add native key/value storage and separately specified backup/sync behavior.
 - [ ] Add a full OfflineSync application mode after the storage/update contract is
   defined, including interrupted updates and content-version compatibility.
+- [ ] Add first-run onboarding with persisted completion and deliberate permission
+  timing. This is distinct from the completed splash behavior (ML-03, TW-06).
+- [ ] Add a native-screen component editor and renderer, including text, media,
+  lists/products/settings, buttons, search and countdowns (TW-01, TW-03).
+- [ ] Add REST data-source configuration, response mapping and loading/empty/error
+  previews for those native screens (TW-02).
+- [ ] Verify website journeys, login/session boundaries, app-specific content and
+  checkout/redirect behavior alongside the native layer (ML-01, ML-04, ML-05).
 
 Reference: [interface](https://docs.median.co/docs/app-interface-overview),
 [display controls](https://docs.median.co/docs/device-screen-control),
@@ -177,6 +200,15 @@ Reference: [interface](https://docs.median.co/docs/app-interface-overview),
   modules in dependency-sized batches.
 - [ ] Provide an extension contract for customer-specific vendor SDKs and hardware.
   A generic extension mechanism does not count an unimplemented adapter as done.
+- [ ] Add provider identity association/reset, profile attributes and supported
+  merge behavior across login/logout and account changes (ML-06).
+- [ ] Add audience segments, event/scheduled push campaigns, personalized delivery,
+  in-app messages and a native notification inbox (TW-07 through TW-10).
+- [ ] Add commerce and marketplace adapters for app-only offers, loyalty, cart
+  synchronization and conversation events; retain Sharetribe and the additional
+  provider evidence in the reference inventory (ML-07, TW-12).
+- [ ] Add acquisition/retention, app revenue and campaign reporting with explicit
+  event and attribution contracts (ML-08, TW-11).
 
 Reference: [native functionality](https://docs.median.co/docs/native-functionality),
 [media](https://docs.median.co/docs/media),
@@ -196,6 +228,15 @@ Reference: [native functionality](https://docs.median.co/docs/native-functionali
   Google Play publishing workflows with reviewable destinations.
 - [ ] Add a documented build/artifact API for external CI/CD clients.
 - [ ] Retain build reproducibility, source downloads and update identity throughout.
+- [ ] Add reusable configuration templates/versions and same-phone native preview
+  links, with QR sharing available for a second device (TW-14, CD-05).
+- [ ] Add website install/promotional widgets and device-aware download links
+  (ML-09, TW-13), plus editable localized store descriptions and screenshots (TW-17).
+- [ ] Track release preparation, store feedback, supported migrations and OS/SDK
+  maintenance as explicit operational work (ML-11, ML-12).
+- [ ] Define remote configuration rollout/rollback separately from website changes,
+  asset updates and binary releases; require rebuilds when native compatibility
+  changes (TW-15).
 
 Reference: [accounts](https://docs.median.co/docs/app-studio-accounts),
 [multiple app instances](https://docs.median.co/docs/multiple-app-instances),
@@ -217,7 +258,34 @@ overview alone is not evidence of an equivalent automatic upload feature.
 
 Reference: [iOS build and deployment](https://docs.median.co/docs/ios-build-deployment).
 
-### 7. Deliver the brighter Quantum Enterprise redesign
+### 7. Add generated-application projects
+
+- [ ] Add a generated-app project type alongside the wrapper, with explicit mobile
+  and web engines and support for multiple app targets in one project (CD-02, CD-03).
+- [ ] Turn a prompt, website analysis or repository import into a reviewable screen
+  inventory, application specification and implementation plan (CD-01, CD-02).
+- [ ] Add durable AI execution jobs with visible progress, interruption/recovery,
+  reconnectable sessions and isolated working environments (CD-01).
+- [ ] Add mobile source editing, file references, screenshot feedback, browser and
+  device previews with target-specific limitations (CD-04, CD-05).
+- [ ] Add checkpoints, GitHub synchronization, branch/conflict workflows and complete
+  source export with independently reproducible builds (CD-06, CD-07, CD-12).
+- [ ] Add optional application database/auth/storage/functions/realtime services
+  and external-backend adapters, separated from Builder management data (CD-08).
+- [ ] Add generated-web hosting/custom-domain releases and target-specific native
+  build profiles, sharing existing release infrastructure where appropriate
+  (CD-09, CD-10).
+- [ ] Add required-configuration checks and actionable release-readiness findings,
+  with secure provider credential entry and no implied store approval (CD-09).
+- [ ] Add application error monitoring and reproducible repair jobs with reviewable
+  diffs; define source, data and deployed-release recovery separately (CD-11).
+
+Evidence and implementation boundaries:
+[CatDoes inventory](REFERENCE_PLATFORM_EXPANSION.md#catdoes-inventory).
+This phase records a new capability track, not a replacement of the current
+Android runtime or an assertion that a generator already exists.
+
+### 8. Deliver the brighter Quantum Enterprise redesign
 
 - [ ] Execute [the retained design specification](QUANTUM_ENTERPRISE_DESIGN.md)
   after the functional phase, preserving the completed workflows and mobile access.
@@ -225,6 +293,11 @@ Reference: [iOS build and deployment](https://docs.median.co/docs/ios-build-depl
   the parity phase complete. The current alpha12 tranche is only one part of it.
 
 ## Named integration inventory
+
+This section counts **Median's** named integrations. The additional platform
+families and adapters are tracked in
+[REFERENCE_PLATFORM_EXPANSION.md](REFERENCE_PLATFORM_EXPANSION.md), without
+double-counting shared providers or claiming a combined completion percentage.
 
 Inventory date: **2026-10-20**. The public
 [Median plugin catalogue](https://median.co/plugins) contains **61 named entries**.

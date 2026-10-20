@@ -4,7 +4,7 @@
 
 The project turns one maintained Android wrapper runtime into reusable app profiles. Each profile owns its URL, package ID, versioning, runtime configuration, plugin selection, signing identity and build history.
 
-The interface uses the **Terran terminal design language** from *Starlight Unit: The Game* and its mobile Admin Console. Median is used only as a feature reference for the builder workflow, not as a design source.
+The current interface uses the **Terran terminal design language** from *Starlight Unit: The Game* and its mobile Admin Console. Median, MobiLoud, Twinr and CatDoes are capability and workflow references; Quantum retains its own implementation and visual identity.
 
 Current version: `0.1.0-alpha12`
 
@@ -25,8 +25,12 @@ Quantum Enterprise design is documented in
 the functional parity phase. The custom splash/attribution block is complete.
 
 The existing matrices describe individual implementation boundaries. The dated
-roadmap also inventories the complete public Median plugin catalogue and additional
+roadmap also inventories the public Median plugin catalogue and additional
 documented integrations so later sessions can continue from the recorded work.
+The [additional-platform inventory](docs/REFERENCE_PLATFORM_EXPANSION.md) covers
+MobiLoud's website/commerce and launch workflows, Twinr's native screens/data binding
+and engagement tools, and CatDoes-style generated application projects. These
+extensions are planned; they do not change the implemented alpha12 feature scope.
 
 ## Studio quick installer
 

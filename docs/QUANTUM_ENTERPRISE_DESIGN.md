@@ -9,9 +9,12 @@ brighter Quantum Builder with enterprise information hierarchy and recognizable
 Starlight Unit Studios identity. The existing dark terminal appearance must no
 longer dominate the workspace.
 
-The sequence remains **Median functional parity first, then the Quantum Enterprise
+The sequence remains **functional parity first, then the Quantum Enterprise
 redesign**. See [MEDIAN_PARITY_ROADMAP.md](MEDIAN_PARITY_ROADMAP.md). Functional
 editor improvements may ship earlier while the full visual redesign stays planned.
+The functional roadmap now also includes the requested MobiLoud, Twinr and CatDoes
+references; their [additional scope](REFERENCE_PLATFORM_EXPANSION.md) must fit the
+same readable, phone-usable information architecture as those capabilities ship.
 
 CoreUI-like brightness is a reference for the direction, not a requirement to copy
 CoreUI. Quantum Builder keeps its own interface and product identity. This work is
