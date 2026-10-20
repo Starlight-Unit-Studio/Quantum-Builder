@@ -18,6 +18,7 @@ $authenticated = $auth->isLoggedIn();
   <title>Starlight Quantum Builder</title>
   <link rel="stylesheet" href="/assets/terran.css?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>">
   <link rel="stylesheet" href="/assets/simulator.css?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>">
+  <link rel="stylesheet" href="/assets/navigation-editor.css?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>">
 </head>
 <body>
   <div class="qb-bg"></div>
@@ -177,8 +178,14 @@ $authenticated = $auth->isLoggedIn();
                   <label><span class="field-label">Navigation Background</span><input class="field color-field" id="nativeNavigationBackground" type="color"></label>
                   <label><span class="field-label">Navigation Foreground</span><input class="field color-field" id="nativeNavigationForeground" type="color"></label>
                   <label><span class="field-label">Navigation Accent</span><input class="field color-field" id="nativeNavigationAccent" type="color"></label>
-                  <label class="span-2"><span class="field-label">Menu Items (JSON)</span><textarea class="field mono" id="nativeNavigationItems" rows="9" placeholder='[{"label":"Home","url":"/"},{"label":"News","url":"/news"}]'></textarea></label>
-                  <div class="notice span-2">Sidebar und Bottom Tabs verwenden dieselbe geordnete Menü-Liste. Maximal 12 Ziele; die Bottom Tab Bar zeigt die ersten 5. Relative Pfade werden gegen die Start-URL aufgelöst und bleiben unter der Trusted-Domain-Policy. Die Contextual Toolbar liefert Back, Home, Reload und Forward nativ.</div>
+                  <div class="span-2">
+                    <div id="nativeNavigationEditor" aria-label="Menüeinträge bearbeiten"></div>
+                  </div>
+                  <details id="nativeNavigationJson" class="span-2 qb-nav-advanced">
+                    <summary>Erweitert: Menü als JSON bearbeiten</summary>
+                    <label><span class="field-label">Menüliste</span><textarea class="field mono" id="nativeNavigationItems" rows="9" spellcheck="false" placeholder='[{"label":"Home","url":"/"},{"label":"News","url":"/news"}]'></textarea></label>
+                  </details>
+                  <div class="notice span-2">Sidebar und Bottom Tabs teilen sich bis zu 12 Menüeinträge. Die ersten 5 erscheinen zusätzlich als Tabs. Ohne eigene Einträge zeigt die App Home. Alle Ziele bleiben innerhalb der Trusted Domain; die Vorschau zeigt Änderungen sofort.</div>
                 </div>
               </section>
 
@@ -299,7 +306,9 @@ $authenticated = $auth->isLoggedIn();
   </dialog>
 
   <script>window.QB_BOOT = <?= json_encode(['authenticated' => $authenticated, 'csrf' => $authenticated ? $auth->csrf() : null, 'version' => Config::version()], JSON_UNESCAPED_SLASHES) ?>;</script>
-  <script src="/assets/app.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>
+  <script src="/assets/navigation-model.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>
+  <script src="/assets/navigation-editor.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>
   <script src="/assets/simulator.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>
+  <script src="/assets/app.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>
 </body>
 </html>

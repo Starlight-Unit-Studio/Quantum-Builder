@@ -1,12 +1,18 @@
 # Quantum Builder Feature Matrix
 
+Current Builder: **0.1.0-alpha12**. The full dated scope and delivery sequence are
+in [MEDIAN_PARITY_ROADMAP.md](MEDIAN_PARITY_ROADMAP.md); the brighter design is in
+[QUANTUM_ENTERPRISE_DESIGN.md](QUANTUM_ENTERPRISE_DESIGN.md).
+
 Legend:
 
 - **Runtime**: stored and compiled into the generated Android app now
 - **Profile**: stored in the app profile/UI, native compiler connection is still being added
-- **Planned**: intentionally not implemented in alpha1
+- **Planned**: not implemented in the current version
+- **Builder**: implemented in the web editor/preview; native behavior retains its
+  separately stated runtime scope
 
-| Area | Feature | Alpha1 |
+| Area | Feature | Current status |
 |---|---|---|
 | Overview | App name | Runtime |
 | Overview | HTTPS start URL | Runtime |
@@ -45,7 +51,10 @@ Legend:
 | Navigation | Bottom tabs enable | Runtime |
 | Navigation | Contextual toolbar enable | Runtime |
 | Navigation | Shared ordered menu JSON | Runtime |
-| Navigation | Visual drag/drop menu editor | Planned |
+| Navigation | Visual shared-menu editor, touch/keyboard ordering and drag/drop | Builder |
+| Navigation | Advanced shared-menu JSON editing with draft validation | Builder |
+| Simulator | Top bar, sidebar, bottom tabs and contextual toolbar preview | Builder |
+| Simulator | Preview-owned navigation history and current-route reload | Builder |
 | Navigation | Page visibility rules | Planned |
 | Links | New-window behavior | Runtime |
 | Links | Deep-link scheme | Runtime |

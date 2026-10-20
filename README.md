@@ -6,7 +6,27 @@ The project turns one maintained Android wrapper runtime into reusable app profi
 
 The interface uses the **Terran terminal design language** from *Starlight Unit: The Game* and its mobile Admin Console. Median is used only as a feature reference for the builder workflow, not as a design source.
 
-Current version: `0.1.0-alpha11`
+Current version: `0.1.0-alpha12`
+
+## Current development
+
+Alpha12 adds a visual editor for the existing shared native-navigation menu:
+edit labels and destinations, add/remove entries, reorder with touch-friendly
+buttons or desktop drag handles, and retain the advanced JSON representation.
+The simulator now previews the configured Top Bar, Sidebar, Bottom Tabs and
+Contextual Toolbar, including their colors, content space and menu navigation.
+It tracks navigation initiated by its own controls; embedded cross-origin page
+history and actual native OS behavior remain outside this browser preview.
+
+The full capability scope and dependency order are retained in
+[`docs/MEDIAN_PARITY_ROADMAP.md`](docs/MEDIAN_PARITY_ROADMAP.md). The agreed brighter
+Quantum Enterprise design is documented in
+[`docs/QUANTUM_ENTERPRISE_DESIGN.md`](docs/QUANTUM_ENTERPRISE_DESIGN.md) and follows
+the functional parity phase. The custom splash/attribution block is complete.
+
+The existing matrices describe individual implementation boundaries. The dated
+roadmap also inventories the complete public Median plugin catalogue and additional
+documented integrations so later sessions can continue from the recorded work.
 
 ## Studio quick installer
 

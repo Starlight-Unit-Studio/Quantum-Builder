@@ -1,5 +1,10 @@
 # Quantum Builder Functional Parity Matrix
 
+Updated for Builder **0.1.0-alpha12**. The complete dated reference inventory and
+dependency order are retained in [MEDIAN_PARITY_ROADMAP.md](MEDIAN_PARITY_ROADMAP.md).
+The approved brighter Builder direction is retained separately in
+[QUANTUM_ENTERPRISE_DESIGN.md](QUANTUM_ENTERPRISE_DESIGN.md).
+
 ## Goal
 
 Quantum Builder targets functional parity with the capabilities exposed by modern web-to-native builders such as Median while keeping its own Terran terminal design, codebase, runtime architecture and product identity.
@@ -28,15 +33,17 @@ Status legend:
 - iPad preview - `IOS-LATER`
 - Simulator setting panel - `PLANNED`
 - Device presets / resolutions - `PLANNED`
-- Live rendering of native navigation overlays - `PLANNED`
+- Live rendering of current native navigation overlays - `BUILDER` (approximate
+  browser presentation of Top Bar, Sidebar, Bottom Tabs and Contextual Toolbar)
+- Simulator-owned route history and current-route reload - `BUILDER`
 
 ## Overview
 
-- App name - `PROFILE`
-- Website URL - `PROFILE`
+- App name - `RUNTIME`
+- Website URL - `RUNTIME`
 - App description - `PROFILE`
-- Trusted domain - `PROFILE`
-- Wrapper runtime ref - `PROFILE`
+- Trusted domain - `RUNTIME`
+- Wrapper runtime ref - `BUILDER`
 - Private management/share link - `PLANNED`
 - Public share link - `PLANNED`
 - App access/member assignment - `PLANNED`
@@ -59,11 +66,11 @@ Status legend:
 
 ## Interface
 
-- Dark mode setting - `PROFILE`
+- Dark mode setting - `RUNTIME`
 - Orientation - `RUNTIME`
 - Keep screen on - `RUNTIME`
 - Immersive fullscreen - `RUNTIME`
-- Native page transitions - `PROFILE`
+- Native page transitions - `RUNTIME`
 - Pull-to-refresh - `RUNTIME`
 - Pinch-to-zoom - `RUNTIME`
 - Android font scaling - `RUNTIME`
@@ -102,13 +109,13 @@ Status legend:
 - App image/name - `PLANNED`
 - Font/style controls - `PLANNED`
 - Light/dark background/foreground/separator/highlight - `PLANNED`
-- Visual menu editor - `PLANNED`
+- Visual label/URL menu editor - `BUILDER` (existing shared runtime menu)
 - Label/link items - `RUNTIME`
 - Item icons - `PLANNED`
 - Grouping/collapsible groups - `PLANNED`
-- Drag/drop ordering - `PLANNED`
+- Drag/drop, touch-button and keyboard ordering - `BUILDER`
 - Restore defaults / clear all - `PLANNED`
-- Advanced mode - `PLANNED`
+- Advanced shared-menu JSON editing - `BUILDER`
 
 ### Bottom Tab Bar
 
@@ -116,12 +123,12 @@ Status legend:
 - Hide with scroll - `PLANNED`
 - Light/dark styling - `PLANNED`
 - Active/inactive tab colors - `PLANNED`
-- Visual tab editor - `PLANNED`
+- Visual shared-menu editor - `BUILDER` (first five shared destinations)
 - Multiple tab menus - `PLANNED`
 - Visibility rules - `PLANNED`
 - Text/links - `RUNTIME`
 - Tab icons - `PLANNED`
-- Advanced mode - `PLANNED`
+- Advanced shared-menu JSON editing - `BUILDER`
 
 ### Contextual Navigation Toolbar
 
@@ -132,7 +139,7 @@ Status legend:
 - Back button label/pages - `PLANNED`
 - Refresh button configuration - `PLANNED`
 - Forward button configuration - `PLANNED`
-- Preview - `PLANNED`
+- Preview - `BUILDER` (simulator-owned history; embedded page history is not observable)
 - iOS-first implementation - `IOS-LATER`
 
 ## Link Handling
@@ -182,7 +189,8 @@ Status legend:
 
 Current Quantum-native modules:
 
-- Quantum Native Media Player - `RUNTIME`
+- Quantum Native Media Player - `RUNTIME` for existing playback; Builder
+  enable/disable compilation and full playlist/background/media-session parity remain open
 - Quantum Asset Store - `RUNTIME`
 
 Profiles already exposed:
@@ -243,14 +251,29 @@ Plugin parity targets observed in reference builder:
 - iBeacon - `IOS-LATER`
 - Scandit QR/Barcode - `PLANNED`
 - Microsoft Intune - `PLANNED`
+- Enterprise Security - `PLANNED`
+- Secure Modal (Apple Pay) - `IOS-LATER`
+- Reader Modal (External Link Account) - `IOS-LATER`
+- Card.io - `PLANNED`
+- Shopify - `PLANNED`
+- Intent Edge - `PLANNED`
+- Sendbird - `PLANNED`
+- IBM Cloud - `PLANNED`
+- Optimizely - `PLANNED`
+- MoEngage - `PLANNED`
+- Salesforce Marketing Cloud - `PLANNED`
+- Microsoft Dynamics 365 - `PLANNED`
+- Xtremepush - `PLANNED`
+- Master Lock - `PLANNED`
+- Social Share - `PLANNED`
 
 Third-party plugins may require the user's own provider account, credentials or paid provider plan. Quantum Builder itself should not introduce artificial product-tier locks around integrations.
 
 ## Build & Deploy
 
-- Package ID - `PROFILE`
-- Version name/code - `PROFILE`
-- minSdk/targetSdk - `PROFILE`
+- Package ID - `RUNTIME`
+- Version name/code - `RUNTIME`
+- minSdk/targetSdk - `RUNTIME`
 - Persistent per-app signing identity - `RUNTIME`
 - Rebuild All - `RUNTIME`
 - APK output - `RUNTIME`
