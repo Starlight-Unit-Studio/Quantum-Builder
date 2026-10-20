@@ -194,41 +194,10 @@ final class Apps
             $config['navigation'][$colorField] = $color;
         }
 
-        $navigationItems = $config['navigation']['items'] ?? [];
-        if (!is_array($navigationItems) || ($navigationItems !== [] && !array_is_list($navigationItems))) {
-            throw new \InvalidArgumentException('Native navigation items must be a JSON array.');
-        }
-        if (count($navigationItems) > 12) {
-            throw new \InvalidArgumentException('Native navigation supports at most 12 items.');
-        }
-        $normalizedNavigationItems = [];
-        foreach ($navigationItems as $item) {
-            if (!is_array($item)) {
-                throw new \InvalidArgumentException('Each native navigation item must be an object.');
-            }
-            $label = trim((string) ($item['label'] ?? ''));
-            $target = trim((string) ($item['url'] ?? ''));
-            if ($label === '' || strlen($label) > 80) {
-                throw new \InvalidArgumentException('Native navigation labels must contain 1 to 40 typical characters.');
-            }
-            if ($target === '' || strlen($target) > 2048 || preg_match('/[\r\n]/', $target)) {
-                throw new \InvalidArgumentException('Native navigation URL is invalid.');
-            }
-            if (!$this->isTrustedNavigationTarget($target, strtolower($config['trusted_domain']))) {
-                throw new \InvalidArgumentException('Native navigation targets must be relative or trusted HTTPS URLs.');
-            }
-            $normalizedItem = ['label' => $label, 'url' => $target];
-            foreach (['icon', 'active_icon'] as $iconField) {
-                if (array_key_exists($iconField, $item)) {
-                    $icon = $this->normalizeNavigationIcon($item[$iconField]);
-                    if ($icon !== '') {
-                        $normalizedItem[$iconField] = $icon;
-                    }
-                }
-            }
-            $normalizedNavigationItems[] = $normalizedItem;
-        }
-        $config['navigation']['items'] = $normalizedNavigationItems;
+        $config['navigation']['items'] = $this->normalizeNavigationItems(
+            array_key_exists('items', $config['navigation']) ? $config['navigation']['items'] : [],
+            strtolower($config['trusted_domain'])
+        );
 
         if (!isset($config['links']) || !is_array($config['links'])) {
             $config['links'] = $defaults['links'];
@@ -354,6 +323,89 @@ final class Apps
             'target_sdk' => $targetSdk,
             'config_json' => json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
         ];
+    }
+
+    private function normalizeNavigationItems(mixed $items, string $trustedDomain): array
+    {
+        $links = 0;
+        $groups = 0;
+        $nodes = 0;
+        $groupIds = [];
+        $walk = function (mixed $items, int $depth) use (&$walk, &$links, &$groups, &$nodes, &$groupIds, $trustedDomain): array {
+            if (!is_array($items) || !array_is_list($items)) {
+                throw new \InvalidArgumentException('Native navigation items and group children must be JSON arrays.');
+            }
+            $normalized = [];
+            foreach ($items as $item) {
+                if (++$nodes > 24) {
+                    throw new \InvalidArgumentException('Native navigation supports at most 24 total menu nodes.');
+                }
+                if (!is_array($item) || array_is_list($item)) {
+                    throw new \InvalidArgumentException('Each native navigation item must be an object.');
+                }
+                $type = array_key_exists('type', $item) ? $item['type'] : 'link';
+                if (!in_array($type, ['link', 'group'], true)) {
+                    throw new \InvalidArgumentException('Native navigation item type must be link or group.');
+                }
+                if (!is_string($item['label'] ?? null)) {
+                    throw new \InvalidArgumentException('Native navigation labels must be text.');
+                }
+                $label = trim($item['label']);
+                if ($label === '' || strlen($label) > 80) {
+                    throw new \InvalidArgumentException('Native navigation labels must contain 1 to 80 UTF-8 bytes.');
+                }
+                if ($type === 'group') {
+                    if (++$groups > 12 || $depth >= 3) {
+                        throw new \InvalidArgumentException('Native navigation supports at most 12 groups and 3 nested group levels.');
+                    }
+                    $id = $item['id'] ?? null;
+                    if (!is_string($id) || !preg_match('/\A[a-z][a-z0-9_-]{0,39}\z/', $id)
+                        || isset($groupIds[$id])) {
+                        throw new \InvalidArgumentException('Navigation group IDs must be unique lowercase identifiers of at most 40 characters.');
+                    }
+                    if (array_key_exists('url', $item)) {
+                        throw new \InvalidArgumentException('Navigation groups cannot have a URL.');
+                    }
+                    $collapsed = array_key_exists('collapsed', $item) ? $item['collapsed'] : false;
+                    if (!is_bool($collapsed)) {
+                        throw new \InvalidArgumentException('Navigation group collapsed must be boolean.');
+                    }
+                    $groupIds[$id] = true;
+                    $current = [
+                        'type' => 'group', 'id' => $id, 'label' => $label, 'collapsed' => $collapsed,
+                        'children' => $walk($item['children'] ?? null, $depth + 1),
+                    ];
+                } else {
+                    if (++$links > 12) {
+                        throw new \InvalidArgumentException('Native navigation supports at most 12 link destinations.');
+                    }
+                    foreach (['children', 'id', 'collapsed'] as $groupField) {
+                        if (array_key_exists($groupField, $item)) {
+                            throw new \InvalidArgumentException('Link destinations cannot have group-only fields.');
+                        }
+                    }
+                    if (!is_string($item['url'] ?? null)) {
+                        throw new \InvalidArgumentException('Native navigation URL must be text.');
+                    }
+                    $target = trim($item['url']);
+                    if ($target === '' || strlen($target) > 2048 || !$this->isTrustedNavigationTarget($target, $trustedDomain)) {
+                        throw new \InvalidArgumentException('Native navigation targets must be valid relative or trusted HTTPS URLs.');
+                    }
+                    $current = ['label' => $label, 'url' => $target];
+                }
+                foreach (['icon', 'active_icon'] as $field) {
+                    if (array_key_exists($field, $item)) {
+                        $icon = $this->normalizeNavigationIcon($item[$field]);
+                        if ($icon !== '') {
+                            $current[$field] = $icon;
+                        }
+                    }
+                }
+                $normalized[] = $current;
+            }
+            return $normalized;
+        };
+        return $walk($items, 0);
     }
 
     private function normalizeNavigationIcon(mixed $value): string
@@ -486,7 +538,9 @@ final class Apps
 
     private function isTrustedNavigationTarget(string $target, string $trustedDomain): bool
     {
-        if (str_starts_with($target, '//')) {
+        if (str_starts_with($target, '//')
+            || preg_match('/[\s\\\\<>"{}|^\[\]\x00-\x1f\x7f]/u', $target)
+            || preg_match('/%(?![0-9a-f]{2})/i', $target)) {
             return false;
         }
         if (!preg_match('/^[A-Za-z][A-Za-z0-9+.-]*:/', $target)) {
@@ -494,7 +548,9 @@ final class Apps
         }
 
         $url = parse_url($target);
-        if (!$url || strtolower((string) ($url['scheme'] ?? '')) !== 'https') {
+        if (!$url || strtolower((string) ($url['scheme'] ?? '')) !== 'https'
+            || isset($url['user']) || isset($url['pass'])
+            || !preg_match('#\Ahttps://[a-z0-9.-]+(?::[0-9]+)?(?:[/?\#]|\z)#i', $target)) {
             return false;
         }
         $host = strtolower((string) ($url['host'] ?? ''));

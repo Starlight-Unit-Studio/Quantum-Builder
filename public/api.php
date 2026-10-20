@@ -7,6 +7,7 @@ require __DIR__ . '/../src/bootstrap.php';
 use QuantumBuilder\Apps;
 use QuantumBuilder\Builds;
 use QuantumBuilder\Config;
+use QuantumBuilder\Request;
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -17,7 +18,7 @@ $payload = [];
 if ($method !== 'GET') {
     $raw = file_get_contents('php://input');
     if ($raw !== false && trim($raw) !== '') {
-        $decoded = json_decode($raw, true);
+        $decoded = Request::decodeJson($raw);
         if (!is_array($decoded)) {
             http_response_code(400);
             echo json_encode(['ok' => false, 'error' => 'invalid_json']);

@@ -238,6 +238,40 @@ public final class AppConfig {
         self.assertIn("asset:quantum_nav_icons/", text)
         self.assertIn('\\"active_icon\\":\\"home\\"', text)
 
+        # The actual Java configuration retains the recursive tree and quoted
+        # labels. Neither JSON escaping layer may be consumed by re.sub().
+        group_capability = capability.with_name("NativeNavigationGroups.java")
+        group_capability.write_text("// supported runtime fixture\n", encoding="utf-8")
+        group_label = 'Account "settings" \\ notes'
+        self.config["navigation"]["items"] = [{
+            "type": "group", "id": "account", "label": group_label, "collapsed": True,
+            "children": self.config["navigation"]["items"],
+        }]
+        worker.patch_app_config(self.root, self.app, self.config)
+        text = path.read_text(encoding="utf-8")
+        menu_line = next(line for line in text.splitlines() if "String NATIVE_NAVIGATION_ITEMS_JSON = " in line)
+        compiled_tree = json.loads(json.loads(menu_line.split(" = ", 1)[1].removesuffix(";")))
+        self.assertEqual(compiled_tree[0]["label"], group_label)
+        self.assertTrue(compiled_tree[0]["collapsed"])
+        self.assertEqual([leaf["url"] for leaf in compiled_tree[0]["children"]], ["/", "/news"])
+        self.assertTrue(compiled_tree[0]["children"][0]["icon"].startswith("asset:quantum_nav_icons/"))
+        assets = self.root / "app/src/main/assets/quantum_nav_icons"
+        saved_assets = {asset.name: asset.read_bytes() for asset in assets.iterdir()}
+
+        # Invalid descendants and an older selected wrapper leave both source
+        # and previously bundled icons intact during a rebuild.
+        self.config["navigation"]["items"][0]["children"][1]["url"] = "https://evil.test/"
+        with self.assertRaisesRegex(RuntimeError, "trusted HTTPS"):
+            worker.patch_app_config(self.root, self.app, self.config)
+        self.assertEqual(path.read_text(encoding="utf-8"), text)
+        self.assertEqual({asset.name: asset.read_bytes() for asset in assets.iterdir()}, saved_assets)
+        self.config["navigation"]["items"][0]["children"][1]["url"] = "/news"
+        group_capability.unlink()
+        with self.assertRaisesRegex(RuntimeError, "beta11 or newer"):
+            worker.patch_app_config(self.root, self.app, self.config)
+        self.assertEqual(path.read_text(encoding="utf-8"), text)
+        self.assertEqual({asset.name: asset.read_bytes() for asset in assets.iterdir()}, saved_assets)
+
     def test_loading_indicator_settings_compile_into_app_config(self):
         path = self.root / "app/src/main/java/de/starlightunit/wrapper/config/AppConfig.java"
         path.write_text(
@@ -552,6 +586,136 @@ public final class AppConfig {
         )
         self.assertEqual(command[3], secret)
         self.assertEqual(command[5], secret)
+
+
+class NavigationGroupCompilerTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.capabilities = self.root / "app/src/main/java/de/starlightunit/wrapper/navigation"
+        self.capabilities.mkdir(parents=True)
+        for name in ("NativeNavigationIcons.java", "NativeNavigationGroups.java"):
+            (self.capabilities / name).write_text("// runtime capability fixture\n", encoding="utf-8")
+        self.assets = self.root / "app/src/main/assets/quantum_nav_icons"
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    @staticmethod
+    def group(identifier="section", children=None, **extra):
+        return {"type": "group", "id": identifier, "label": "Section", "children": [] if children is None else children, **extra}
+
+    def compile(self, items):
+        return worker.compile_navigation_items(self.root, items, trusted_domain="example.test")
+
+    def test_nested_groups_preserve_order_state_icons_and_short_asset_references(self):
+        png = navigation_png(24, 18)
+        url = navigation_data_url(png)
+        items = [{"label": "Home", "url": "/"}, self.group("outer", [
+            {"type": "link", "label": "News", "url": "/news", "active_icon": url},
+            self.group("inner", [self.group("third", [{"label": "Deep", "url": "https://docs.example.test/deep"}])],
+                       collapsed=True, icon="folder"),
+        ], icon=url, active_icon="star")]
+        original = copy.deepcopy(items)
+        compiled = self.compile(items)
+        self.assertEqual(items, original)
+        outer = compiled[1]
+        self.assertFalse(outer["collapsed"])
+        self.assertEqual(outer["type"], "group")
+        self.assertEqual(outer["children"][0]["label"], "News")
+        self.assertNotIn("type", outer["children"][0])
+        self.assertTrue(outer["children"][1]["collapsed"])
+        self.assertEqual(outer["children"][1]["children"][0]["children"][0]["url"], "https://docs.example.test/deep")
+        asset = "asset:quantum_nav_icons/" + hashlib.sha256(png).hexdigest() + ".png"
+        self.assertEqual(outer["icon"], asset)
+        self.assertEqual(outer["children"][0]["active_icon"], asset)
+        self.assertEqual(len(list(self.assets.iterdir())), 1)
+        self.assertNotIn("base64", json.dumps(compiled))
+
+    def test_limits_count_all_branches_and_allow_three_group_levels(self):
+        groups = [self.group("g" + str(i), [{"label": "Leaf", "url": "/" + str(i)}]) for i in range(12)]
+        self.assertEqual(len(self.compile(groups)), 12)
+        self.assertEqual(self.compile([self.group("a", [self.group("b", [self.group("c")])])])[0]["id"], "a")
+        bad = [
+            [self.group("g" + str(i)) for i in range(13)],
+            [self.group("left", [{"label": "Item", "url": "/" + str(i)} for i in range(7)]),
+             self.group("right", [{"label": "Item", "url": "/" + str(i)} for i in range(6)])],
+            [self.group("a", [self.group("b", [self.group("c", [self.group("d")])])])],
+            groups + [{"label": "Too many", "url": "/extra"}],
+        ]
+        for value in bad:
+            with self.subTest(value=value), self.assertRaises(RuntimeError):
+                self.compile(value)
+
+    def test_invalid_group_shapes_and_duplicate_ids_fail_without_changing_assets(self):
+        original_png = navigation_data_url()
+        self.compile([{"label": "Keep", "url": "/", "icon": original_png}])
+        saved = {path.name: path.read_bytes() for path in self.assets.iterdir()}
+        invalid_groups = [
+            self.group(""), self.group(" Bad "), self.group("UPPER"), self.group("a" * 41),
+            self.group("a/b"), self.group("one", collapsed="false"), self.group("one", collapsed=None),
+            self.group("one", url=""), self.group("one", url=None),
+            self.group("one", children={}), self.group("one", children="[]"),
+            {"type": "group", "id": "missing", "label": "Missing children"},
+            self.group("one", [self.group("one")]),
+            self.group("one", [{"label": "Bad type", "url": "/", "type": "other"}]),
+            self.group("one", [{"label": "Bad type", "url": "/", "type": None}]),
+            self.group("one", [{"label": "Child", "url": "/", "children": []}]),
+            self.group("one", [{"label": "Child", "url": "/", "id": "leaf"}]),
+            self.group("one", [{"label": "Child", "url": "/", "collapsed": False}]),
+            self.group("one", [{"label": [], "url": "/"}]),
+        ]
+        for node in invalid_groups:
+            with self.subTest(node=node), self.assertRaises(RuntimeError):
+                self.compile([self.group("valid", icon=navigation_data_url(navigation_png(2, 2))), node])
+            self.assertEqual({path.name: path.read_bytes() for path in self.assets.iterdir()}, saved)
+        with self.assertRaises(RuntimeError):
+            self.compile([self.group("duplicate"), self.group("branch", [self.group("duplicate")])])
+
+    def test_collapsed_descendants_cannot_bypass_url_or_icon_validation(self):
+        unsafe = ["https://evil.test/", "https://example.test.evil.test/", "//evil.test/", "http://example.test/",
+                  "https://user:pass@example.test/", "javascript:alert(1)", "/bad path", "/bad%escape",
+                  "https://example.test\\@evil.test/", "https://%65xample.test/", "https://example.test:999999/"]
+        for target in unsafe:
+            with self.subTest(target=target), self.assertRaisesRegex(RuntimeError, "trusted HTTPS"):
+                self.compile([self.group("hidden", [self.group("deeper", [{"label": "Unsafe", "url": target}])], collapsed=True)])
+        with self.assertRaises(RuntimeError):
+            self.compile([self.group("hidden", [self.group("bad", active_icon="https://evil.test/icon.png")])])
+        self.assertFalse(self.assets.exists())
+
+    def test_runtime_capabilities_are_independent_and_checked_before_asset_writes(self):
+        (self.capabilities / "NativeNavigationGroups.java").unlink()
+        self.assertEqual(self.compile([{"label": "Legacy", "url": "/", "icon": "home"}])[0]["icon"], "home")
+        with self.assertRaisesRegex(RuntimeError, "beta11 or newer"):
+            self.compile([self.group("section", icon=navigation_data_url())])
+        self.assertFalse(self.assets.exists())
+        (self.capabilities / "NativeNavigationGroups.java").write_text("// supported\n")
+        (self.capabilities / "NativeNavigationIcons.java").unlink()
+        self.assertEqual(self.compile([self.group()])[0]["children"], [])
+        with self.assertRaisesRegex(RuntimeError, "beta10 or newer"):
+            self.compile([self.group(icon="folder")])
+        with self.assertRaisesRegex(RuntimeError, "beta10 or newer"):
+            self.compile([self.group("parent", [self.group("child", [
+                {"label": "Nested", "url": "/", "active_icon": navigation_data_url()},
+            ])])])
+        self.assertFalse(self.assets.exists())
+
+    def test_all_48_maximum_size_icons_stay_out_of_java_constants_and_cleanup_safely(self):
+        plain = navigation_png()
+        image = navigation_png(padding=65536 - len(plain) - 14)
+        self.assertEqual(len(image), 65536)
+        url = navigation_data_url(image)
+        items = [self.group("g" + str(i), [{"label": "A" * 80, "url": "/" + "a" * 2047,
+                                         "icon": url, "active_icon": url}],
+                            icon=url, active_icon=url) for i in range(12)]
+        compiled = self.compile(items)
+        self.assertEqual(len(list(self.assets.iterdir())), 1)
+        self.assertNotIn("base64", json.dumps(compiled))
+        self.assertLess(len(json.dumps(compiled, ensure_ascii=False).encode("utf-8")), 65535)
+        keep = self.assets / "keep.txt"
+        keep.write_text("unrelated")
+        self.compile([self.group()])
+        self.assertEqual([path.name for path in self.assets.iterdir()], ["keep.txt"])
 
 
 class NavigationIconCompilerTests(unittest.TestCase):

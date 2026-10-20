@@ -1,6 +1,6 @@
 # Quantum Builder Functional Parity Matrix
 
-Updated for Builder **0.1.0-alpha13**. The complete dated reference inventory and
+Updated for Builder **0.1.0-alpha14**. The complete dated reference inventory and
 dependency order are retained in [MEDIAN_PARITY_ROADMAP.md](MEDIAN_PARITY_ROADMAP.md).
 The approved brighter Builder direction is retained separately in
 [QUANTUM_ENTERPRISE_DESIGN.md](QUANTUM_ENTERPRISE_DESIGN.md).
@@ -45,6 +45,7 @@ Status legend:
   browser presentation of Top Bar, Sidebar, Bottom Tabs and Contextual Toolbar)
 - Simulator-owned route history and current-route reload - `BUILDER`
 - Normal/active built-in and custom PNG navigation icons - `BUILDER`
+- Nested sidebar groups, initial/manual collapse and active ancestor preview - `BUILDER`
 
 ## Overview
 
@@ -122,7 +123,9 @@ Status legend:
 - Label/link items - `RUNTIME`
 - Built-in/custom PNG icon editor and normal/active preview - `BUILDER`
 - Native item icons and active-state rendering - `IMPLEMENTED_PENDING_QA` (beta10)
-- Grouping/collapsible groups - `PLANNED`
+- Visual groups, three group levels, subtree moves and group dissolution - `BUILDER`
+- Recursive group persistence and compilation - `BUILDER` (beta11 group module required)
+- Native grouping/collapse and active ancestors - `IMPLEMENTED_PENDING_QA` (beta11)
 - Drag/drop, touch-button and keyboard ordering - `BUILDER`
 - Restore defaults / clear all - `PLANNED`
 - Advanced shared-menu JSON editing - `BUILDER`
@@ -133,7 +136,7 @@ Status legend:
 - Hide with scroll - `PLANNED`
 - Light/dark styling - `PLANNED`
 - Independent active/inactive tab backgrounds and borders - `PLANNED`
-- Visual shared-menu editor - `BUILDER` (first five shared destinations)
+- Visual shared-menu editor - `BUILDER` (first five destinations in depth-first menu order)
 - Multiple tab menus - `PLANNED`
 - Visibility rules - `PLANNED`
 - Text/links - `RUNTIME`
@@ -143,6 +146,8 @@ Status legend:
 
 The sidebar/tab icon schema, upload limits, wrapper dependency and remaining
 Android acceptance are recorded in [NAVIGATION_ICONS.md](NAVIGATION_ICONS.md).
+The group schema, collapse behavior, mobile editing and companion beta11 validation
+are recorded in [NAVIGATION_GROUPS.md](NAVIGATION_GROUPS.md).
 
 ### Contextual Navigation Toolbar
 

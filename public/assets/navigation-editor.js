@@ -10,9 +10,14 @@
     if (!icons) throw new Error('Navigation icons must load before the editor.');
     const maxItems = model.MAX_ITEMS || 12;
     const maxTabs = model.MAX_TABS || 5;
+    const maxGroups = model.MAX_GROUPS || 12;
+    const maxDepth = model.MAX_GROUP_DEPTH || 3;
+    const maxNodes = model.MAX_NODES || 24;
     let items = [];
     let nextKey = 0;
+    let groupSequence = 0;
     let sourceError = '';
+    let currentSource = null;
     let serializing = false;
     let dragKey = null;
     let announceTimer = null;
@@ -39,9 +44,12 @@
     const count = element('span', 'qb-nav-editor__count');
     heading.append(count);
     const add = button('btn compact primary qb-nav-editor__add', '+ Menüpunkt', 'Menüpunkt hinzufügen');
-    header.append(heading, add);
+    const addGroup = button('btn compact qb-nav-editor__add-group', '+ Gruppe', 'Gruppe hinzufügen');
+    const addActions = element('div', 'qb-nav-editor__add-actions');
+    addActions.append(add, addGroup);
+    header.append(heading, addActions);
 
-    const help = element('p', 'qb-nav-editor__help', 'Beschriftung und Ziel bearbeiten. Mit den Pfeilen sortieren oder am Griff ziehen.');
+    const help = element('p', 'qb-nav-editor__help', 'Ziele und Gruppen bearbeiten. Mit „In Gruppe“ zuordnen; mit den Pfeilen sortieren oder am Griff ziehen.');
     const sourceMessage = element('p', 'qb-nav-editor__error');
     sourceMessage.setAttribute('role', 'status');
     sourceMessage.hidden = true;
@@ -49,7 +57,7 @@
     list.setAttribute('role', 'list');
     list.setAttribute('aria-label', 'Geordnete Navigationsziele');
     const empty = element('p', 'qb-nav-editor__empty', 'Keine eigenen Menüpunkte. Aktivierte Sidebar und Bottom Tabs zeigen dann automatisch Home.');
-    const footer = element('p', 'qb-nav-editor__help', `Sidebar: bis zu ${maxItems} Ziele. Bottom Tabs: die ersten ${maxTabs} Einträge in dieser Reihenfolge.`);
+    const footer = element('p', 'qb-nav-editor__help', `Bis zu ${maxItems} Ziele und ${maxGroups} Gruppen in ${maxDepth} Gruppenebenen. Bottom Tabs: die ersten ${maxTabs} Ziele, auch innerhalb von Gruppen. Gruppenüberschriften sind keine Tabs.`);
     const live = element('div', 'qb-nav-editor__live');
     live.setAttribute('role', 'status');
     live.setAttribute('aria-live', 'polite');
@@ -62,10 +70,36 @@
       announceTimer = window.setTimeout(() => { live.textContent = text; }, 30);
     };
 
-    const itemName = (item, index) => item.label.trim() || `Menüpunkt ${index + 1}`;
+    const isGroup = (item) => item.kind === 'group';
+    const walk = (nodes = items, parent = null, ancestors = [], path = []) => nodes.flatMap((item, index) => {
+      const current = { item, parent, ancestors, path: [...path, index], siblings: nodes, index, depth: ancestors.length };
+      return [current, ...(isGroup(item) ? walk(item.children, item, [...ancestors, item], current.path) : [])];
+    });
+    const find = (key) => walk().find((entry) => entry.item.key === key);
+    const contains = (item) => Boolean(find(item.key));
+    const itemName = (item, index = 0) => item.label.trim() || `${isGroup(item) ? 'Gruppe' : 'Menüpunkt'} ${index + 1}`;
+    const pathName = (ancestors) => ancestors.map((item) => itemName(item)).join(' / ') || 'Hauptebene';
+    const groupHeight = (item) => isGroup(item) ? 1 + Math.max(0, ...item.children.map(groupHeight)) : 0;
+    const canPlace = (item, parent) => {
+      if (!parent) return groupHeight(item) <= maxDepth;
+      const destination = find(parent.key);
+      if (!destination || !isGroup(parent) || parent === item || destination.ancestors.includes(item)) return false;
+      return destination.depth + 1 + groupHeight(item) <= maxDepth;
+    };
+    const nextGroupId = () => {
+      const used = new Set(walk().filter(({ item }) => isGroup(item)).map(({ item }) => item.id));
+      do { groupSequence += 1; } while (used.has(`group-${groupSequence}`));
+      return `group-${groupSequence}`;
+    };
     const iconFields = ['icon', 'active_icon'];
     const profileItem = (item) => {
-      const result = { ...item.original, label: item.label, url: item.url };
+      const result = { ...item.original, label: item.label };
+      if (isGroup(item)) {
+        result.type = 'group';
+        result.id = item.id;
+        result.collapsed = item.collapsed;
+        result.children = item.children.map(profileItem);
+      } else result.url = item.url;
       for (const field of iconFields) {
         if (item[field] === undefined || item[field] === '') delete result[field];
         else result[field] = item[field];
@@ -73,7 +107,10 @@
       return result;
     };
     const newItem = (source) => ({
-      key: ++nextKey, original: source, label: source.label || '', url: source.url || '',
+      key: ++nextKey, original: source, kind: source.type === 'group' ? 'group' : 'link',
+      label: source.label || '', url: source.url || '', id: source.id,
+      collapsed: source.collapsed === undefined ? false : source.collapsed,
+      children: source.type === 'group' ? source.children.map(newItem) : [],
       icon: source.icon, active_icon: source.active_icon,
       uploadVersion: { icon: 0, active_icon: 0 },
       uploading: { icon: false, active_icon: false },
@@ -147,11 +184,11 @@
     });
 
     const uploadIcon = async (item, field, file) => {
-      if (!file || destroyed || sourceError || !items.includes(item)) return;
+      if (!file || destroyed || sourceError || !contains(item)) return;
       const ticket = ++item.uploadVersion[field];
       const currentGeneration = generation;
       const isCurrent = () => !destroyed && generation === currentGeneration
-        && items.includes(item) && item.uploadVersion[field] === ticket;
+        && contains(item) && item.uploadVersion[field] === ticket;
       item.uploadErrors[field] = '';
       item.uploading[field] = true;
       refreshIconControl(item, field);
@@ -173,50 +210,83 @@
       }
     };
 
+    const refreshParents = (entries) => {
+      const groups = entries.filter(({ item }) => isGroup(item));
+      for (const { item, parent } of entries) {
+        const select = item.row?.parent;
+        if (!select) continue;
+        const options = [element('option', '', 'Hauptebene')];
+        options[0].value = '';
+        for (const candidate of groups) {
+          if (!canPlace(item, candidate.item)) continue;
+          const option = element('option', '', pathName([...candidate.ancestors, candidate.item]));
+          option.value = String(candidate.item.key);
+          options.push(option);
+        }
+        select.replaceChildren(...options);
+        select.value = parent ? String(parent.key) : '';
+      }
+    };
+
     const refreshValidation = () => {
+      const entries = walk();
+      const links = entries.filter(({ item }) => !isGroup(item));
+      const groups = entries.filter(({ item }) => isGroup(item));
       sourceMessage.textContent = sourceError;
       sourceMessage.hidden = !sourceError;
-      count.textContent = sourceError ? `Maximal ${maxItems}` : `${items.length} / ${maxItems}`;
-      add.disabled = Boolean(sourceError) || items.length >= maxItems;
+      count.textContent = sourceError ? `Maximal ${maxItems} Ziele / ${maxGroups} Gruppen`
+        : `${links.length} / ${maxItems} Ziele · ${groups.length} / ${maxGroups} Gruppen`;
+      add.disabled = Boolean(sourceError) || links.length >= maxItems || entries.length >= maxNodes;
+      addGroup.disabled = Boolean(sourceError) || groups.length >= maxGroups || entries.length >= maxNodes;
       empty.hidden = Boolean(sourceError) || items.length !== 0;
       if (sourceError) return;
 
       const context = getContext();
-      items.forEach((item, index) => {
+      let modelError = null;
+      try { model.validateItems(items.map(profileItem), context); }
+      catch (error) { modelError = error; }
+      const groupIds = new Map();
+      for (const { item } of groups) groupIds.set(item.id, (groupIds.get(item.id) || 0) + 1);
+      refreshParents(entries);
+      entries.forEach(({ item, index, path, ancestors }) => {
         const row = item.row;
         if (!row) return;
         let labelError = '';
         let urlError = '';
+        let groupError = '';
         const label = item.label.trim();
         if (!label) labelError = 'Eine Beschriftung fehlt.';
         else if (new TextEncoder().encode(label).length > 80) labelError = 'Die Beschriftung ist zu lang. Bitte einen kürzeren Menünamen verwenden.';
-
-        try {
-          model.resolveTarget(item.url, context);
-        } catch (error) {
-          urlError = error.message || 'Ein gültiges, vertrauenswürdiges Ziel fehlt.';
+        if (isGroup(item)) {
+          if (typeof item.id !== 'string' || item.id !== item.id.trim() || !/^[a-z][a-z0-9_-]{0,39}$/.test(item.id)) {
+            groupError = 'Die Gruppenkennung ist ungültig. Bitte die id im erweiterten JSON-Feld korrigieren.';
+          } else if (groupIds.get(item.id) > 1) {
+            groupError = 'Die Gruppenkennung wird mehrfach verwendet. Bitte jede id im erweiterten JSON-Feld eindeutig vergeben.';
+          }
+          if (typeof item.collapsed !== 'boolean') groupError += ' „Beim Start eingeklappt“ bitte neu auswählen.';
+        } else {
+          try { model.resolveTarget(item.url, context); }
+          catch (error) { urlError = error.message || 'Ein gültiges, vertrauenswürdiges Ziel fehlt.'; }
         }
-
         const iconErrors = {};
         for (const field of iconFields) {
           try { if (item[field] !== undefined) icons.validate(item[field]); }
           catch (error) { iconErrors[field] = error.message || 'Bitte ein gültiges Icon auswählen.'; }
         }
-
-        // The shared validator is also authoritative for future profile rules.
-        let ruleError = '';
-        if (!labelError && !urlError && !Object.keys(iconErrors).length) {
-          try { model.validateItems([profileItem(item)], context); }
-          catch (error) { ruleError = error.message || 'Diesen Menüpunkt bitte prüfen.'; }
-        }
-
-        const message = [labelError, urlError, ...iconFields.map((field) => iconErrors[field] || item.uploadErrors[field]), ruleError].filter(Boolean).join(' ');
+        const errorPath = modelError?.itemPath || (modelError?.itemIndex !== undefined ? [modelError.itemIndex] : []);
+        const ruleError = modelError && errorPath.join('.') === path.join('.')
+          && !labelError && !urlError && !groupError && !Object.keys(iconErrors).length
+          ? modelError.message || 'Diesen Eintrag bitte prüfen.' : '';
+        const message = [labelError, urlError, groupError, ...iconFields.map((field) => iconErrors[field] || item.uploadErrors[field]), ruleError].filter(Boolean).join(' ');
         row.error.textContent = message;
         row.error.hidden = !message;
         row.node.classList.toggle('has-error', Boolean(message));
         row.label.setAttribute('aria-invalid', labelError ? 'true' : 'false');
-        row.url.setAttribute('aria-invalid', urlError || ruleError ? 'true' : 'false');
+        row.url?.setAttribute('aria-invalid', urlError || ruleError ? 'true' : 'false');
+        row.parent.setAttribute('aria-invalid', groupError ? 'true' : 'false');
+        row.trail.textContent = pathName(ancestors);
         const name = itemName(item, index);
+        row.parent.setAttribute('aria-label', `Gruppe für ${name}`);
         for (const field of iconFields) {
           const control = row.icons[field];
           const title = field === 'icon' ? 'Normales' : 'Aktives';
@@ -227,8 +297,14 @@
         }
         row.up.setAttribute('aria-label', `${name} nach oben verschieben`);
         row.down.setAttribute('aria-label', `${name} nach unten verschieben`);
-        row.remove.setAttribute('aria-label', `${name} entfernen`);
+        row.remove.setAttribute('aria-label', isGroup(item) ? `${name} auflösen und Einträge behalten` : `${name} entfernen`);
         row.handle.setAttribute('aria-label', `${name} ziehen; alternativ Pfeiltasten verwenden`);
+        if (row.addChild) {
+          row.addChild.disabled = add.disabled;
+          row.addSubgroup.disabled = addGroup.disabled || ancestors.length + 1 >= maxDepth;
+          row.addChild.setAttribute('aria-label', `Menüpunkt in ${name} hinzufügen`);
+          row.addSubgroup.setAttribute('aria-label', `Untergruppe in ${name} hinzufügen`);
+        }
       });
     };
 
@@ -236,6 +312,7 @@
       // Row events stay inside the editor. This single JSON input event feeds
       // the existing save tracking and preview without double-saving edits.
       textarea.value = JSON.stringify(items.map(profileItem), null, 2);
+      currentSource = textarea.value;
       serializing = true;
       try { textarea.dispatchEvent(new Event('input', { bubbles: true })); }
       finally { serializing = false; }
@@ -243,7 +320,7 @@
     };
 
     const focusItem = (key, action = 'label') => {
-      const row = items.find((item) => item.key === key)?.row;
+      const row = find(key)?.item.row;
       if (!row) {
         add.focus();
         return;
@@ -260,11 +337,13 @@
     };
 
     const move = (key, offset, action) => {
-      const index = items.findIndex((item) => item.key === key);
+      const entry = find(key);
+      if (!entry) return;
+      const { index, siblings } = entry;
       const destination = index + offset;
-      if (index < 0 || destination < 0 || destination >= items.length || sourceError) return;
-      const [item] = items.splice(index, 1);
-      items.splice(destination, 0, item);
+      if (destination < 0 || destination >= siblings.length || sourceError) return;
+      const [item] = siblings.splice(index, 1);
+      siblings.splice(destination, 0, item);
       render();
       serialize();
       focusItem(key, action);
@@ -272,30 +351,63 @@
     };
 
     const remove = (key) => {
-      const index = items.findIndex((item) => item.key === key);
-      if (index < 0 || sourceError) return;
-      const [removed] = items.splice(index, 1);
-      const next = items[Math.min(index, items.length - 1)];
+      const entry = find(key);
+      if (!entry || sourceError) return;
+      const { index, siblings, item: removed } = entry;
+      siblings.splice(index, 1, ...(isGroup(removed) ? removed.children : []));
+      const next = siblings[Math.min(index, siblings.length - 1)];
       render();
       serialize();
       if (next) focusItem(next.key);
       else add.focus();
-      announce(`${itemName(removed, index)} entfernt.`);
+      announce(isGroup(removed) ? `${itemName(removed, index)} aufgelöst. Die Einträge bleiben erhalten.` : `${itemName(removed, index)} entfernt.`);
     };
 
-    const makeRow = (item, index) => {
+    const changeParent = (key, parentKey) => {
+      const entry = find(key);
+      const parent = parentKey ? find(Number(parentKey))?.item : null;
+      if (!entry || sourceError || (parentKey && !parent) || entry.parent === parent || !canPlace(entry.item, parent)) return;
+      entry.siblings.splice(entry.index, 1);
+      (parent ? parent.children : items).push(entry.item);
+      render();
+      serialize();
+      focusItem(key, 'parent');
+      announce(`${itemName(entry.item)} befindet sich jetzt in ${parent ? itemName(parent) : 'der Hauptebene'}.`);
+    };
+
+    const addItem = (group = false, parent = null) => {
+      const entries = walk();
+      if (sourceError || entries.length >= maxNodes
+        || entries.filter(({ item }) => isGroup(item) === group).length >= (group ? maxGroups : maxItems)) return;
+      const item = newItem(group ? { type: 'group', id: nextGroupId(), label: 'Neue Gruppe', collapsed: false, children: [] } : {});
+      if (!canPlace(item, parent)) return;
+      (parent ? parent.children : items).push(item);
+      render();
+      serialize();
+      focusItem(item.key);
+      if (group) item.row.label.select();
+      announce(`${group ? 'Neue Gruppe' : 'Neuer Menüpunkt'} hinzugefügt.`);
+    };
+
+    const makeRow = ({ item, index, depth, siblings, ancestors, path }, linkIndex) => {
       const node = element('div', 'qb-nav-editor__row');
       node.setAttribute('role', 'listitem');
       node.dataset.navigationKey = String(item.key);
+      node.dataset.navigationType = item.kind;
+      node.dataset.navigationDepth = String(depth);
+      node.style.setProperty('--qb-nav-depth', String(depth));
+      node.classList.toggle('is-group', isGroup(item));
+      if (isGroup(item)) node.dataset.navigationGroupId = item.id || '';
       const rowHeader = element('div', 'qb-nav-editor__row-header');
       const position = element('div', 'qb-nav-editor__position');
-      position.append(element('span', 'qb-nav-editor__number', String(index + 1).padStart(2, '0')));
-      position.append(element('span', `qb-nav-editor__badge${index < maxTabs ? ' is-tab' : ''}`, index < maxTabs ? `Tab ${index + 1} + Sidebar` : 'Sidebar'));
+      position.append(element('span', 'qb-nav-editor__number', path.map((part) => part + 1).join('.')));
+      position.append(element('span', `qb-nav-editor__badge${!isGroup(item) && linkIndex < maxTabs ? ' is-tab' : ''}`, isGroup(item) ? 'Gruppe' : linkIndex < maxTabs ? `Tab ${linkIndex + 1} + Sidebar` : 'Sidebar'));
       const handle = button('qb-nav-editor__handle', '⠿', `Menüpunkt ${index + 1} ziehen`);
       handle.draggable = true;
       handle.title = 'Ziehen oder mit Pfeil hoch / runter verschieben';
       handle.setAttribute('aria-keyshortcuts', 'ArrowUp ArrowDown');
       rowHeader.append(position, handle);
+      const trail = element('p', 'qb-nav-editor__trail', pathName(ancestors));
 
       const fields = element('div', 'qb-nav-editor__fields');
       const labelWrapper = element('label', 'qb-nav-editor__field');
@@ -304,7 +416,7 @@
       label.type = 'text';
       label.value = item.label;
       label.maxLength = 80;
-      label.placeholder = 'Zum Beispiel News';
+      label.placeholder = isGroup(item) ? 'Zum Beispiel Service' : 'Zum Beispiel News';
       label.dataset.navigationField = 'label';
       labelWrapper.append(label);
       const urlWrapper = element('label', 'qb-nav-editor__field');
@@ -319,20 +431,38 @@
       url.setAttribute('autocapitalize', 'none');
       url.dataset.navigationField = 'url';
       urlWrapper.append(url);
-      fields.append(labelWrapper, urlWrapper);
+      const parentWrapper = element('label', 'qb-nav-editor__field qb-nav-editor__parent');
+      parentWrapper.append(element('span', 'field-label', 'In Gruppe'));
+      const parent = element('select', 'field');
+      parent.dataset.navigationField = 'parent';
+      parentWrapper.append(parent);
+      fields.append(labelWrapper);
+      if (!isGroup(item)) fields.append(urlWrapper);
+      fields.append(parentWrapper);
+      let collapsed = null;
+      if (isGroup(item)) {
+        const collapseLabel = element('label', 'qb-nav-editor__collapsed');
+        collapsed = element('input');
+        collapsed.type = 'checkbox';
+        collapsed.checked = item.collapsed === true;
+        collapsed.dataset.navigationField = 'collapsed';
+        collapseLabel.append(collapsed, element('span', '', 'Beim Start eingeklappt'));
+        fields.append(collapseLabel);
+      }
 
       const error = element('p', 'qb-nav-editor__row-error');
       error.id = `${root.id || 'navigation-editor'}-error-${item.key}`;
       error.hidden = true;
       label.setAttribute('aria-describedby', error.id);
       url.setAttribute('aria-describedby', error.id);
+      parent.setAttribute('aria-describedby', error.id);
 
       const actions = element('div', 'qb-nav-editor__actions');
       const up = button('btn compact qb-nav-editor__action', '↑');
       const down = button('btn compact qb-nav-editor__action', '↓');
-      const removeButton = button('btn compact qb-nav-editor__remove', 'Entfernen');
+      const removeButton = button('btn compact qb-nav-editor__remove', isGroup(item) ? 'Gruppe auflösen' : 'Entfernen');
       up.disabled = index === 0;
-      down.disabled = index === items.length - 1;
+      down.disabled = index === siblings.length - 1;
       actions.append(up, down, removeButton);
       const iconGroup = element('fieldset', 'qb-nav-editor__icons');
       iconGroup.append(element('legend', 'field-label', 'Icons'));
@@ -388,11 +518,23 @@
       }
       const iconHelp = element('p', 'qb-nav-editor__help qb-nav-editor__icon-help', 'Eigene PNG-Icons: bis 64 KiB und 256 × 256 px. Ohne aktives Icon wird das normale übernommen.');
       iconGroup.append(iconHelp);
-      node.append(rowHeader, fields, iconGroup, error, actions);
-      item.row = { node, label, url, error, up, down, remove: removeButton, handle, icons: iconControls };
+      let addChild = null;
+      let addSubgroup = null;
+      const childActions = element('div', 'qb-nav-editor__child-actions');
+      if (isGroup(item)) {
+        addChild = button('btn compact', '+ Menüpunkt');
+        addSubgroup = button('btn compact', '+ Untergruppe');
+        childActions.append(addChild, addSubgroup);
+        addChild.addEventListener('click', () => addItem(false, item));
+        addSubgroup.addEventListener('click', () => addItem(true, item));
+      }
+      node.append(rowHeader, trail, fields, iconGroup);
+      if (isGroup(item)) node.append(childActions);
+      node.append(error, actions);
+      item.row = { node, label, url: isGroup(item) ? null : url, parent, collapsed, trail, error, up, down, remove: removeButton, handle, icons: iconControls, addChild, addSubgroup };
       for (const field of iconFields) refreshIconControl(item, field);
 
-      [label, url].forEach((input) => {
+      (isGroup(item) ? [label] : [label, url]).forEach((input) => {
         input.addEventListener('input', (event) => {
           event.stopPropagation();
           item[input.dataset.navigationField] = input.value;
@@ -404,6 +546,19 @@
           if (event.key === 'Enter') { event.preventDefault(); input.blur(); }
         });
       });
+      parent.addEventListener('input', (event) => event.stopPropagation());
+      parent.addEventListener('change', (event) => {
+        event.stopPropagation();
+        changeParent(item.key, parent.value);
+      });
+      if (collapsed) {
+        collapsed.addEventListener('input', (event) => event.stopPropagation());
+        collapsed.addEventListener('change', (event) => {
+          event.stopPropagation();
+          item.collapsed = collapsed.checked;
+          serialize();
+        });
+      }
       up.addEventListener('click', () => move(item.key, -1, 'up'));
       down.addEventListener('click', () => move(item.key, 1, 'down'));
       removeButton.addEventListener('click', () => remove(item.key));
@@ -423,6 +578,9 @@
       handle.addEventListener('dragend', clearDrag);
       node.addEventListener('dragover', (event) => {
         if (dragKey === null || dragKey === item.key) return;
+        const moving = find(dragKey);
+        const target = find(item.key);
+        if (!moving || !target || !canPlace(moving.item, target.parent)) return;
         event.preventDefault();
         if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
         const after = event.clientY > node.getBoundingClientRect().top + node.offsetHeight / 2;
@@ -439,38 +597,62 @@
         event.preventDefault();
         const after = event.clientY > node.getBoundingClientRect().top + node.offsetHeight / 2;
         const movedKey = dragKey;
-        const moving = items.find((candidate) => candidate.key === movedKey);
-        if (!moving) { clearDrag(); return; }
-        const remaining = items.filter((candidate) => candidate.key !== movedKey);
-        const destination = remaining.findIndex((candidate) => candidate.key === item.key) + (after ? 1 : 0);
-        remaining.splice(destination, 0, moving);
-        items = remaining;
+        const moving = find(movedKey);
+        const target = find(item.key);
+        if (!moving || !target || !canPlace(moving.item, target.parent)) { clearDrag(); return; }
+        moving.siblings.splice(moving.index, 1);
+        const destination = target.siblings.indexOf(item) + (after ? 1 : 0);
+        target.siblings.splice(destination, 0, moving.item);
         clearDrag();
         render();
         serialize();
         focusItem(movedKey, 'handle');
-        announce(`${itemName(moving, destination)} steht jetzt an Position ${destination + 1}.`);
+        announce(`${itemName(moving.item, destination)} steht jetzt an Position ${destination + 1}.`);
       });
       return node;
     };
 
     const render = () => {
-      list.replaceChildren(...(sourceError ? [] : items.map(makeRow)));
+      let linkIndex = 0;
+      list.replaceChildren(...(sourceError ? [] : walk().map((entry) => makeRow(entry, isGroup(entry.item) ? -1 : linkIndex++))));
       refreshValidation();
     };
 
     const load = () => {
       generation += 1;
       clearDrag();
+      currentSource = textarea.value;
       try {
         const parsed = JSON.parse(textarea.value.trim() || '[]');
         if (!Array.isArray(parsed)) throw new Error('Die Menüdefinition muss ein JSON-Array sein.');
-        if (parsed.length > maxItems) throw new Error(`Die Menüdefinition enthält mehr als ${maxItems} Einträge. Bitte zuerst im JSON-Feld kürzen.`);
-        if (parsed.some((item) => !item || Array.isArray(item) || typeof item !== 'object'
-          || (item.label !== undefined && typeof item.label !== 'string')
-          || (item.url !== undefined && typeof item.url !== 'string'))) {
-          throw new Error('Jeder Menüpunkt benötigt eine Beschriftung und eine URL als Text. Bitte die JSON-Struktur prüfen.');
-        }
+        let total = 0;
+        let links = 0;
+        let groups = 0;
+        const inspect = (nodes, depth = 0) => {
+          if (nodes.length > maxNodes) throw new Error(`Die Menüliste ist zu lang. Bitte im JSON-Feld auf ${maxItems} Ziele und ${maxGroups} Gruppen kürzen.`);
+          for (const item of nodes) {
+            total += 1;
+            if (total > maxNodes) throw new Error(`Maximal ${maxNodes} Ziele und Gruppen zusammen sind möglich.`);
+            if (!item || Array.isArray(item) || typeof item !== 'object'
+              || (item.label !== undefined && typeof item.label !== 'string')
+              || (item.url !== undefined && typeof item.url !== 'string')) {
+              throw new Error('Jeder Eintrag benötigt eine Beschriftung als Text; Ziele benötigen eine URL. Bitte die JSON-Struktur prüfen.');
+            }
+            if (item.type === 'group') {
+              groups += 1;
+              if (groups > maxGroups || depth >= maxDepth) throw new Error(`Maximal ${maxGroups} Gruppen in ${maxDepth} Gruppenebenen sind möglich. Bitte die JSON-Struktur kürzen.`);
+              if ('url' in item || !Array.isArray(item.children)) throw new Error('Gruppen benötigen eine children-Liste und dürfen keine URL enthalten. Bitte das JSON korrigieren.');
+              inspect(item.children, depth + 1);
+            } else {
+              links += 1;
+              if (links > maxItems) throw new Error(`Maximal ${maxItems} Ziele sind möglich, einschließlich der Ziele in Gruppen.`);
+              if ((item.type !== undefined && item.type !== 'link') || ['children', 'id', 'collapsed'].some((field) => field in item)) {
+                throw new Error('Menüziele dürfen keine Gruppeneigenschaften enthalten. Bitte den Typ im JSON prüfen.');
+              }
+            }
+          }
+        };
+        inspect(parsed);
         items = parsed.map(newItem);
         sourceError = '';
       } catch (error) {
@@ -482,18 +664,14 @@
       render();
     };
 
-    const onJsonInput = () => { if (!serializing) load(); };
+    // Blurring the JSON field fires change after its input was already handled.
+    // Rehydrating the same draft here would invalidate a pending upload and can
+    // replace the very row button that is receiving that focus-changing click.
+    const onJsonInput = () => { if (!serializing && textarea.value !== currentSource) load(); };
     textarea.addEventListener('input', onJsonInput);
     textarea.addEventListener('change', onJsonInput);
-    add.addEventListener('click', () => {
-      if (sourceError || items.length >= maxItems) return;
-      const item = newItem({});
-      items.push(item);
-      render();
-      serialize();
-      focusItem(item.key);
-      announce(`Neuer Menüpunkt an Position ${items.length}.`);
-    });
+    add.addEventListener('click', () => addItem());
+    addGroup.addEventListener('click', () => addItem(true));
 
     load();
     return {

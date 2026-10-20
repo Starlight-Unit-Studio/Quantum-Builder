@@ -231,8 +231,10 @@ about the vendors' internal implementation.
 
 ## Next implementation and review
 
-Continue the current navigation block with icons, menu groups, independent menu
-sets, visibility rules and typed actions. Extend its design now to accommodate
+Icons and menu groups have their own implementation/acceptance records in
+[NAVIGATION_ICONS.md](NAVIGATION_ICONS.md) and
+[NAVIGATION_GROUPS.md](NAVIGATION_GROUPS.md). Continue the navigation block with
+independent menu sets, visibility rules and typed actions. Extend its design to accommodate
 tab invalidation and web/native page destinations, while implementing native
 composition, engagement and application generation in their recorded phases.
 

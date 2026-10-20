@@ -2,6 +2,11 @@
 
 Builder **0.1.0-alpha13**, companion Wrapper **0.1.0-beta10**.
 
+This records the completed icon implementation tranche, merged through Builder
+PR #25 and Wrapper PR #26. Alpha14 extends the same icon contract to nested groups;
+its 48-field combined limit and new checks are recorded in
+[NAVIGATION_GROUPS.md](NAVIGATION_GROUPS.md).
+
 Implementation reviews: [Builder PR #25](https://github.com/Starlight-Unit-Studio/Quantum-Builder/pull/25)
 and [Wrapper PR #26](https://github.com/Starlight-Unit-Studio/Quantum-Mobile-Wrapper/pull/26).
 
@@ -85,9 +90,10 @@ bitmap dimensions before decoding.
 An icon-bearing build requires the beta10 `NativeNavigationIcons.java` module.
 The compiler fails clearly if an older wrapper ref is selected, instead of
 silently creating an app without icons. Iconless profiles still compile against
-the previous runtime. Integrate the companion wrapper change into
-`compat/android-6-api23` before building icon-bearing profiles with the default
-wrapper ref. No changes to the separate wrapper `main` integration are required.
+the previous runtime. The companion icon change is merged into
+`compat/android-6-api23`, the default wrapper ref. Group-bearing profiles require
+the additional beta11 group module. No changes to the separate wrapper `main`
+integration are required.
 
 ## Verification and remaining acceptance
 

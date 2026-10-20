@@ -35,6 +35,10 @@
   let surfaces = null;
   let drawerTrigger = null;
   const menuBindings = new WeakMap();
+  const groupStates = new Map();
+  let groupBindings = new Map();
+  let groupRoute = null;
+  const groupsToReveal = new Set();
 
   const create = (tag, className, text = '') => {
     const element = document.createElement(tag);
@@ -98,6 +102,21 @@
 
   const sameLocation = (left, right) => left.split('#', 1)[0] === right.split('#', 1)[0];
 
+  const syncGroupVisibility = () => {
+    for (const [id, binding] of groupBindings) {
+      const expanded = groupStates.get(id)?.expanded !== false;
+      binding.button.setAttribute('aria-expanded', String(expanded));
+      binding.content.hidden = !expanded;
+      binding.chevron.textContent = expanded ? '▾' : '▸';
+    }
+  };
+
+  const clearGroups = () => {
+    groupStates.clear();
+    groupRoute = null;
+    groupsToReveal.clear();
+  };
+
   const updateHistoryState = () => {
     if (!surfaces) return;
     surfaces.back.disabled = state.historyIndex <= 0;
@@ -106,13 +125,28 @@
     surfaces.home.disabled = !ready;
     surfaces.contextHome.disabled = !ready;
     surfaces.reload.disabled = !ready;
-    for (const button of [...surfaces.tabs.children, ...surfaces.items.children]) {
-      const active = ready && sameLocation(button.dataset.target || '', state.currentUrl);
-      button.classList.toggle('is-selected', active);
-      if (active) button.setAttribute('aria-current', 'page');
-      else button.removeAttribute('aria-current');
+    if (ready) {
+      for (const [id, binding] of groupBindings) {
+        const groupState = groupStates.get(id);
+        if (groupState && (groupRoute !== state.currentUrl || groupsToReveal.has(id))
+          && binding.targets.some((url) => sameLocation(url, state.currentUrl))) {
+          groupState.expanded = true;
+        }
+      }
+    }
+    groupRoute = state.currentUrl;
+    groupsToReveal.clear();
+    syncGroupVisibility();
+    const buttons = [...surfaces.tabs.children, ...surfaces.items.querySelectorAll('.sim-native-item')];
+    for (const button of buttons) {
       const binding = menuBindings.get(button);
       if (!binding) continue;
+      const active = ready && (binding.group
+        ? binding.targets.some((url) => sameLocation(url, state.currentUrl))
+        : sameLocation(button.dataset.target || '', state.currentUrl));
+      button.classList.toggle('is-selected', active);
+      if (active && !binding.group) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
       const icon = active ? binding.item.active_icon || binding.item.icon || '' : binding.item.icon || '';
       if (binding.iconValue !== icon) {
         const image = window.QuantumNavigationIcons.createElement(icon, { className: 'sim-native-icon-image' });
@@ -261,6 +295,90 @@
     });
   };
 
+  const syncSidebar = (items) => {
+    const model = window.QuantumNavigationModel;
+    const entries = model.walkItems(items);
+    const hasIcons = entries.some(({ item }) => item.icon || item.active_icon);
+    const nextBindings = new Map();
+    const currentIds = new Set();
+    const sync = (container, children, depth = 0, parentPath = []) => {
+      const existing = new Map(Array.from(container.children, (node) => [node.dataset.nodeKey, node]));
+      children.forEach((item, index) => {
+        const path = [...parentPath, index];
+        const group = model.isGroup(item);
+        const key = group ? 'group:' + item.id : 'link:' + path.join('.');
+        let node = existing.get(key);
+        existing.delete(key);
+        if (!node) {
+          node = group ? create('div', 'sim-native-group') : create('button', 'sim-native-item');
+          const button = group ? create('button', 'sim-native-item sim-native-group-toggle') : node;
+          button.type = 'button';
+          const slot = create('span', 'sim-native-icon');
+          slot.setAttribute('aria-hidden', 'true');
+          const label = create('span', 'sim-native-menu-label');
+          button.append(slot, label);
+          const binding = { button, slot, label, item, group, iconValue: null, targets: [] };
+          menuBindings.set(button, binding);
+          if (group) {
+            const chevron = create('span', 'sim-native-group-chevron');
+            chevron.setAttribute('aria-hidden', 'true');
+            const content = create('div', 'sim-native-group-children');
+            content.id = 'simNativeGroup-' + item.id;
+            content.setAttribute('role', 'group');
+            button.setAttribute('aria-controls', content.id);
+            button.dataset.groupId = item.id;
+            button.append(chevron);
+            node.append(button, content);
+            Object.assign(binding, { content, chevron });
+            button.addEventListener('click', () => {
+              const state = groupStates.get(button.dataset.groupId);
+              if (!state) return;
+              state.expanded = !state.expanded;
+              syncGroupVisibility();
+            });
+          } else {
+            button.addEventListener('click', () => {
+              closeDrawer(true);
+              navigate(button.dataset.target);
+            });
+          }
+          node.dataset.nodeKey = key;
+        }
+        if (container.children[index] !== node) container.insertBefore(node, container.children[index] || null);
+        const button = group ? node.firstElementChild : node;
+        const binding = menuBindings.get(button);
+        binding.item = item;
+        binding.label.textContent = item.label;
+        binding.slot.hidden = !hasIcons;
+        button.style.paddingInlineStart = `${14 + depth * 12}px`;
+        button.title = item.label;
+        button.setAttribute('aria-label', item.label);
+        if (group) {
+          currentIds.add(item.id);
+          const previous = groupStates.get(item.id);
+          const targets = model.flattenItems(item.children).map((link) => link.resolvedUrl);
+          const wasActive = groupBindings.get(item.id)?.targets.some((url) => sameLocation(url, state.currentUrl));
+          const isActive = targets.some((url) => sameLocation(url, state.currentUrl));
+          if (!previous || previous.configuredCollapsed !== item.collapsed) {
+            groupStates.set(item.id, { expanded: !item.collapsed, configuredCollapsed: item.collapsed });
+            groupsToReveal.add(item.id);
+          }
+          // Reordering or adding an unrelated sibling must not undo a manual
+          // collapse. Reveal a group when it gains the current destination.
+          if (isActive && !wasActive) groupsToReveal.add(item.id);
+          binding.targets = targets;
+          binding.content.setAttribute('aria-label', item.label);
+          nextBindings.set(item.id, binding);
+          sync(binding.content, item.children, depth + 1, path);
+        } else button.dataset.target = item.resolvedUrl;
+      });
+      for (const node of existing.values()) node.remove();
+    };
+    sync(surfaces.items, items);
+    groupBindings = nextBindings;
+    for (const id of groupStates.keys()) if (!currentIds.has(id)) groupStates.delete(id);
+  };
+
   const renderNavigation = () => {
     const nodes = ensureSurfaces();
     if (!nodes) return;
@@ -282,8 +400,10 @@
     nodes.title.title = nodes.title.textContent;
     nodes.drawerTitle.textContent = appTitle || 'Navigation';
 
-    const items = nav.resolvedItems?.length ? nav.resolvedItems : (state.currentUrl ? [{ label: 'Home', resolvedUrl: state.profile.startUrl }] : []);
-    syncMenu(nodes.items, items, true);
+    const fallback = state.currentUrl ? [{ label: 'Home', resolvedUrl: state.profile.startUrl }] : [];
+    const items = nav.resolvedItems?.length ? nav.resolvedItems : fallback;
+    const tree = nav.resolvedTree || [];
+    syncSidebar(nav.resolvedItems?.length ? tree : [...tree, ...fallback]);
     syncMenu(nodes.tabs, items.slice(0, 5), false);
     if (!nav.sidebar) closeDrawer();
     updateHistoryState();
@@ -293,6 +413,7 @@
     state.history = [];
     state.historyIndex = -1;
     state.currentUrl = '';
+    clearGroups();
     closeDrawer();
     const targetFrame = frame();
     if (targetFrame) {
@@ -336,6 +457,10 @@
       }
       const context = { startUrl: next.startUrl, trustedDomain: next.trustedDomain };
       const items = window.QuantumNavigationModel.validateItems(source.items || [], context);
+      const resolveTree = (list) => list.map((item) => window.QuantumNavigationModel.isGroup(item)
+        ? { ...item, label: item.label.slice(0, 40), children: resolveTree(item.children) }
+        : { ...item, label: item.label.slice(0, 40), resolvedUrl: resolveTarget(item.url) });
+      const resolvedTree = resolveTree(items);
       next.navigation = {
         ...source,
         top_bar: source.top_bar === true,
@@ -343,7 +468,8 @@
         bottom_tabs: source.bottom_tabs === true,
         contextual_toolbar: source.contextual_toolbar === true,
         items,
-        resolvedItems: items.map((item) => ({ ...item, label: item.label.slice(0, 40), resolvedUrl: resolveTarget(item.url) })),
+        resolvedTree,
+        resolvedItems: window.QuantumNavigationModel.flattenItems(resolvedTree),
       };
       // A trust-domain edit must not keep a route that no longer belongs to this app.
       if (!reset && state.currentUrl) {

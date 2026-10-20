@@ -40,9 +40,9 @@ is retained so existing links and handoffs continue to work.
 
 | Component | Baseline |
 |---|---|
-| Quantum Builder | `0.1.0-alpha12`, `main`, `c627b09b933b3cc4a7c78802764d8bb4dd09b9ca`; visual editor/preview PR #24 merged |
-| Quantum Mobile Wrapper | `0.1.0-beta9`, `compat/android-6-api23`, `25191da5fdba793abe86e5ae1d1eb7830e930b11` |
-| Current alpha13 candidate | Normal/active built-in and custom PNG menu icons: **BUILDER** verified locally; companion beta10 native code is **IMPLEMENTED_PENDING_QA** |
+| Quantum Builder | `0.1.0-alpha13`, `main`, `8cfb6cfa038738c02a1603c4c49185609261960b`; icon PR #25 merged |
+| Quantum Mobile Wrapper | `0.1.0-beta10`, `compat/android-6-api23`, `21313664e996d2fc7805948e6d17f84dac58709d`; icon PR #26 merged |
+| Current alpha14 candidate | Sidebar groups, nesting and collapse across editor, persistence, preview and compiler; companion beta11 native code is **IMPLEMENTED_PENDING_QA** |
 
 The Builder uses the compatibility branch as its default wrapper source. Wrapper
 `main` is a different line of development; its open integration must retain both
@@ -82,8 +82,8 @@ by this tranche's browser regression, and GitHub Actions was not used for valida
 
 The browser simulator previews presentation and navigation configuration. It is
 not an Android emulator and does not establish native plugin or OS behavior.
-Nested groups, multiple menus, typed custom actions and visibility rules remain
-later work unless their own implementation and validation are recorded.
+Multiple menus, typed custom actions and visibility rules remain later work.
+Nested groups are recorded separately in the alpha14 tranche below.
 
 ### Alpha13 icon tranche
 
@@ -101,6 +101,25 @@ run, APK installation or deployment is claimed by these local checks.
 - [x] Compile PNGs to bounded bundled assets with short runtime references.
 - [x] Implement normal/active native icon rendering and fallback behavior.
 - [ ] Accept a generated APK on Android 6 and a current Android device/emulator.
+
+### Alpha14 group tranche
+
+The [group contract and validation record](NAVIGATION_GROUPS.md) covers named
+groups, three group levels, collapse defaults, subtree moves, group dissolution,
+recursive storage/compilation and the shared depth-first tab order. Limits apply
+to the whole tree: 12 destinations, 12 groups and 24 total nodes. Group-bearing
+builds require the beta11 wrapper module; flat menus retain previous compatibility.
+
+- [x] Implement visual groups, nesting, parent selection and lossless dissolution.
+- [x] Preserve the tree and both icon states through PHP storage and the compiler.
+- [x] Implement grouped preview and native headers, expansion and active ancestors.
+- [x] Keep the first five depth-first destinations as tabs, with an empty-menu Home fallback.
+- [ ] Accept a generated grouped APK on Android 6 and a current Android device/emulator.
+
+Local validation and its exact scope are maintained in the group record. The next
+implementation block is independent menu sets and URL-based selection/visibility
+rules. APK rendering remains a separate acceptance item; the browser preview and
+API 23 source compilation do not establish device behavior.
 
 ## Status rules
 
@@ -127,7 +146,8 @@ while delivering useful complete blocks instead of adding inactive switches.
 - [x] Finish alpha12 integration acceptance above.
 - [x] Add built-in/custom icons and active/inactive icon states; native device
   acceptance remains separately open in the alpha13 tranche above.
-- [ ] Add sidebar groups, nesting and collapsible sections.
+- [x] Add sidebar groups, nesting and collapsible sections; native device
+  acceptance remains separately open in the alpha14 tranche above.
 - [ ] Add independent menu sets and URL-based selection/visibility rules.
 - [ ] Add page-specific titles/images, search and typed actions such as Back,
   Home, Reload, Forward and Share; preserve the trusted-navigation boundary.
@@ -316,7 +336,7 @@ Android runtime or an assertion that a generator already exists.
 - [ ] Execute [the retained design specification](QUANTUM_ENTERPRISE_DESIGN.md)
   after the functional phase, preserving the completed workflows and mobile access.
 - [ ] Review the final capability inventory and platform coverage before declaring
-  the parity phase complete. The current alpha12 tranche is only one part of it.
+  the parity phase complete. Individual navigation tranches are only part of it.
 
 ## Named integration inventory
 

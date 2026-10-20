@@ -10,7 +10,12 @@
 
   const MAX_ITEMS = 12;
   const MAX_TABS = 5;
+  const MAX_GROUPS = 12;
+  const MAX_NODES = MAX_ITEMS + MAX_GROUPS;
+  const MAX_GROUP_DEPTH = 3;
   const bytes = (value) => new TextEncoder().encode(value).length;
+  const owns = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
+  const isGroup = (item) => Boolean(item && typeof item === 'object' && item.type === 'group');
   const hasScheme = (value) => /^[a-z][a-z0-9+.-]*:/i.test(value);
   const invalidUri = (value) => /[\s\\<>"{}|^\[\]\u0000-\u001f\u007f]/u.test(value) || /%(?![\da-f]{2})/i.test(value);
 
@@ -64,30 +69,93 @@
 
   const validateItems = (items, context = {}) => {
     if (!Array.isArray(items)) throw new Error('Die Menüliste muss ein JSON-Array sein.');
-    if (items.length > MAX_ITEMS) throw new Error(`Maximal ${MAX_ITEMS} Menüeinträge sind möglich.`);
-    return items.map((item, index) => {
-      try {
-        if (!item || typeof item !== 'object' || Array.isArray(item)) {
-          throw new Error('Ein Menüeintrag benötigt eine Beschriftung und ein Ziel.');
+    const ids = new Set();
+    let nodeCount = 0;
+    let linkCount = 0;
+    let groupCount = 0;
+    const visit = (list, parentPath = [], groupDepth = 0) => {
+      if (!Array.isArray(list)) throw new Error('Die Einträge einer Gruppe müssen ein JSON-Array sein.');
+      if (list.length > MAX_NODES) throw new Error(`Maximal ${MAX_NODES} Menüelemente sind möglich.`);
+      return list.map((item, index) => {
+        const path = [...parentPath, index];
+        try {
+          if (!item || typeof item !== 'object' || Array.isArray(item)) {
+            throw new Error('Ein Menüeintrag muss ein Ziel oder eine Gruppe sein.');
+          }
+          if (++nodeCount > MAX_NODES) throw new Error(`Maximal ${MAX_NODES} Menüelemente sind möglich.`);
+          if (item.type !== undefined && item.type !== 'link' && item.type !== 'group') {
+            throw new Error('Der Menütyp muss link oder group sein.');
+          }
+          if (typeof item.label !== 'string' || !item.label.trim() || bytes(item.label.trim()) > 80) {
+            throw new Error('Die Beschriftung darf nicht leer sein und maximal 80 UTF-8-Bytes enthalten.');
+          }
+          let normalized;
+          if (isGroup(item)) {
+            if (++groupCount > MAX_GROUPS) throw new Error(`Maximal ${MAX_GROUPS} Gruppen sind möglich.`);
+            if (groupDepth >= MAX_GROUP_DEPTH) throw new Error(`Maximal ${MAX_GROUP_DEPTH} Gruppenebenen sind möglich.`);
+            if (owns(item, 'url')) throw new Error('Eine Gruppe darf keine Ziel-URL enthalten.');
+            if (typeof item.id !== 'string' || item.id !== item.id.trim() || !/^[a-z][a-z0-9_-]{0,39}$/.test(item.id)) {
+              throw new Error('Die Gruppen-ID muss mit einem Kleinbuchstaben beginnen und darf nur Kleinbuchstaben, Ziffern, _ und - enthalten (maximal 40 Zeichen).');
+            }
+            if (ids.has(item.id)) throw new Error('Jede Gruppe braucht eine eindeutige ID.');
+            ids.add(item.id);
+            if (owns(item, 'collapsed') && typeof item.collapsed !== 'boolean') {
+              throw new Error('Der Einklappzustand muss true oder false sein.');
+            }
+            normalized = {
+              type: 'group', id: item.id, label: item.label.trim(),
+              collapsed: item.collapsed === true,
+              children: visit(item.children, path, groupDepth + 1),
+            };
+          } else {
+            if (++linkCount > MAX_ITEMS) throw new Error(`Maximal ${MAX_ITEMS} Menüziele sind möglich.`);
+            if (['children', 'id', 'collapsed'].some((key) => owns(item, key))) {
+              throw new Error('Ein Menüziel darf keine Gruppenfelder enthalten.');
+            }
+            if (typeof item.url !== 'string') throw new Error('Das Menüziel muss Text sein.');
+            resolveTarget(item.url, context);
+            normalized = { label: item.label.trim(), url: item.url.trim() };
+          }
+          for (const field of ['icon', 'active_icon']) {
+            const value = icons.validate(item[field]);
+            if (value) normalized[field] = value;
+          }
+          return normalized;
+        } catch (cause) {
+          if (cause.itemPath) throw cause;
+          const error = new Error(`Menüeintrag ${path.map((part) => part + 1).join('.')}: ${cause.message}`);
+          error.itemPath = path;
+          error.itemIndex = path[0];
+          throw error;
         }
-        if (typeof item.label !== 'string' || !item.label.trim() || bytes(item.label.trim()) > 80) {
-          throw new Error('Die Beschriftung darf nicht leer sein und maximal 80 UTF-8-Bytes enthalten.');
-        }
-        if (typeof item.url !== 'string') throw new Error('Das Menüziel muss Text sein.');
-        resolveTarget(item.url, context);
-        const normalized = { label: item.label.trim(), url: item.url.trim() };
-        for (const field of ['icon', 'active_icon']) {
-          const value = icons.validate(item[field]);
-          if (value) normalized[field] = value;
-        }
-        return normalized;
-      } catch (cause) {
-        const error = new Error(`Menüeintrag ${index + 1}: ${cause.message}`);
-        error.itemIndex = index;
-        throw error;
-      }
-    });
+      });
+    };
+    return visit(items);
   };
 
-  return Object.freeze({ MAX_ITEMS, MAX_TABS, validateItems, resolveTarget });
+  // Structural traversal is also useful for incomplete editor drafts. It never
+  // validates or normalizes labels/URLs and remains bounded on cyclic input.
+  const walkItems = (items) => {
+    const result = [];
+    const visit = (list, parentPath = [], ancestors = []) => {
+      if (!Array.isArray(list)) throw new Error('Eine Menüliste muss ein Array sein.');
+      if (list.length > MAX_NODES) throw new Error('Die Menüstruktur ist zu groß.');
+      list.forEach((item, index) => {
+        const path = [...parentPath, index];
+        if (!item || typeof item !== 'object' || Array.isArray(item) || result.length >= MAX_NODES) {
+          throw new Error('Die Menüstruktur ist ungültig oder zu groß.');
+        }
+        result.push({ item, path, depth: ancestors.length, parentId: ancestors.at(-1)?.id || null, ancestors: [...ancestors] });
+        if (isGroup(item)) {
+          if (ancestors.length >= MAX_GROUP_DEPTH) throw new Error('Die Menüstruktur ist zu tief.');
+          visit(item.children, path, [...ancestors, item]);
+        }
+      });
+    };
+    visit(items);
+    return result;
+  };
+  const flattenItems = (items) => walkItems(items).filter(({ item }) => !isGroup(item)).map(({ item }) => item);
+
+  return Object.freeze({ MAX_ITEMS, MAX_TABS, MAX_GROUPS, MAX_NODES, MAX_GROUP_DEPTH, isGroup, validateItems, resolveTarget, walkItems, flattenItems });
 });

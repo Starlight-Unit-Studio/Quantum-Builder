@@ -8,6 +8,37 @@
   boundary. Local inference/model management remains outside Quantum Builder.
 - Documentation only; AI connectivity and generation remain planned.
 
+## 0.1.0-alpha14
+
+Nested sidebar groups from mobile editing to native navigation.
+
+- Adds named groups with an initial collapsed state, up to three group levels,
+  12 destinations and 12 groups across the complete menu.
+- Adds touch-friendly parent selection, subtree ordering and group dissolution
+  that preserves child entries, icons and order. Group IDs stay stable while editing.
+- Preserves the nested tree in advanced JSON, autosave, PHP/SQLite and compiled
+  profiles. Existing flat label/URL and icon menus retain their schema.
+- Preserves array/object distinctions in incoming menu JSON, rejecting object
+  containers that PHP's associative decoder would otherwise treat as lists.
+- Previews group headers, indentation and expansion, including active ancestor
+  highlighting. Manual collapse survives same-route refreshes and cosmetic edits;
+  opening a new route reveals its active ancestors.
+- Retains manual group state by ID during reordering and unrelated edits, and
+  keeps repeated JSON input/change events from cancelling row actions or uploads.
+- Keeps Bottom Tabs tied to the first five link destinations in depth-first order;
+  groups do not consume tab slots. Empty groups remain visible, with a Home fallback
+  when the menu has no destinations.
+- Requires the beta11 wrapper group module before building nested profiles and
+  validates both group and icon capabilities before writing generated assets.
+- Supports up to 48 normal/active icon fields across links and groups. Raises PHP's
+  request limit to 12 MiB, matching nginx and covering the combined maximum profile.
+- Fixes Java configuration replacement so escaped labels, quotes and backslashes
+  reach generated AppConfig strings intact.
+- Adds recursive model, browser, PHP/SQLite and compiler regressions. Companion
+  Android code compiles against API 23 and has navigation unit coverage; APK/device
+  acceptance remains separate in docs/NAVIGATION_GROUPS.md.
+- Bumps frontend asset versioning. Validation runs locally without GitHub Actions.
+
 ## 0.1.0-alpha13
 
 Native navigation icons from editor to bundled Android assets.
