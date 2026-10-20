@@ -1,6 +1,6 @@
 # Quantum Builder Feature Matrix
 
-Current Builder: **0.1.0-alpha13**. The full dated scope and delivery sequence are
+Current Builder: **0.1.0-alpha14**. The full dated scope and delivery sequence are
 in [MEDIAN_PARITY_ROADMAP.md](MEDIAN_PARITY_ROADMAP.md); the brighter design is in
 [QUANTUM_ENTERPRISE_DESIGN.md](QUANTUM_ENTERPRISE_DESIGN.md).
 MobiLoud, Twinr and CatDoes extend the reference scope in
@@ -60,9 +60,14 @@ Legend:
 | Navigation | Built-in/custom PNG icon editor with normal/active states | Builder |
 | Navigation | Icon persistence and deduplicated build assets | Builder/compiler; beta10 wrapper required |
 | Navigation | Native sidebar/tab icon rendering and active selection | Implemented, native QA open; see [NAVIGATION_ICONS.md](NAVIGATION_ICONS.md) |
+| Navigation | Groups, nesting, subtree moves and group dissolution in editor | Builder |
+| Navigation | Recursive group persistence and compiled profile | Builder/compiler; beta11 wrapper required |
+| Navigation | Native collapsible sidebar groups and active ancestors | Implemented, native QA open; see [NAVIGATION_GROUPS.md](NAVIGATION_GROUPS.md) |
 | Simulator | Top bar, sidebar, bottom tabs and contextual toolbar preview | Builder |
 | Simulator | Built-in/custom icons and active-state preview | Builder |
+| Simulator | Nested sidebar groups, collapse state and depth-first tabs | Builder |
 | Simulator | Preview-owned navigation history and current-route reload | Builder |
+| Navigation | Independent menu sets | Planned |
 | Navigation | Page visibility rules | Planned |
 | Navigation | Retained tab state and background invalidation/refresh | Planned |
 | Native Screens | Visual component editor and native renderers | Planned |

@@ -185,7 +185,7 @@ $authenticated = $auth->isLoggedIn();
                     <summary>Erweitert: Menü als JSON bearbeiten</summary>
                     <label><span class="field-label">Menüliste</span><textarea class="field mono" id="nativeNavigationItems" rows="9" spellcheck="false" placeholder='[{"label":"Home","url":"/"},{"label":"News","url":"/news"}]'></textarea></label>
                   </details>
-                  <div class="notice span-2">Sidebar und Bottom Tabs teilen sich bis zu 12 Menüeinträge. Die ersten 5 erscheinen zusätzlich als Tabs. Ohne eigene Einträge zeigt die App Home. Alle Ziele bleiben innerhalb der Trusted Domain; die Vorschau zeigt Änderungen sofort.</div>
+                  <div class="notice span-2">Bis zu 12 Ziele und 12 Gruppen auf 3 Gruppenebenen. Die Sidebar zeigt die Gruppenstruktur; die ersten 5 Ziele in Menü-Reihenfolge erscheinen als Tabs. Ohne eigene Ziele zeigt die App Home. Alle Ziele bleiben innerhalb der Trusted Domain; die Vorschau zeigt Änderungen sofort.</div>
                 </div>
               </section>
 

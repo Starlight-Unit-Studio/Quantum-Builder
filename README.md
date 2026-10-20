@@ -6,16 +6,21 @@ The project turns one maintained Android wrapper runtime into reusable app profi
 
 The current interface uses the **Terran terminal design language** from *Starlight Unit: The Game* and its mobile Admin Console. Median, MobiLoud, Twinr and CatDoes are capability and workflow references; Quantum retains its own implementation and visual identity.
 
-Current version: `0.1.0-alpha13`
+Current version: `0.1.0-alpha14`
 
 ## Current development
 
-Alpha13 adds built-in and custom PNG icons to the shared native-navigation menu,
-with separate normal/active choices, mobile upload controls and live preview.
-The worker packages custom icons as offline assets and requires the companion
-beta10 wrapper icon module for icon-bearing builds. Local Builder integration is
-verified; native device acceptance remains open. The exact contract, compatibility
-and verification scope are in [docs/NAVIGATION_ICONS.md](docs/NAVIGATION_ICONS.md).
+Alpha14 adds sidebar groups, nesting and collapsible sections to the shared
+native-navigation menu. The mobile editor supports up to 12 destinations and
+12 groups across three group levels, moving whole subtrees and dissolving a group
+while retaining its children. Bottom Tabs use the first five destinations in
+depth-first menu order. Groups and links can use normal/active built-in or PNG icons.
+
+The complete tree survives saving, preview and compilation. Group-bearing builds
+require the companion beta11 wrapper module; flat icon menus retain their beta10
+compatibility. The local checks and remaining native device acceptance are recorded
+in [docs/NAVIGATION_GROUPS.md](docs/NAVIGATION_GROUPS.md). The existing icon contract
+is retained in [docs/NAVIGATION_ICONS.md](docs/NAVIGATION_ICONS.md).
 
 The visual menu editor introduced in alpha12 lets you
 edit labels and destinations, add/remove entries, reorder with touch-friendly

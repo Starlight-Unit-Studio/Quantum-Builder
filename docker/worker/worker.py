@@ -19,7 +19,7 @@ import time
 import traceback
 import zlib
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import urlparse
 from xml.sax.saxutils import escape as xml_escape
 
@@ -269,7 +269,7 @@ def groovy_literal(value: str) -> str:
     return value.replace("\\", "\\\\").replace("'", "\\'")
 
 
-def replace_once(text: str, pattern: str, replacement: str, label: str, flags: int = 0) -> str:
+def replace_once(text: str, pattern: str, replacement: str | Callable[[re.Match[str]], str], label: str, flags: int = 0) -> str:
     updated, count = re.subn(pattern, replacement, text, count=1, flags=flags)
     if count != 1:
         raise RuntimeError(f"Wrapper compiler could not patch {label}")
@@ -368,22 +368,45 @@ def validate_navigation_png(payload: bytes) -> None:
         offset += row_size
 
 
-def compile_navigation_items(project: Path, items: Any) -> list[dict[str, str]]:
-    """Compile profile icons to bundled assets, leaving short references in Java constants."""
-    if not isinstance(items, list) or len(items) > 12:
-        raise RuntimeError("Native navigation supports a list of at most 12 items")
-    compiled = []
+def valid_navigation_target(target: str, trusted_domain: str | None = None) -> bool:
+    if (target.startswith("//") or re.search(r'[\s\\<>"{}|^\[\]\x00-\x1f\x7f]', target)
+            or re.search(r"%(?![0-9a-f]{2})", target, re.IGNORECASE)):
+        return False
+    if not re.match(r"^[a-z][a-z0-9+.-]*:", target, re.IGNORECASE):
+        return True
+    if not re.match(r"^https://[a-z0-9.-]+(?::[0-9]+)?(?:[/?#]|$)", target, re.IGNORECASE):
+        return False
+    try:
+        parsed = urlparse(target)
+        host = parsed.hostname or ""
+        if parsed.scheme.lower() != "https" or not host or parsed.username is not None or parsed.password is not None:
+            return False
+        parsed.port  # Reject invalid/out-of-range ports consistently with the persisted profile.
+    except ValueError:
+        return False
+    domain = trusted_domain.lower() if trusted_domain is not None else None
+    return domain is None or host == domain or host.endswith("." + domain)
+
+
+def compile_navigation_items(project: Path, items: Any, *, trusted_domain: str | None = None) -> list[dict[str, Any]]:
+    """Validate a bounded menu tree, then compile icons into short bundled-asset references."""
     images: dict[str, bytes] = {}
     has_icons = False
-    for item in items:
-        if not isinstance(item, dict):
-            raise RuntimeError("Each native navigation item must be an object")
-        normalized = {}
-        for field, limit in (("label", 80), ("url", 2048)):
-            value = item.get(field)
-            if not isinstance(value, str) or not value.strip() or len(value.strip().encode("utf-8")) > limit:
-                raise RuntimeError(f"Native navigation {field} is invalid")
-            normalized[field] = value.strip()
+    group_ids: set[str] = set()
+    link_count = 0
+    node_count = 0
+
+    def text_field(item: dict[str, Any], field: str, limit: int) -> str:
+        value = item.get(field)
+        try:
+            if isinstance(value, str) and value.strip() and len(value.strip().encode("utf-8")) <= limit:
+                return value.strip()
+        except UnicodeEncodeError:
+            pass
+        raise RuntimeError(f"Native navigation {field} is invalid")
+
+    def compile_icons(item: dict[str, Any], normalized: dict[str, Any]) -> None:
+        nonlocal has_icons
         for field in ("icon", "active_icon"):
             if field not in item:
                 continue
@@ -410,11 +433,69 @@ def compile_navigation_items(project: Path, items: Any) -> list[dict[str, str]]:
                 images[filename] = payload
                 normalized[field] = f"asset:{NAVIGATION_ICON_ASSET_DIRECTORY}/{filename}"
             has_icons = True
-        compiled.append(normalized)
+
+    def walk(items: Any, depth: int) -> list[dict[str, Any]]:
+        nonlocal link_count, node_count
+        if not isinstance(items, list):
+            raise RuntimeError("Native navigation items and group children must be lists")
+        compiled = []
+        for item in items:
+            node_count += 1
+            if node_count > 24:
+                raise RuntimeError("Native navigation supports at most 24 total menu nodes")
+            if not isinstance(item, dict):
+                raise RuntimeError("Each native navigation item must be an object")
+            kind = item.get("type", "link")
+            if kind not in ("link", "group"):
+                raise RuntimeError("Native navigation item type must be link or group")
+            label = text_field(item, "label", 80)
+            if kind == "group":
+                if depth >= 3 or len(group_ids) >= 12:
+                    raise RuntimeError("Native navigation supports at most 12 groups and 3 nested group levels")
+                group_id = item.get("id")
+                if not isinstance(group_id, str) or not re.fullmatch(r"[a-z][a-z0-9_-]{0,39}", group_id) or group_id in group_ids:
+                    raise RuntimeError("Navigation group IDs must be unique lowercase identifiers of at most 40 characters")
+                if "url" in item:
+                    raise RuntimeError("Navigation groups cannot have a URL")
+                collapsed = item.get("collapsed", False)
+                if not isinstance(collapsed, bool):
+                    raise RuntimeError("Navigation group collapsed must be boolean")
+                group_ids.add(group_id)
+                normalized = {
+                    "type": "group", "id": group_id, "label": label, "collapsed": collapsed,
+                    "children": walk(item.get("children"), depth + 1),
+                }
+            else:
+                link_count += 1
+                if link_count > 12:
+                    raise RuntimeError("Native navigation supports at most 12 link destinations")
+                if any(field in item for field in ("children", "id", "collapsed")):
+                    raise RuntimeError("Link destinations cannot have group-only fields")
+                target = text_field(item, "url", 2048)
+                if not valid_navigation_target(target, trusted_domain):
+                    raise RuntimeError("Native navigation targets must be valid relative or trusted HTTPS URLs")
+                normalized = {"label": label, "url": target}
+            compile_icons(item, normalized)
+            compiled.append(normalized)
+        return compiled
+
+    compiled = walk(items, 0)
+
+    group_capability = project / "app/src/main/java/de/starlightunit/wrapper/navigation/NativeNavigationGroups.java"
+    if group_ids and not group_capability.is_file():
+        raise RuntimeError("Navigation groups require Quantum Mobile Wrapper beta11 or newer (NativeNavigationGroups.java missing); update the wrapper ref")
 
     capability = project / "app/src/main/java/de/starlightunit/wrapper/navigation/NativeNavigationIcons.java"
     if has_icons and not capability.is_file():
         raise RuntimeError("Navigation icons require Quantum Mobile Wrapper beta10 or newer (NativeNavigationIcons.java missing); update the wrapper ref")
+
+    # Java constant-pool strings use modified UTF-8. Count UTF-16 code units,
+    # including the six-byte representation of non-BMP characters, before writes.
+    menu_json = json.dumps(compiled, ensure_ascii=False, separators=(",", ":"))
+    utf16 = menu_json.encode("utf-16-be")
+    units = (int.from_bytes(utf16[index:index + 2], "big") for index in range(0, len(utf16), 2))
+    if sum(1 if 0 < unit < 128 else 2 if unit < 2048 else 3 for unit in units) > 65535:
+        raise RuntimeError("Native navigation JSON exceeds the Java configuration string limit")
 
     asset_dir = project / "app/src/main/assets" / NAVIGATION_ICON_ASSET_DIRECTORY
     if asset_dir.is_symlink() or not asset_dir.resolve().is_relative_to(project.resolve()):
@@ -495,7 +576,10 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
     native_navigation_background = normalized_hex_color(navigation.get("background"), "#020611")
     native_navigation_foreground = normalized_hex_color(navigation.get("foreground"), "#ffffff")
     native_navigation_accent = normalized_hex_color(navigation.get("accent"), "#6fc7ff")
-    native_navigation_items = compile_navigation_items(project, navigation.get("items", []))
+    native_navigation_items = compile_navigation_items(
+        project, navigation.get("items", []),
+        trusted_domain=str(config.get("trusted_domain") or parsed.hostname or ""),
+    )
 
     new_window_policy = str(links.get("new_windows") or "blocked").strip().lower()
     if new_window_policy not in {"blocked", "internal", "external"}:
@@ -539,7 +623,9 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
         text = replace_once(
             text,
             rf'(public static final String {re.escape(constant)}\s*=\s*)(?:"(?:\\.|[^"\\])*"|[^;]+)(;)',
-            rf'\g<1>{java_literal(value)}\g<2>',
+            # A callback preserves Java/JSON escapes instead of interpreting
+            # them a second time as regular-expression replacement syntax.
+            lambda match, literal=java_literal(value): match.group(1) + literal + match.group(2),
             f"AppConfig.{constant}",
         )
 

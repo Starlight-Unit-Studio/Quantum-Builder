@@ -206,13 +206,21 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 48px;
+  min-height: 50px;
   padding: 14px;
   font-size: 16px;
   text-align: left;
   overflow-wrap: anywhere;
 }
 .sim-native-item .sim-native-menu-label { flex: 1; min-width: 0; }
+.sim-native-group,.sim-native-group-children { min-width: 0; width: 100%; }
+.sim-native-group-chevron {
+  flex: 0 0 22px;
+  width: 22px;
+  margin-inline-start: -4px;
+  text-align: center;
+  font-size: 18px;
+}
 .sim-navigation-note,
 .sim-navigation-status {
   margin: 12px 0 0;

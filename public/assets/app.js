@@ -260,7 +260,6 @@
     if (rawNavigationItems) {
       nativeNavigationItems = JSON.parse(rawNavigationItems);
       if (!Array.isArray(nativeNavigationItems)) throw new Error('Native Navigation Items müssen ein JSON-Array sein.');
-      if (nativeNavigationItems.length > 12) throw new Error('Native Navigation unterstützt maximal 12 Menüeinträge.');
     }
     nativeNavigationItems = window.QuantumNavigationModel.validateItems(nativeNavigationItems, {
       startUrl: $('startUrl').value.trim(),
