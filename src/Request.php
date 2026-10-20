@@ -19,11 +19,38 @@ final class Request
         $objects = json_decode($raw);
         if ($objects instanceof \stdClass
             && ($objects->config ?? null) instanceof \stdClass
-            && ($objects->config->navigation ?? null) instanceof \stdClass
-            && property_exists($objects->config->navigation, 'items')) {
-            $decoded['config']['navigation']['items'] = self::navigationItems($objects->config->navigation->items);
+            && ($objects->config->navigation ?? null) instanceof \stdClass) {
+            $navigation = $objects->config->navigation;
+            if (property_exists($navigation, 'items')) {
+                $decoded['config']['navigation']['items'] = self::navigationItems($navigation->items);
+            }
+            foreach (['menus', 'rules'] as $field) {
+                if (property_exists($navigation, $field)) {
+                    $decoded['config']['navigation'][$field] = self::navigationObjects($navigation->$field, $field);
+                }
+            }
         }
         return $decoded;
+    }
+
+    private static function navigationObjects(mixed $list, string $field): mixed
+    {
+        if (!is_array($list)) {
+            return $list;
+        }
+        return array_map(static function (mixed $value) use ($field): mixed {
+            if (!$value instanceof \stdClass) {
+                return $value;
+            }
+            $object = get_object_vars($value);
+            if ($field === 'menus' && array_key_exists('items', $object)) {
+                $object['items'] = self::navigationItems($object['items']);
+            }
+            if ($field === 'rules' && ($object['visibility'] ?? null) instanceof \stdClass) {
+                $object['visibility'] = get_object_vars($object['visibility']);
+            }
+            return $object;
+        }, $list);
     }
 
     private static function navigationItems(mixed $items): mixed

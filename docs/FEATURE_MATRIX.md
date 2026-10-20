@@ -1,6 +1,6 @@
 # Quantum Builder Feature Matrix
 
-Current Builder: **0.1.0-alpha14**. The full dated scope and delivery sequence are
+Current Builder: **0.1.0-alpha15**. The full dated scope and delivery sequence are
 in [MEDIAN_PARITY_ROADMAP.md](MEDIAN_PARITY_ROADMAP.md); the brighter design is in
 [QUANTUM_ENTERPRISE_DESIGN.md](QUANTUM_ENTERPRISE_DESIGN.md).
 MobiLoud, Twinr and CatDoes extend the reference scope in
@@ -67,8 +67,11 @@ Legend:
 | Simulator | Built-in/custom icons and active-state preview | Builder |
 | Simulator | Nested sidebar groups, collapse state and depth-first tabs | Builder |
 | Simulator | Preview-owned navigation history and current-route reload | Builder |
-| Navigation | Independent menu sets | Planned |
-| Navigation | Page visibility rules | Planned |
+| Navigation | Independent menus, per-surface defaults and menu editor | Builder/compiler; beta12 required |
+| Navigation | Native independent Sidebar/Bottom Tabs selections | Implemented, native QA open; see [NAVIGATION_MENUS.md](NAVIGATION_MENUS.md) |
+| Navigation | Ordered exact/prefix URL rules and four-surface visibility editor | Builder/compiler; beta12 required |
+| Navigation | Native URL-driven menu/visibility changes | Implemented, native QA open; see [NAVIGATION_MENUS.md](NAVIGATION_MENUS.md) |
+| Simulator | Independent menus, first-match rules and dynamic layout | Builder |
 | Navigation | Retained tab state and background invalidation/refresh | Planned |
 | Native Screens | Visual component editor and native renderers | Planned |
 | Native Screens | REST data sources and response-to-component mapping | Planned |

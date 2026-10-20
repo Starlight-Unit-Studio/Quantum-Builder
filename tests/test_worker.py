@@ -131,7 +131,7 @@ class WorkerCompilerTests(unittest.TestCase):
         self.assertNotIn("signingConfig signingConfigs.release", signing_section)
         self.assertIn("signingConfig signingConfigs.release", build_section)
 
-    def test_app_config_compiles_identity_and_keep_screen_on(self):
+    def write_app_config_fixture(self):
         path = self.root / "app/src/main/java/de/starlightunit/wrapper/config/AppConfig.java"
         path.write_text(
             """package de.starlightunit.wrapper.config;
@@ -186,6 +186,10 @@ public final class AppConfig {
 """,
             encoding="utf-8",
         )
+        return path
+
+    def test_app_config_compiles_identity_and_keep_screen_on(self):
+        path = self.write_app_config_fixture()
         worker.patch_app_config(self.root, self.app, self.config)
         text = path.read_text(encoding="utf-8")
         self.assertIn('START_URL = "https://example.test/app/index.html";', text)

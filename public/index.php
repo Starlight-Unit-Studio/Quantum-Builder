@@ -170,6 +170,7 @@ $authenticated = $auth->isLoggedIn();
               <section class="terran-panel editor-section is-hidden" data-editor-section="navigation">
                 <div class="kicker">APP::NATIVE_NAVIGATION</div><h3>Native Navigation</h3>
                 <div class="field-grid">
+                  <div class="notice span-2">Standard-Sichtbarkeit: Diese Schalter gelten, solange keine passende URL-Regel eine andere Sichtbarkeit festlegt.</div>
                   <label class="toggle"><input id="topBar" type="checkbox"><span>Top Navigation Bar</span></label>
                   <label class="toggle"><input id="sidebarNav" type="checkbox"><span>Sidebar Navigation</span></label>
                   <label class="toggle"><input id="bottomTabs" type="checkbox"><span>Bottom Tab Bar</span></label>
@@ -178,14 +179,21 @@ $authenticated = $auth->isLoggedIn();
                   <label><span class="field-label">Navigation Background</span><input class="field color-field" id="nativeNavigationBackground" type="color"></label>
                   <label><span class="field-label">Navigation Foreground</span><input class="field color-field" id="nativeNavigationForeground" type="color"></label>
                   <label><span class="field-label">Navigation Accent</span><input class="field color-field" id="nativeNavigationAccent" type="color"></label>
-                  <div class="span-2">
+                  <div id="nativeNavigationMenusEditor" class="span-2" aria-label="Menüs verwalten und zuordnen"></div>
+                  <div id="nativeNavigationDefaultMenu" class="span-2 qb-nav-menu-panel" data-navigation-menu-panel="default">
                     <div id="nativeNavigationEditor" aria-label="Menüeinträge bearbeiten"></div>
+                    <details id="nativeNavigationJson" class="qb-nav-advanced">
+                      <summary>Erweitert: Standardmenü als JSON bearbeiten</summary>
+                      <label><span class="field-label">Menüliste</span><textarea class="field mono" id="nativeNavigationItems" rows="9" spellcheck="false" placeholder='[{"label":"Home","url":"/"},{"label":"News","url":"/news"}]'></textarea></label>
+                    </details>
                   </div>
-                  <details id="nativeNavigationJson" class="span-2 qb-nav-advanced">
-                    <summary>Erweitert: Menü als JSON bearbeiten</summary>
-                    <label><span class="field-label">Menüliste</span><textarea class="field mono" id="nativeNavigationItems" rows="9" spellcheck="false" placeholder='[{"label":"Home","url":"/"},{"label":"News","url":"/news"}]'></textarea></label>
+                  <div id="nativeNavigationAdditionalMenus" class="span-2"></div>
+                  <div id="nativeNavigationRulesEditor" class="span-2" aria-label="URL-Regeln bearbeiten"></div>
+                  <details id="nativeNavigationProfileJson" class="span-2 qb-nav-advanced">
+                    <summary>Erweitert: Menüs, Zuordnungen und URL-Regeln als JSON</summary>
+                    <label><span class="field-label">Zusätzliche Menüs und Regeln</span><textarea class="field mono" id="nativeNavigationProfile" rows="12" spellcheck="false" placeholder='{"menus":[],"sidebar_menu":"default","bottom_tabs_menu":"default","rules":[]}'></textarea></label>
                   </details>
-                  <div class="notice span-2">Bis zu 12 Ziele und 12 Gruppen auf 3 Gruppenebenen. Die Sidebar zeigt die Gruppenstruktur; die ersten 5 Ziele in Menü-Reihenfolge erscheinen als Tabs. Ohne eigene Ziele zeigt die App Home. Alle Ziele bleiben innerhalb der Trusted Domain; die Vorschau zeigt Änderungen sofort.</div>
+                  <div class="notice span-2">Pro Menü bis zu 12 Ziele und 12 Gruppen auf 3 Gruppenebenen; über alle Menüs zusammen höchstens 24 Elemente. Die Sidebar zeigt die Gruppenstruktur ihres Menüs. Bottom Tabs zeigen die ersten 5 Ziele ihres eigenen Menüs. Alle Ziele bleiben innerhalb der Trusted Domain; die Vorschau zeigt Änderungen sofort.</div>
                 </div>
               </section>
 
@@ -309,6 +317,7 @@ $authenticated = $auth->isLoggedIn();
   <script src="/assets/navigation-icons.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>
   <script src="/assets/navigation-model.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>
   <script src="/assets/navigation-editor.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>
+  <script src="/assets/navigation-menus-editor.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>
   <script src="/assets/simulator.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>
   <script src="/assets/app.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>
 </body>

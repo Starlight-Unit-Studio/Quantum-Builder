@@ -109,7 +109,7 @@ final class Apps
             'navigation' => [
                 'top_bar' => false, 'sidebar' => false, 'bottom_tabs' => false, 'contextual_toolbar' => false,
                 'title' => $name, 'background' => '#020611', 'foreground' => '#ffffff', 'accent' => '#6fc7ff',
-                'items' => [],
+                'items' => [], 'menus' => [], 'sidebar_menu' => 'default', 'bottom_tabs_menu' => 'default', 'rules' => [],
             ],
             'links' => ['new_windows' => 'blocked', 'deep_link_scheme' => '', 'rules' => []],
             'permissions' => [
@@ -194,10 +194,7 @@ final class Apps
             $config['navigation'][$colorField] = $color;
         }
 
-        $config['navigation']['items'] = $this->normalizeNavigationItems(
-            array_key_exists('items', $config['navigation']) ? $config['navigation']['items'] : [],
-            strtolower($config['trusted_domain'])
-        );
+        $config['navigation'] = $this->normalizeNavigationMenus($config['navigation'], strtolower($config['trusted_domain']));
 
         if (!isset($config['links']) || !is_array($config['links'])) {
             $config['links'] = $defaults['links'];
@@ -325,20 +322,117 @@ final class Apps
         ];
     }
 
-    private function normalizeNavigationItems(mixed $items, string $trustedDomain): array
+    private function normalizeNavigationMenus(array $navigation, string $trustedDomain): array
+    {
+        $totalNodes = 0;
+        $navigation['items'] = $this->normalizeNavigationItems($navigation['items'], $trustedDomain, $totalNodes);
+        $menus = $navigation['menus'];
+        if (!is_array($menus) || !array_is_list($menus) || count($menus) > 3) {
+            throw new \InvalidArgumentException('Native navigation supports at most three additional menus in a JSON array.');
+        }
+        $ids = ['default' => true];
+        $normalizedMenus = [];
+        foreach ($menus as $menu) {
+            if (!is_array($menu) || array_is_list($menu) || array_diff(array_keys($menu), ['id', 'label', 'items'])) {
+                throw new \InvalidArgumentException('A navigation menu must be an object containing only id, label and items.');
+            }
+            $id = $menu['id'] ?? null;
+            if (!is_string($id) || !preg_match('/\A[a-z][a-z0-9_-]{0,39}\z/', $id) || isset($ids[$id])) {
+                throw new \InvalidArgumentException('Menu IDs must be unique lowercase identifiers; default is reserved.');
+            }
+            $label = is_string($menu['label'] ?? null) ? trim($menu['label']) : '';
+            if ($label === '' || strlen($label) > 80) {
+                throw new \InvalidArgumentException('Menu labels must contain 1 to 80 UTF-8 bytes.');
+            }
+            $ids[$id] = true;
+            $normalizedMenus[] = [
+                'id' => $id, 'label' => $label,
+                'items' => $this->normalizeNavigationItems($menu['items'] ?? null, $trustedDomain, $totalNodes),
+            ];
+        }
+        $navigation['menus'] = $normalizedMenus;
+        $menuReference = static function (mixed $value) use ($ids): string {
+            if (!is_string($value) || !isset($ids[$value])) {
+                throw new \InvalidArgumentException('Navigation menu references must name an existing menu.');
+            }
+            return $value;
+        };
+        foreach (['sidebar_menu', 'bottom_tabs_menu'] as $field) {
+            $navigation[$field] = $menuReference($navigation[$field]);
+        }
+        $rules = $navigation['rules'];
+        if (!is_array($rules) || !array_is_list($rules) || count($rules) > 16) {
+            throw new \InvalidArgumentException('Native navigation supports at most 16 ordered URL rules in a JSON array.');
+        }
+        $normalizedRules = [];
+        foreach ($rules as $rule) {
+            if (!is_array($rule) || array_is_list($rule)
+                || array_diff(array_keys($rule), ['match', 'path', 'host', 'sidebar_menu', 'bottom_tabs_menu', 'visibility'])) {
+                throw new \InvalidArgumentException('A navigation URL rule must be an object with supported rule fields.');
+            }
+            $match = $rule['match'] ?? null;
+            if (!in_array($match, ['exact', 'prefix'], true)) {
+                throw new \InvalidArgumentException('Navigation URL rules must use exact or prefix matching.');
+            }
+            $path = $rule['path'] ?? null;
+            if (!is_string($path) || strlen($path) > 2048 || str_starts_with($path, '//')
+                || !preg_match("~\\A/(?:[A-Za-z0-9._!$&'()*+,;=:@/\\x7e-]|%[0-9A-Fa-f]{2})*\\z~", $path)) {
+                throw new \InvalidArgumentException('Navigation URL rule paths must be ASCII paths starting with /, with valid percent escapes and no query or fragment.');
+            }
+            $normalized = ['match' => $match, 'path' => $path];
+            if (array_key_exists('host', $rule)) {
+                $host = is_string($rule['host']) ? strtolower($rule['host']) : '';
+                if ($host === '' || strlen($host) > 253
+                    || !preg_match('/\A[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\z/', $host)
+                    || ($host !== $trustedDomain && !str_ends_with($host, '.' . $trustedDomain))) {
+                    throw new \InvalidArgumentException('Navigation URL rule hosts must be exact DNS names within the trusted domain.');
+                }
+                $normalized['host'] = $host;
+            }
+            $hasOverride = false;
+            foreach (['sidebar_menu', 'bottom_tabs_menu'] as $field) {
+                if (array_key_exists($field, $rule)) {
+                    $normalized[$field] = $menuReference($rule[$field]);
+                    $hasOverride = true;
+                }
+            }
+            if (array_key_exists('visibility', $rule)) {
+                $visibility = $rule['visibility'];
+                if (!is_array($visibility) || array_is_list($visibility)
+                    || array_diff(array_keys($visibility), ['top_bar', 'sidebar', 'bottom_tabs', 'contextual_toolbar'])) {
+                    throw new \InvalidArgumentException('Navigation visibility must be a nonempty object with supported surface names.');
+                }
+                foreach ($visibility as $visible) {
+                    if (!is_bool($visible)) {
+                        throw new \InvalidArgumentException('Navigation URL visibility overrides must be boolean.');
+                    }
+                }
+                $normalized['visibility'] = $visibility;
+                $hasOverride = true;
+            }
+            if (!$hasOverride) {
+                throw new \InvalidArgumentException('Each navigation URL rule must override a menu or surface visibility.');
+            }
+            $normalizedRules[] = $normalized;
+        }
+        $navigation['rules'] = $normalizedRules;
+        return $navigation;
+    }
+
+    private function normalizeNavigationItems(mixed $items, string $trustedDomain, int &$totalNodes): array
     {
         $links = 0;
         $groups = 0;
         $nodes = 0;
         $groupIds = [];
-        $walk = function (mixed $items, int $depth) use (&$walk, &$links, &$groups, &$nodes, &$groupIds, $trustedDomain): array {
+        $walk = function (mixed $items, int $depth) use (&$walk, &$links, &$groups, &$nodes, &$totalNodes, &$groupIds, $trustedDomain): array {
             if (!is_array($items) || !array_is_list($items)) {
                 throw new \InvalidArgumentException('Native navigation items and group children must be JSON arrays.');
             }
             $normalized = [];
             foreach ($items as $item) {
-                if (++$nodes > 24) {
-                    throw new \InvalidArgumentException('Native navigation supports at most 24 total menu nodes.');
+                if (++$nodes > 24 || ++$totalNodes > 24) {
+                    throw new \InvalidArgumentException('Native navigation supports at most 24 total nodes across all menus.');
                 }
                 if (!is_array($item) || array_is_list($item)) {
                     throw new \InvalidArgumentException('Each native navigation item must be an object.');

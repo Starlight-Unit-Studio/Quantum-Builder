@@ -1,6 +1,6 @@
 # Quantum Builder Functional Parity Matrix
 
-Updated for Builder **0.1.0-alpha14**. The complete dated reference inventory and
+Updated for Builder **0.1.0-alpha15**. The complete dated reference inventory and
 dependency order are retained in [MEDIAN_PARITY_ROADMAP.md](MEDIAN_PARITY_ROADMAP.md).
 The approved brighter Builder direction is retained separately in
 [QUANTUM_ENTERPRISE_DESIGN.md](QUANTUM_ENTERPRISE_DESIGN.md).
@@ -109,7 +109,7 @@ Status legend:
 - Light/dark colors - `PLANNED`
 - Visual menu editor - `PLANNED`
 - Multiple menus - `PLANNED`
-- Visibility rules - `PLANNED`
+- URL visibility rules - `BUILDER`; native implementation `IMPLEMENTED_PENDING_QA` (beta12)
 - Advanced mode - `PLANNED`
 - New-window hierarchy levels - `PLANNED`
 
@@ -128,7 +128,8 @@ Status legend:
 - Native grouping/collapse and active ancestors - `IMPLEMENTED_PENDING_QA` (beta11)
 - Drag/drop, touch-button and keyboard ordering - `BUILDER`
 - Restore defaults / clear all - `PLANNED`
-- Advanced shared-menu JSON editing - `BUILDER`
+- Advanced menu JSON editing - `BUILDER`
+- Independent menu selection and ordered URL rules - `BUILDER`; native implementation `IMPLEMENTED_PENDING_QA` (beta12)
 
 ### Bottom Tab Bar
 
@@ -137,8 +138,8 @@ Status legend:
 - Light/dark styling - `PLANNED`
 - Independent active/inactive tab backgrounds and borders - `PLANNED`
 - Visual shared-menu editor - `BUILDER` (first five destinations in depth-first menu order)
-- Multiple tab menus - `PLANNED`
-- Visibility rules - `PLANNED`
+- Independent tab menus - `BUILDER`; native implementation `IMPLEMENTED_PENDING_QA` (beta12)
+- URL visibility rules - `BUILDER`; native implementation `IMPLEMENTED_PENDING_QA` (beta12)
 - Text/links - `RUNTIME`
 - Built-in/custom PNG icon editor and normal/active preview - `BUILDER`
 - Native tab icons with configured foreground/accent colors - `IMPLEMENTED_PENDING_QA` (beta10)
@@ -148,12 +149,15 @@ The sidebar/tab icon schema, upload limits, wrapper dependency and remaining
 Android acceptance are recorded in [NAVIGATION_ICONS.md](NAVIGATION_ICONS.md).
 The group schema, collapse behavior, mobile editing and companion beta11 validation
 are recorded in [NAVIGATION_GROUPS.md](NAVIGATION_GROUPS.md).
+Independent Sidebar/Tabs menus, ordered URL rules, per-surface visibility and
+beta12 acceptance are recorded in [NAVIGATION_MENUS.md](NAVIGATION_MENUS.md).
+Top Bar custom menu/actions remain separately planned.
 
 ### Contextual Navigation Toolbar
 
 - Enable - `RUNTIME`
 - Built-in Back/Home/Reload/Forward actions - `RUNTIME`
-- Visibility by pages - `PLANNED`
+- Visibility by URL paths/hosts - `BUILDER`; native implementation `IMPLEMENTED_PENDING_QA` (beta12)
 - Visibility by back-button status - `PLANNED`
 - Back button label/pages - `PLANNED`
 - Refresh button configuration - `PLANNED`

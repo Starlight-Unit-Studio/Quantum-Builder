@@ -474,7 +474,7 @@ const waitFor = async (check, message) => {
     assert.equal(await rows.count(), 11);
     assert.equal(await page.locator('.sim-native-group-toggle').count(), 4);
     assert.deepEqual(await page.locator('.sim-native-tab').allTextContents(), ['Home', 'News', 'Guide', 'Downloads', 'Settings'], 'Tabs use the first five links depth-first without consuming places for group headings.');
-    assert.deepEqual(await page.locator('.qb-nav-editor__badge.is-tab').allTextContents(), ['Tab 1 + Sidebar', 'Tab 2 + Sidebar', 'Tab 3 + Sidebar', 'Tab 4 + Sidebar', 'Tab 5 + Sidebar']);
+    assert.deepEqual(await page.locator('.qb-nav-editor__badge.is-tab').allTextContents(), ['Tab-Platz 1', 'Tab-Platz 2', 'Tab-Platz 3', 'Tab-Platz 4', 'Tab-Platz 5']);
     for (const id of ['service', 'support', 'details', 'account']) assert.equal(await groupToggle(id).getAttribute('aria-expanded'), 'false');
     const beforeGroupNavigation = websiteLoads.length;
     await launcher.click();

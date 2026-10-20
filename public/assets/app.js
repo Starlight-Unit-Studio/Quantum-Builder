@@ -211,6 +211,12 @@
     $('nativeNavigationForeground').value = get(config, 'navigation.foreground', '#ffffff');
     $('nativeNavigationAccent').value = get(config, 'navigation.accent', '#6fc7ff');
     $('nativeNavigationItems').value = JSON.stringify(get(config, 'navigation.items', []), null, 2);
+    $('nativeNavigationProfile').value = JSON.stringify({
+      menus: get(config, 'navigation.menus', []),
+      sidebar_menu: get(config, 'navigation.sidebar_menu', 'default'),
+      bottom_tabs_menu: get(config, 'navigation.bottom_tabs_menu', 'default'),
+      rules: get(config, 'navigation.rules', []),
+    }, null, 2);
     state.navigationEditor?.load();
 
     $('newWindows').value = get(config, 'links.new_windows', 'blocked');
@@ -261,7 +267,16 @@
       nativeNavigationItems = JSON.parse(rawNavigationItems);
       if (!Array.isArray(nativeNavigationItems)) throw new Error('Native Navigation Items müssen ein JSON-Array sein.');
     }
-    nativeNavigationItems = window.QuantumNavigationModel.validateItems(nativeNavigationItems, {
+    const nativeNavigation = window.QuantumNavigationModel.validateNavigation({
+      ...state.navigationEditor.read(),
+      items: nativeNavigationItems,
+      top_bar: $('topBar').checked, sidebar: $('sidebarNav').checked, bottom_tabs: $('bottomTabs').checked,
+      contextual_toolbar: $('contextualToolbar').checked,
+      title: $('nativeNavigationTitle').value.trim(),
+      background: $('nativeNavigationBackground').value,
+      foreground: $('nativeNavigationForeground').value,
+      accent: $('nativeNavigationAccent').value,
+    }, {
       startUrl: $('startUrl').value.trim(),
       trustedDomain: $('trustedDomain').value.trim(),
     });
@@ -304,15 +319,7 @@
           loading_spinner_size_dp: Number($('loadingSpinnerSize').value),
           loading_overlay_dim_percent: Number($('loadingOverlayDim').value),
         },
-        navigation: {
-          top_bar: $('topBar').checked, sidebar: $('sidebarNav').checked, bottom_tabs: $('bottomTabs').checked,
-          contextual_toolbar: $('contextualToolbar').checked,
-          title: $('nativeNavigationTitle').value.trim(),
-          background: $('nativeNavigationBackground').value,
-          foreground: $('nativeNavigationForeground').value,
-          accent: $('nativeNavigationAccent').value,
-          items: nativeNavigationItems,
-        },
+        navigation: nativeNavigation,
         links: {
           new_windows: $('newWindows').value,
           deep_link_scheme: $('deepLinkScheme').value.trim(),
@@ -506,15 +513,19 @@
     $('simPackage').textContent = $('packageId')?.value || state.currentApp?.package_id || 'package';
     $('simVersion').textContent = $('versionName')?.value || state.currentApp?.version_name || 'version';
     let items = null;
+    let navigationProfile = {};
     let validationError = '';
-    try { items = JSON.parse($('nativeNavigationItems').value.trim() || '[]'); }
-    catch { validationError = 'Die Menü-JSON ist noch unvollständig. Die letzte gültige Vorschau bleibt sichtbar.'; }
+    try {
+      items = JSON.parse($('nativeNavigationItems').value.trim() || '[]');
+      navigationProfile = state.navigationEditor?.read() || {};
+    } catch (error) { validationError = error.message || 'Die Menü-JSON ist noch unvollständig. Die letzte gültige Vorschau bleibt sichtbar.'; }
     window.QuantumSimulator?.updateProfile({
       id: state.currentApp?.id ?? null,
       name,
       startUrl: url,
       trustedDomain: $('trustedDomain').value.trim(),
       navigation: {
+        ...navigationProfile,
         top_bar: $('topBar').checked,
         sidebar: $('sidebarNav').checked,
         bottom_tabs: $('bottomTabs').checked,
@@ -636,9 +647,14 @@
   const closeMobileNav = () => $('sidebar').classList.remove('is-open');
 
   const bind = () => {
-    state.navigationEditor = window.QuantumNavigationEditor.create({
-      root: $('nativeNavigationEditor'),
-      textarea: $('nativeNavigationItems'),
+    state.navigationEditor = window.QuantumNavigationMenusEditor.create({
+      root: $('nativeNavigationMenusEditor'),
+      rulesRoot: $('nativeNavigationRulesEditor'),
+      additionalRoot: $('nativeNavigationAdditionalMenus'),
+      defaultPanel: $('nativeNavigationDefaultMenu'),
+      defaultRoot: $('nativeNavigationEditor'),
+      defaultTextarea: $('nativeNavigationItems'),
+      textarea: $('nativeNavigationProfile'),
       getContext: () => ({
         startUrl: $('startUrl').value.trim(),
         trustedDomain: $('trustedDomain').value.trim(),
@@ -667,13 +683,13 @@
     versionCodeField.title = 'Wird bei jedem Build automatisch erhöht.';
 
     qsa('[data-section]').forEach((button) => button.addEventListener('click', () => showSection(button.dataset.section)));
-    qsa('#appForm input:not([type="file"]), #appForm select, #appForm textarea').forEach((input) => {
+    qsa('#appForm input:not([type="file"]), #appForm select, #appForm textarea').filter(input => !input.closest('[data-navigation-managed]')).forEach((input) => {
       input.addEventListener('change', () => {
         updateSimulator();
         markDirty();
       });
     });
-    qsa('#appForm input:not([type="file"]), #appForm textarea').forEach((input) => {
+    qsa('#appForm input:not([type="file"]), #appForm textarea').filter(input => !input.closest('[data-navigation-managed]')).forEach((input) => {
       input.addEventListener('input', () => {
         updateSimulator();
         markDirty();

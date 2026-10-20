@@ -6,21 +6,23 @@ The project turns one maintained Android wrapper runtime into reusable app profi
 
 The current interface uses the **Terran terminal design language** from *Starlight Unit: The Game* and its mobile Admin Console. Median, MobiLoud, Twinr and CatDoes are capability and workflow references; Quantum retains its own implementation and visual identity.
 
-Current version: `0.1.0-alpha14`
+Current version: `0.1.0-alpha15`
 
 ## Current development
 
-Alpha14 adds sidebar groups, nesting and collapsible sections to the shared
-native-navigation menu. The mobile editor supports up to 12 destinations and
-12 groups across three group levels, moving whole subtrees and dissolving a group
-while retaining its children. Bottom Tabs use the first five destinations in
-depth-first menu order. Groups and links can use normal/active built-in or PNG icons.
+Alpha15 adds independent menus for Sidebar and Bottom Tabs, plus ordered URL rules
+for menu selection and visibility of all four native navigation surfaces. A Standard
+menu and three additional menus share the existing link/group/icon editor. Rules
+use exact paths or segment-aware prefixes with optional trusted host filters; the
+first matching rule wins. Menu and visibility changes preserve the current page.
 
-The complete tree survives saving, preview and compilation. Group-bearing builds
-require the companion beta11 wrapper module; flat icon menus retain their beta10
-compatibility. The local checks and remaining native device acceptance are recorded
-in [docs/NAVIGATION_GROUPS.md](docs/NAVIGATION_GROUPS.md). The existing icon contract
-is retained in [docs/NAVIGATION_ICONS.md](docs/NAVIGATION_ICONS.md).
+The complete configuration survives saving, preview and compilation. Extended
+profiles require the companion beta12 wrapper; existing Standard-only profiles
+retain their prior icon/group compatibility. The contract, limits, local validation
+and remaining native acceptance are recorded in
+[docs/NAVIGATION_MENUS.md](docs/NAVIGATION_MENUS.md). The earlier group and icon
+contracts remain in [docs/NAVIGATION_GROUPS.md](docs/NAVIGATION_GROUPS.md) and
+[docs/NAVIGATION_ICONS.md](docs/NAVIGATION_ICONS.md).
 
 The visual menu editor introduced in alpha12 lets you
 edit labels and destinations, add/remove entries, reorder with touch-friendly
