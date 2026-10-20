@@ -1,8 +1,14 @@
 import importlib.util
+import base64
+import binascii
+import copy
+import hashlib
 import io
 import json
+import struct
 import tempfile
 import unittest
+import zlib
 from pathlib import Path
 
 SPEC = importlib.util.spec_from_file_location(
@@ -12,6 +18,24 @@ SPEC = importlib.util.spec_from_file_location(
 worker = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(worker)
+
+
+def png_chunk(kind, data):
+    return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", binascii.crc32(kind + data))
+
+
+def navigation_png(width=1, height=1, *, depth=8, color=6, image_data=None, padding=0):
+    channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(color, 4)
+    scanline_size = 1 + (max(0, width) * channels * depth + 7) // 8
+    raw = b"\0" * (scanline_size * max(0, height)) if image_data is None else image_data
+    header = struct.pack(">IIBBBBB", width, height, depth, color, 0, 0, 0)
+    extra = png_chunk(b"tEXt", b"x\0" + b"x" * padding) if padding else b""
+    return (b"\x89PNG\r\n\x1a\n" + png_chunk(b"IHDR", header) + extra
+            + png_chunk(b"IDAT", zlib.compress(raw)) + png_chunk(b"IEND", b""))
+
+
+def navigation_data_url(payload=None):
+    return "data:image/png;base64," + base64.b64encode(navigation_png() if payload is None else payload).decode("ascii")
 
 
 class WorkerCompilerTests(unittest.TestCase):
@@ -201,6 +225,18 @@ public final class AppConfig {
         self.assertIn('CUSTOM_CSS = "body { background: #010203; }";', text)
         self.assertIn('CUSTOM_JAVASCRIPT = "window.quantumPremium = true;";', text)
         self.assertIn('COOKIE_PERSISTENCE_MODE = "session";', text)
+
+        # The real AppConfig patch must reference packaged assets, not embed image data.
+        capability = self.root / "app/src/main/java/de/starlightunit/wrapper/navigation/NativeNavigationIcons.java"
+        capability.parent.mkdir(parents=True)
+        capability.write_text("// supported runtime fixture\n", encoding="utf-8")
+        self.config["navigation"]["items"][0]["icon"] = navigation_data_url()
+        self.config["navigation"]["items"][0]["active_icon"] = "home"
+        worker.patch_app_config(self.root, self.app, self.config)
+        text = path.read_text(encoding="utf-8")
+        self.assertNotIn("data:image/png;base64,", text)
+        self.assertIn("asset:quantum_nav_icons/", text)
+        self.assertIn('\\"active_icon\\":\\"home\\"', text)
 
     def test_loading_indicator_settings_compile_into_app_config(self):
         path = self.root / "app/src/main/java/de/starlightunit/wrapper/config/AppConfig.java"
@@ -516,6 +552,113 @@ public final class AppConfig {
         )
         self.assertEqual(command[3], secret)
         self.assertEqual(command[5], secret)
+
+
+class NavigationIconCompilerTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.capability = self.root / "app/src/main/java/de/starlightunit/wrapper/navigation/NativeNavigationIcons.java"
+        self.capability.parent.mkdir(parents=True)
+        self.capability.write_text("// supported runtime fixture\n", encoding="utf-8")
+        self.assets = self.root / "app/src/main/assets/quantum_nav_icons"
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def test_legacy_items_and_empty_icons_still_compile_without_new_runtime(self):
+        self.capability.unlink()
+        self.assertEqual(worker.compile_navigation_items(self.root, [{"label": "Home", "url": "/", "icon": " ", "active_icon": ""}]),
+                         [{"label": "Home", "url": "/"}])
+        self.assertEqual(worker.compile_navigation_items(self.root, []), [])
+
+    def test_builtin_and_active_icons_require_supported_runtime(self):
+        for icon in worker.NAVIGATION_ICON_IDS:
+            item = {"label": "Home", "url": "/", "icon": icon, "active_icon": "star"}
+            self.assertEqual(worker.compile_navigation_items(self.root, [item]), [item])
+        self.capability.unlink()
+        for field in ("icon", "active_icon"):
+            with self.subTest(field=field), self.assertRaisesRegex(RuntimeError, "beta10 or newer"):
+                worker.compile_navigation_items(self.root, [{"label": "Home", "url": "/", field: "home"}])
+
+    def test_custom_icons_deduplicate_keep_original_profile_and_recompile_cleanly(self):
+        png = navigation_png(24, 18)
+        data_url = navigation_data_url(png)
+        filename = hashlib.sha256(png).hexdigest() + ".png"
+        items = [{"label": "Home", "url": "/", "icon": data_url, "active_icon": data_url},
+                 {"label": "Other", "url": "/other", "icon": data_url}]
+        original = copy.deepcopy(items)
+        result = worker.compile_navigation_items(self.root, items)
+        self.assertEqual(items, original)
+        self.assertEqual(result[0]["icon"], "asset:quantum_nav_icons/" + filename)
+        self.assertEqual(result[0]["active_icon"], result[1]["icon"])
+        self.assertEqual([path.name for path in self.assets.iterdir()], [filename])
+        self.assertEqual((self.assets / filename).read_bytes(), png)
+        unrelated = self.assets / "README.txt"
+        unrelated.write_text("preserve", encoding="utf-8")
+        worker.compile_navigation_items(self.root, [{"label": "Home", "url": "/", "icon": "home"}])
+        self.assertFalse((self.assets / filename).exists())
+        self.assertEqual(unrelated.read_text(encoding="utf-8"), "preserve")
+
+    def test_invalid_icons_are_rejected_before_assets_change(self):
+        values = [None, [], {}, True, 2, "unknown", "HOME", "https://evil.test/icon.png", "//evil.test/icon.png",
+                  "asset:quantum_nav_icons/" + "a" * 64 + ".png", "../icon.png", "data:image/svg+xml;base64,PHN2Zz4=",
+                  "data:image/png;base64,AAAA", "data:image/png;base64,***", navigation_data_url() + "="]
+        for value in values:
+            with self.subTest(value=str(value)[:50]), self.assertRaises(RuntimeError):
+                worker.compile_navigation_items(self.root, [{"label": "Valid", "url": "/", "icon": navigation_data_url()},
+                                                          {"label": "Bad", "url": "/bad", "active_icon": value}])
+            self.assertFalse(self.assets.exists())
+
+    def test_corrupt_truncated_oversized_and_animated_pngs_are_rejected(self):
+        valid = navigation_png()
+        corrupt_crc = valid[:29] + bytes([valid[29] ^ 1]) + valid[30:]
+        bad_zlib = valid[:33] + png_chunk(b"IDAT", b"not-zlib") + png_chunk(b"IEND", b"")
+        zlib_trailing = valid[:33] + png_chunk(b"IDAT", zlib.compress(b"\0" * 5) + b"trailing") + png_chunk(b"IEND", b"")
+        noncontiguous = (valid[:33] + png_chunk(b"IDAT", b"") + png_chunk(b"tEXt", b"x\0y")
+                         + png_chunk(b"IDAT", zlib.compress(b"\0" * 5)) + png_chunk(b"IEND", b""))
+        animated = valid[:33] + png_chunk(b"acTL", struct.pack(">II", 1, 0)) + valid[33:]
+        too_big_inflate = navigation_png(image_data=b"\0" * 1_000_000)
+        invalid = [b"", b"\x89PNG\r\n\x1a\n", valid[:-1], valid + b"x", corrupt_crc,
+                   navigation_png(257, 1), navigation_png(0, 1), navigation_png(1, 257),
+                   navigation_png(depth=3), navigation_png(color=5), bad_zlib, zlib_trailing, noncontiguous, animated,
+                   navigation_png(image_data=b"\5\0\0\0\0"), too_big_inflate, navigation_png(padding=65536)]
+        for payload in invalid:
+            with self.subTest(length=len(payload), prefix=payload[:30]), self.assertRaises(RuntimeError):
+                worker.compile_navigation_items(self.root, [{"label": "Home", "url": "/", "icon": navigation_data_url(payload)}])
+
+    def test_valid_limits_and_large_menus_stay_below_java_string_limit(self):
+        for payload in (navigation_png(), navigation_png(256, 256), navigation_png(256, 256, depth=16)):
+            worker.validate_navigation_png(payload)
+        unpadded = navigation_png()
+        exact_limit = navigation_png(padding=65536 - len(unpadded) - 14)
+        self.assertEqual(len(exact_limit), 65536)
+        worker.validate_navigation_png(exact_limit)
+        items = [{"label": "Item " + str(i), "url": "/" + str(i), "icon": navigation_data_url(exact_limit), "active_icon": navigation_data_url()}
+                 for i in range(12)]
+        compiled = worker.compile_navigation_items(self.root, items)
+        self.assertNotIn("base64", json.dumps(compiled))
+        self.assertLess(len(worker.java_literal(json.dumps(compiled)).encode("utf-8")), 65535)
+        self.assertEqual(len(list(self.assets.iterdir())), 2)
+
+    def test_indexed_and_interlaced_pngs_are_supported(self):
+        prefix = b"\x89PNG\r\n\x1a\n"
+        indexed = (prefix + png_chunk(b"IHDR", struct.pack(">IIBBBBB", 2, 1, 1, 3, 0, 0, 0))
+                   + png_chunk(b"PLTE", b"\xff\0\0\0\xff\0")
+                   + png_chunk(b"IDAT", zlib.compress(b"\0\x40")) + png_chunk(b"IEND", b""))
+        # A 2x2 RGBA Adam7 image has rows of 5, 5 and 9 bytes, including filters.
+        interlaced = (prefix + png_chunk(b"IHDR", struct.pack(">IIBBBBB", 2, 2, 8, 6, 0, 0, 1))
+                      + png_chunk(b"IDAT", zlib.compress(b"\0" * 19)) + png_chunk(b"IEND", b""))
+        for png in (indexed, interlaced):
+            worker.validate_navigation_png(png)
+
+    def test_symlink_asset_directory_cannot_escape_project(self):
+        with tempfile.TemporaryDirectory() as other:
+            self.assets.parent.mkdir(parents=True)
+            self.assets.symlink_to(other, target_is_directory=True)
+            with self.assertRaisesRegex(RuntimeError, "inside the wrapper project"):
+                worker.compile_navigation_items(self.root, [{"label": "Home", "url": "/", "icon": navigation_data_url()}])
+            self.assertEqual(list(Path(other).iterdir()), [])
 
 
 if __name__ == "__main__":

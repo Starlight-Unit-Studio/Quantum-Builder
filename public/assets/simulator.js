@@ -34,6 +34,7 @@
   const stage = () => $('simulatorStage');
   let surfaces = null;
   let drawerTrigger = null;
+  const menuBindings = new WeakMap();
 
   const create = (tag, className, text = '') => {
     const element = document.createElement(tag);
@@ -105,11 +106,19 @@
     surfaces.home.disabled = !ready;
     surfaces.contextHome.disabled = !ready;
     surfaces.reload.disabled = !ready;
-    for (const button of surfaces.tabs.children) {
+    for (const button of [...surfaces.tabs.children, ...surfaces.items.children]) {
       const active = ready && sameLocation(button.dataset.target || '', state.currentUrl);
       button.classList.toggle('is-selected', active);
       if (active) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');
+      const binding = menuBindings.get(button);
+      if (!binding) continue;
+      const icon = active ? binding.item.active_icon || binding.item.icon || '' : binding.item.icon || '';
+      if (binding.iconValue !== icon) {
+        const image = window.QuantumNavigationIcons.createElement(icon, { className: 'sim-native-icon-image' });
+        binding.slot.replaceChildren(...(image ? [image] : []));
+        binding.iconValue = icon;
+      }
     }
   };
 
@@ -223,6 +232,8 @@
   };
 
   const syncMenu = (container, items, isSidebar) => {
+    const hasIcons = items.some((item) => item.icon || item.active_icon);
+    container.classList.toggle('has-icons', hasIcons);
     while (container.children.length > items.length) container.lastElementChild.remove();
     items.forEach((item, index) => {
       let button = container.children[index];
@@ -233,10 +244,19 @@
           if (isSidebar) closeDrawer(true);
           navigate(button.dataset.target);
         });
+        const slot = create('span', 'sim-native-icon');
+        slot.setAttribute('aria-hidden', 'true');
+        const label = create('span', 'sim-native-menu-label');
+        button.append(slot, label);
+        menuBindings.set(button, { slot, label, item, iconValue: null });
         container.append(button);
       }
-      button.textContent = item.label;
+      const binding = menuBindings.get(button);
+      binding.item = item;
+      binding.label.textContent = item.label;
+      binding.slot.hidden = !hasIcons;
       button.title = item.label;
+      button.setAttribute('aria-label', item.label);
       button.dataset.target = item.resolvedUrl;
     });
   };

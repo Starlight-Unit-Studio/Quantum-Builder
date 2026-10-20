@@ -6,11 +6,18 @@ The project turns one maintained Android wrapper runtime into reusable app profi
 
 The current interface uses the **Terran terminal design language** from *Starlight Unit: The Game* and its mobile Admin Console. Median, MobiLoud, Twinr and CatDoes are capability and workflow references; Quantum retains its own implementation and visual identity.
 
-Current version: `0.1.0-alpha12`
+Current version: `0.1.0-alpha13`
 
 ## Current development
 
-Alpha12 adds a visual editor for the existing shared native-navigation menu:
+Alpha13 adds built-in and custom PNG icons to the shared native-navigation menu,
+with separate normal/active choices, mobile upload controls and live preview.
+The worker packages custom icons as offline assets and requires the companion
+beta10 wrapper icon module for icon-bearing builds. Local Builder integration is
+verified; native device acceptance remains open. The exact contract, compatibility
+and verification scope are in [docs/NAVIGATION_ICONS.md](docs/NAVIGATION_ICONS.md).
+
+The visual menu editor introduced in alpha12 lets you
 edit labels and destinations, add/remove entries, reorder with touch-friendly
 buttons or desktop drag handles, and retain the advanced JSON representation.
 The simulator now previews the configured Top Bar, Sidebar, Bottom Tabs and
@@ -30,7 +37,7 @@ documented integrations so later sessions can continue from the recorded work.
 The [additional-platform inventory](docs/REFERENCE_PLATFORM_EXPANSION.md) covers
 MobiLoud's website/commerce and launch workflows, Twinr's native screens/data binding
 and engagement tools, and CatDoes-style generated application projects. These
-extensions are planned; they do not change the implemented alpha12 feature scope.
+extensions retain their individual planned status in the matrices.
 
 Planned AI features connect to a compatible external API using an API address,
 API key and model identifier. Model inference runs at the connected service.

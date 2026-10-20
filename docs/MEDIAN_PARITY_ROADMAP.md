@@ -40,9 +40,9 @@ is retained so existing links and handoffs continue to work.
 
 | Component | Baseline |
 |---|---|
-| Quantum Builder | `0.1.0-alpha11`, `main`, `c3577af04c32d961ff7fc6a1cc75e53a1aa7e6ce` |
+| Quantum Builder | `0.1.0-alpha12`, `main`, `c627b09b933b3cc4a7c78802764d8bb4dd09b9ca`; visual editor/preview PR #24 merged |
 | Quantum Mobile Wrapper | `0.1.0-beta9`, `compat/android-6-api23`, `25191da5fdba793abe86e5ae1d1eb7830e930b11` |
-| Current alpha12 candidate | Visual shared-menu editor and live navigation overlays: **BUILDER**, verified locally; publication tracked in its PR |
+| Current alpha13 candidate | Normal/active built-in and custom PNG menu icons: **BUILDER** verified locally; companion beta10 native code is **IMPLEMENTED_PENDING_QA** |
 
 The Builder uses the compatibility branch as its default wrapper source. Wrapper
 `main` is a different line of development; its open integration must retain both
@@ -60,7 +60,7 @@ and the detailed matrices for individual boundaries.
 
 Implementation status: **BUILDER**. Local integration checks passed on 2026-10-20.
 This is the acceptance of the scoped editor/preview tranche, not overall parity
-or a claim that the candidate has been merged or deployed.
+or a deployment claim. Alpha12 is now merged into Builder main via PR #24.
 
 - [x] Verify visual creation, editing, ordering and deletion of shared menu items.
 - [x] Verify existing profile fixtures and the advanced JSON representation remain compatible.
@@ -82,8 +82,25 @@ by this tranche's browser regression, and GitHub Actions was not used for valida
 
 The browser simulator previews presentation and navigation configuration. It is
 not an Android emulator and does not establish native plugin or OS behavior.
-Icons, nested groups, multiple menus, typed custom actions and visibility rules
-remain later work unless their own implementation and validation are recorded.
+Nested groups, multiple menus, typed custom actions and visibility rules remain
+later work unless their own implementation and validation are recorded.
+
+### Alpha13 icon tranche
+
+The [icon contract and validation record](NAVIGATION_ICONS.md) covers the visual
+Normal/Aktiv controls, 20 built-ins, static PNG uploads, profile persistence,
+selected-state preview and deduplicated compiled assets. Existing iconless menus
+remain compatible. Icon-bearing builds explicitly require the beta10 wrapper module.
+
+Builder acceptance is complete for the recorded local model, browser, PHP/SQLite
+and compiler checks. Native code exists, navigation tests pass and its Java sources
+compile against API 23; device rendering acceptance remains open. No GitHub Actions
+run, APK installation or deployment is claimed by these local checks.
+
+- [x] Implement and locally verify icon selection, upload, persistence and preview.
+- [x] Compile PNGs to bounded bundled assets with short runtime references.
+- [x] Implement normal/active native icon rendering and fallback behavior.
+- [ ] Accept a generated APK on Android 6 and a current Android device/emulator.
 
 ## Status rules
 
@@ -108,7 +125,8 @@ while delivering useful complete blocks instead of adding inactive switches.
 ### 1. Finish navigation and its editing workflow
 
 - [x] Finish alpha12 integration acceptance above.
-- [ ] Add built-in/custom icons and active/inactive icon states.
+- [x] Add built-in/custom icons and active/inactive icon states; native device
+  acceptance remains separately open in the alpha13 tranche above.
 - [ ] Add sidebar groups, nesting and collapsible sections.
 - [ ] Add independent menu sets and URL-based selection/visibility rules.
 - [ ] Add page-specific titles/images, search and typed actions such as Back,

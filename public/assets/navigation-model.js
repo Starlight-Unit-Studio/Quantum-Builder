@@ -1,9 +1,11 @@
 ((root, factory) => {
   'use strict';
-  const model = factory();
+  const icons = typeof module === 'object' && module.exports
+    ? require('./navigation-icons.js') : root.QuantumNavigationIcons;
+  const model = factory(icons);
   if (typeof module === 'object' && module.exports) module.exports = model;
   if (root) root.QuantumNavigationModel = model;
-})(typeof globalThis !== 'undefined' ? globalThis : this, () => {
+})(typeof globalThis !== 'undefined' ? globalThis : this, (icons) => {
   'use strict';
 
   const MAX_ITEMS = 12;
@@ -73,7 +75,12 @@
         }
         if (typeof item.url !== 'string') throw new Error('Das Menüziel muss Text sein.');
         resolveTarget(item.url, context);
-        return { label: item.label.trim(), url: item.url.trim() };
+        const normalized = { label: item.label.trim(), url: item.url.trim() };
+        for (const field of ['icon', 'active_icon']) {
+          const value = icons.validate(item[field]);
+          if (value) normalized[field] = value;
+        }
+        return normalized;
       } catch (cause) {
         const error = new Error(`Menüeintrag ${index + 1}: ${cause.message}`);
         error.itemIndex = index;

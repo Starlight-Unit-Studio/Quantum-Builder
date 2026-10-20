@@ -306,6 +306,7 @@ $authenticated = $auth->isLoggedIn();
   </dialog>
 
   <script>window.QB_BOOT = <?= json_encode(['authenticated' => $authenticated, 'csrf' => $authenticated ? $auth->csrf() : null, 'version' => Config::version()], JSON_UNESCAPED_SLASHES) ?>;</script>
+  <script src="/assets/navigation-icons.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>
   <script src="/assets/navigation-model.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>
   <script src="/assets/navigation-editor.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>
   <script src="/assets/simulator.js?v=<?= htmlspecialchars(Config::version(), ENT_QUOTES) ?>" defer></script>

@@ -6,6 +6,8 @@
 
     const model = window.QuantumNavigationModel;
     if (!model) throw new Error('Navigation model must load before the editor.');
+    const icons = window.QuantumNavigationIcons;
+    if (!icons) throw new Error('Navigation icons must load before the editor.');
     const maxItems = model.MAX_ITEMS || 12;
     const maxTabs = model.MAX_TABS || 5;
     let items = [];
@@ -14,6 +16,8 @@
     let serializing = false;
     let dragKey = null;
     let announceTimer = null;
+    let generation = 0;
+    let destroyed = false;
 
     const element = (tag, className, text) => {
       const node = document.createElement(tag);
@@ -59,6 +63,115 @@
     };
 
     const itemName = (item, index) => item.label.trim() || `Menüpunkt ${index + 1}`;
+    const iconFields = ['icon', 'active_icon'];
+    const profileItem = (item) => {
+      const result = { ...item.original, label: item.label, url: item.url };
+      for (const field of iconFields) {
+        if (item[field] === undefined || item[field] === '') delete result[field];
+        else result[field] = item[field];
+      }
+      return result;
+    };
+    const newItem = (source) => ({
+      key: ++nextKey, original: source, label: source.label || '', url: source.url || '',
+      icon: source.icon, active_icon: source.active_icon,
+      uploadVersion: { icon: 0, active_icon: 0 },
+      uploading: { icon: false, active_icon: false },
+      uploadErrors: { icon: '', active_icon: '' },
+    });
+
+    const refreshIconControl = (item, field) => {
+      const control = item.row?.icons[field];
+      if (!control) return;
+      const value = item[field];
+      const active = field === 'active_icon';
+      const { select, preview, upload, reset, status } = control;
+      select.querySelectorAll('[data-current-icon]').forEach((option) => option.remove());
+      let normalized = '';
+      let valid = true;
+      try { normalized = value === undefined ? '' : icons.validate(value); }
+      catch { valid = false; }
+      if (!valid || normalized.startsWith('data:')) {
+        const option = element('option', '', valid ? 'Eigenes PNG' : 'Ungültige Icon-Angabe');
+        option.value = valid ? '__custom__' : '__invalid__';
+        option.dataset.currentIcon = 'true';
+        select.append(option);
+        select.value = option.value;
+      } else select.value = normalized;
+
+      const effective = active && valid && !normalized ? item.icon : valid ? normalized : '';
+      let visual = null;
+      try { visual = icons.createElement(effective || '', { className: 'qb-nav-editor__icon-image' }); }
+      catch { /* Invalid raw JSON stays editable without creating an image URL. */ }
+      preview.replaceChildren(...(visual ? [visual] : [element('span', '', '·')]));
+      preview.classList.toggle('is-active', active);
+      upload.textContent = item.uploading[field] ? 'PNG wird geprüft …' : 'PNG auswählen';
+      reset.disabled = !value && !item.uploading[field] && !item.uploadErrors[field];
+      status.textContent = item.uploading[field] ? 'Datei wird geprüft.'
+        : active && valid && !normalized ? 'Übernimmt das normale Icon.'
+          : valid && normalized.startsWith('data:') ? 'Eigenes PNG, Originalfarben.' : '';
+      status.hidden = !status.textContent;
+    };
+
+    const updateIcon = (item, field, value) => {
+      item.uploadVersion[field] += 1;
+      item.uploading[field] = false;
+      item.uploadErrors[field] = '';
+      item[field] = value;
+      refreshIconControl(item, field);
+      if (field === 'icon') refreshIconControl(item, 'active_icon');
+      serialize();
+    };
+
+    const readPng = (file) => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Die PNG-Datei konnte nicht gelesen werden.'));
+      reader.onload = () => {
+        let value;
+        try {
+          const encoded = String(reader.result).split(',')[1];
+          value = icons.validate(`data:image/png;base64,${encoded}`);
+        }
+        catch (error) { reject(error); return; }
+        const image = new Image();
+        image.onerror = () => reject(new Error('Diese Datei lässt sich nicht als PNG-Bild öffnen.'));
+        image.onload = () => {
+          if (image.naturalWidth < 1 || image.naturalHeight < 1
+            || image.naturalWidth > icons.MAX_PNG_DIMENSION || image.naturalHeight > icons.MAX_PNG_DIMENSION) {
+            reject(new Error(`PNG-Icons dürfen höchstens ${icons.MAX_PNG_DIMENSION} × ${icons.MAX_PNG_DIMENSION} Pixel groß sein.`));
+          } else resolve(value);
+        };
+        image.src = value;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    const uploadIcon = async (item, field, file) => {
+      if (!file || destroyed || sourceError || !items.includes(item)) return;
+      const ticket = ++item.uploadVersion[field];
+      const currentGeneration = generation;
+      const isCurrent = () => !destroyed && generation === currentGeneration
+        && items.includes(item) && item.uploadVersion[field] === ticket;
+      item.uploadErrors[field] = '';
+      item.uploading[field] = true;
+      refreshIconControl(item, field);
+      refreshValidation();
+      try {
+        if ((file.type && file.type !== 'image/png') || !file.size || file.size > icons.MAX_PNG_BYTES) {
+          throw new Error('Bitte eine PNG-Datei bis 64 KiB auswählen.');
+        }
+        const value = await readPng(file);
+        if (!isCurrent()) return;
+        updateIcon(item, field, value);
+        announce('PNG-Icon übernommen.');
+      } catch (error) {
+        if (!isCurrent()) return;
+        item.uploading[field] = false;
+        item.uploadErrors[field] = error.message || 'Das PNG-Icon konnte nicht übernommen werden.';
+        refreshIconControl(item, field);
+        refreshValidation();
+      }
+    };
 
     const refreshValidation = () => {
       sourceMessage.textContent = sourceError;
@@ -84,20 +197,34 @@
           urlError = error.message || 'Ein gültiges, vertrauenswürdiges Ziel fehlt.';
         }
 
+        const iconErrors = {};
+        for (const field of iconFields) {
+          try { if (item[field] !== undefined) icons.validate(item[field]); }
+          catch (error) { iconErrors[field] = error.message || 'Bitte ein gültiges Icon auswählen.'; }
+        }
+
         // The shared validator is also authoritative for future profile rules.
         let ruleError = '';
-        if (!labelError && !urlError) {
-          try { model.validateItems([{ label: item.label, url: item.url }], context); }
+        if (!labelError && !urlError && !Object.keys(iconErrors).length) {
+          try { model.validateItems([profileItem(item)], context); }
           catch (error) { ruleError = error.message || 'Diesen Menüpunkt bitte prüfen.'; }
         }
 
-        const message = [labelError, urlError, ruleError].filter(Boolean).join(' ');
+        const message = [labelError, urlError, ...iconFields.map((field) => iconErrors[field] || item.uploadErrors[field]), ruleError].filter(Boolean).join(' ');
         row.error.textContent = message;
         row.error.hidden = !message;
         row.node.classList.toggle('has-error', Boolean(message));
         row.label.setAttribute('aria-invalid', labelError ? 'true' : 'false');
         row.url.setAttribute('aria-invalid', urlError || ruleError ? 'true' : 'false');
         const name = itemName(item, index);
+        for (const field of iconFields) {
+          const control = row.icons[field];
+          const title = field === 'icon' ? 'Normales' : 'Aktives';
+          control.select.setAttribute('aria-invalid', iconErrors[field] ? 'true' : 'false');
+          control.select.setAttribute('aria-label', `${title} Icon für ${name}`);
+          control.upload.setAttribute('aria-label', `${title} PNG-Icon für ${name} auswählen`);
+          control.reset.setAttribute('aria-label', `${title} Icon für ${name} zurücksetzen`);
+        }
         row.up.setAttribute('aria-label', `${name} nach oben verschieben`);
         row.down.setAttribute('aria-label', `${name} nach unten verschieben`);
         row.remove.setAttribute('aria-label', `${name} entfernen`);
@@ -108,7 +235,7 @@
     const serialize = () => {
       // Row events stay inside the editor. This single JSON input event feeds
       // the existing save tracking and preview without double-saving edits.
-      textarea.value = JSON.stringify(items.map((item) => ({ ...item.original, label: item.label, url: item.url })), null, 2);
+      textarea.value = JSON.stringify(items.map(profileItem), null, 2);
       serializing = true;
       try { textarea.dispatchEvent(new Event('input', { bubbles: true })); }
       finally { serializing = false; }
@@ -207,8 +334,63 @@
       up.disabled = index === 0;
       down.disabled = index === items.length - 1;
       actions.append(up, down, removeButton);
-      node.append(rowHeader, fields, error, actions);
-      item.row = { node, label, url, error, up, down, remove: removeButton, handle };
+      const iconGroup = element('fieldset', 'qb-nav-editor__icons');
+      iconGroup.append(element('legend', 'field-label', 'Icons'));
+      const iconControls = {};
+      for (const field of iconFields) {
+        const wrapper = element('div', 'qb-nav-editor__icon-field');
+        const selectorLabel = element('label', 'qb-nav-editor__icon-label');
+        selectorLabel.append(element('span', 'field-label', field === 'icon' ? 'Normal' : 'Aktiv'));
+        const choice = element('span', 'qb-nav-editor__icon-choice');
+        const preview = element('span', 'qb-nav-editor__icon-preview');
+        preview.setAttribute('aria-hidden', 'true');
+        const select = element('select', 'field');
+        select.dataset.navigationField = field;
+        select.setAttribute('aria-describedby', error.id);
+        const none = element('option', '', field === 'icon' ? 'Kein Icon' : 'Wie normal');
+        none.value = '';
+        select.append(none);
+        for (const icon of icons.CATALOG) {
+          const option = element('option', '', icon.label);
+          option.value = icon.id;
+          select.append(option);
+        }
+        choice.append(preview, select);
+        selectorLabel.append(choice);
+        const upload = button('btn compact qb-nav-editor__icon-upload', 'PNG auswählen');
+        const reset = button('btn compact qb-nav-editor__icon-reset', 'Zurücksetzen');
+        const file = element('input');
+        file.type = 'file';
+        file.accept = 'image/png';
+        file.hidden = true;
+        file.dataset.navigationUpload = field;
+        const iconActions = element('div', 'qb-nav-editor__icon-actions');
+        iconActions.append(upload, reset, file);
+        const status = element('p', 'qb-nav-editor__icon-status');
+        status.setAttribute('aria-live', 'polite');
+        wrapper.append(selectorLabel, iconActions, status);
+        iconGroup.append(wrapper);
+        iconControls[field] = { select, preview, upload, reset, file, status };
+        select.addEventListener('input', (event) => event.stopPropagation());
+        select.addEventListener('change', (event) => {
+          event.stopPropagation();
+          if (!select.value.startsWith('__')) updateIcon(item, field, select.value);
+        });
+        upload.addEventListener('click', () => file.click());
+        reset.addEventListener('click', () => updateIcon(item, field, ''));
+        file.addEventListener('input', (event) => event.stopPropagation());
+        file.addEventListener('change', (event) => {
+          event.stopPropagation();
+          const selected = file.files?.[0];
+          file.value = '';
+          uploadIcon(item, field, selected);
+        });
+      }
+      const iconHelp = element('p', 'qb-nav-editor__help qb-nav-editor__icon-help', 'Eigene PNG-Icons: bis 64 KiB und 256 × 256 px. Ohne aktives Icon wird das normale übernommen.');
+      iconGroup.append(iconHelp);
+      node.append(rowHeader, fields, iconGroup, error, actions);
+      item.row = { node, label, url, error, up, down, remove: removeButton, handle, icons: iconControls };
+      for (const field of iconFields) refreshIconControl(item, field);
 
       [label, url].forEach((input) => {
         input.addEventListener('input', (event) => {
@@ -278,6 +460,7 @@
     };
 
     const load = () => {
+      generation += 1;
       clearDrag();
       try {
         const parsed = JSON.parse(textarea.value.trim() || '[]');
@@ -288,7 +471,7 @@
           || (item.url !== undefined && typeof item.url !== 'string'))) {
           throw new Error('Jeder Menüpunkt benötigt eine Beschriftung und eine URL als Text. Bitte die JSON-Struktur prüfen.');
         }
-        items = parsed.map((item) => ({ key: ++nextKey, original: item, label: item.label || '', url: item.url || '' }));
+        items = parsed.map(newItem);
         sourceError = '';
       } catch (error) {
         items = [];
@@ -304,7 +487,7 @@
     textarea.addEventListener('change', onJsonInput);
     add.addEventListener('click', () => {
       if (sourceError || items.length >= maxItems) return;
-      const item = { key: ++nextKey, original: {}, label: '', url: '' };
+      const item = newItem({});
       items.push(item);
       render();
       serialize();
@@ -317,6 +500,9 @@
       load,
       refreshValidation,
       destroy() {
+        destroyed = true;
+        generation += 1;
+        items = [];
         textarea.removeEventListener('input', onJsonInput);
         textarea.removeEventListener('change', onJsonInput);
         window.clearTimeout(announceTimer);

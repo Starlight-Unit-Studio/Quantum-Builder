@@ -8,6 +8,12 @@ use PDO;
 
 final class Apps
 {
+    // Keep these identifiers in sync with navigation-icons.js and the wrapper policy.
+    private const NAVIGATION_ICON_IDS = [
+        'home', 'search', 'grid', 'star', 'heart', 'user', 'settings', 'info', 'mail', 'cart',
+        'calendar', 'camera', 'map', 'phone', 'download', 'help', 'play', 'folder', 'globe', 'link',
+    ];
+
     public function __construct(private readonly PDO $pdo)
     {
     }
@@ -211,7 +217,16 @@ final class Apps
             if (!$this->isTrustedNavigationTarget($target, strtolower($config['trusted_domain']))) {
                 throw new \InvalidArgumentException('Native navigation targets must be relative or trusted HTTPS URLs.');
             }
-            $normalizedNavigationItems[] = ['label' => $label, 'url' => $target];
+            $normalizedItem = ['label' => $label, 'url' => $target];
+            foreach (['icon', 'active_icon'] as $iconField) {
+                if (array_key_exists($iconField, $item)) {
+                    $icon = $this->normalizeNavigationIcon($item[$iconField]);
+                    if ($icon !== '') {
+                        $normalizedItem[$iconField] = $icon;
+                    }
+                }
+            }
+            $normalizedNavigationItems[] = $normalizedItem;
         }
         $config['navigation']['items'] = $normalizedNavigationItems;
 
@@ -339,6 +354,134 @@ final class Apps
             'target_sdk' => $targetSdk,
             'config_json' => json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
         ];
+    }
+
+    private function normalizeNavigationIcon(mixed $value): string
+    {
+        if (!is_string($value)) {
+            throw new \InvalidArgumentException('Navigation icons must be icon identifiers or PNG data URLs.');
+        }
+        $value = trim($value);
+        if ($value === '' || in_array($value, self::NAVIGATION_ICON_IDS, true)) {
+            return $value;
+        }
+        if (strlen($value) > 87_406
+            || !preg_match('#\Adata:image/png;base64,([A-Za-z0-9+/]+={0,2})\z#', $value, $matches)) {
+            throw new \InvalidArgumentException('Navigation icons must be a built-in icon or a PNG up to 64 KiB.');
+        }
+        $payload = base64_decode($matches[1], true);
+        if ($payload === false || base64_encode($payload) !== $matches[1]
+            || strlen($payload) > 65_536 || !str_starts_with($payload, "\x89PNG\r\n\x1a\n")) {
+            throw new \InvalidArgumentException('Navigation icon PNG data is invalid.');
+        }
+        $this->validateNavigationPng($payload);
+        return $value;
+    }
+
+    private function validateNavigationPng(string $payload): void
+    {
+        $invalid = static function (): never {
+            throw new \InvalidArgumentException('Navigation icons need a valid static PNG, 1 to 256 pixels per side and at most 64 KiB.');
+        };
+        $offset = 8;
+        $size = strlen($payload);
+        $header = null;
+        $palette = false;
+        $imageData = '';
+        $hasIdat = false;
+        $idatEnded = false;
+        $ended = false;
+        while ($offset < $size) {
+            if ($size - $offset < 12) {
+                $invalid();
+            }
+            $length = unpack('N', substr($payload, $offset, 4))[1];
+            if ($length > $size - $offset - 12) {
+                $invalid();
+            }
+            $type = substr($payload, $offset + 4, 4);
+            $data = substr($payload, $offset + 8, $length);
+            $crc = substr($payload, $offset + 8 + $length, 4);
+            if (!preg_match('/\A[A-Za-z]{4}\z/', $type) || hash('crc32b', $type . $data, true) !== $crc
+                || ($header === null && $type !== 'IHDR') || $type === 'acTL') {
+                $invalid();
+            }
+            $offset += $length + 12;
+            if ($type === 'IHDR') {
+                if ($header !== null || $length !== 13) {
+                    $invalid();
+                }
+                $header = unpack('Nwidth/Nheight/Cdepth/Ccolor/Ccompression/Cfilter/Cinterlace', $data);
+                $depths = [0 => [1, 2, 4, 8, 16], 2 => [8, 16], 3 => [1, 2, 4, 8], 4 => [8, 16], 6 => [8, 16]];
+                if ($header['width'] < 1 || $header['width'] > 256 || $header['height'] < 1 || $header['height'] > 256
+                    || !in_array($header['depth'], $depths[$header['color']] ?? [], true)
+                    || $header['compression'] !== 0 || $header['filter'] !== 0 || $header['interlace'] > 1) {
+                    $invalid();
+                }
+            } elseif ($type === 'PLTE') {
+                if ($palette || $hasIdat || $length === 0 || $length > 768 || $length % 3 !== 0) {
+                    $invalid();
+                }
+                $palette = true;
+            } elseif ($type === 'IDAT') {
+                if ($idatEnded || ($header['color'] === 3 && !$palette)) {
+                    $invalid();
+                }
+                $hasIdat = true;
+                $imageData .= $data;
+            } elseif ($type === 'IEND') {
+                if ($length !== 0 || $imageData === '' || $offset !== $size) {
+                    $invalid();
+                }
+                $ended = true;
+            } else {
+                if (ctype_upper($type[0])) {
+                    $invalid();
+                }
+                if ($hasIdat) {
+                    $idatEnded = true;
+                }
+            }
+        }
+        if (!$ended || $header === null) {
+            $invalid();
+        }
+
+        // Inspect the bounded filtered scanlines, without needing GD or rendering pixels.
+        $channels = [0 => 1, 2 => 3, 3 => 1, 4 => 2, 6 => 4][$header['color']];
+        $passes = $header['interlace'] === 0 ? [[0, 0, 1, 1]]
+            : [[0, 0, 8, 8], [4, 0, 8, 8], [0, 4, 4, 8], [2, 0, 4, 4], [0, 2, 2, 4], [1, 0, 2, 2], [0, 1, 1, 2]];
+        $rows = [];
+        $expected = 0;
+        foreach ($passes as [$x, $y, $dx, $dy]) {
+            $width = max(0, intdiv($header['width'] - $x + $dx - 1, $dx));
+            $height = max(0, intdiv($header['height'] - $y + $dy - 1, $dy));
+            if ($width === 0 || $height === 0) {
+                continue;
+            }
+            $rowSize = 1 + intdiv($width * $channels * $header['depth'] + 7, 8);
+            $rows[] = [$rowSize, $height];
+            $expected += $rowSize * $height;
+        }
+        $decoded = @gzuncompress($imageData, $expected);
+        if ($decoded === false || strlen($decoded) !== $expected) {
+            $invalid();
+        }
+        // The bounded decode succeeded, so inspecting its exact stream consumption is safe.
+        $inflater = inflate_init(ZLIB_ENCODING_DEFLATE);
+        if ($inflater === false || @inflate_add($inflater, $imageData, ZLIB_FINISH) === false
+            || inflate_get_status($inflater) !== ZLIB_STREAM_END || inflate_get_read_len($inflater) !== strlen($imageData)) {
+            $invalid();
+        }
+        $offset = 0;
+        foreach ($rows as [$rowSize, $height]) {
+            for ($row = 0; $row < $height; $row++) {
+                if (ord($decoded[$offset]) > 4) {
+                    $invalid();
+                }
+                $offset += $rowSize;
+            }
+        }
     }
 
     private function isTrustedNavigationTarget(string $target, string $trustedDomain): bool
