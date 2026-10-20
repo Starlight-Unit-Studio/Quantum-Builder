@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased
+
+- Records the API-only AI connection decision: endpoint, server-side API key,
+  model identifier and a connection check, with provider-neutral product copy.
+- Documents the reusable CoreUI groundwork and the reserved external-adapter
+  boundary. Local inference/model management remains outside Quantum Builder.
+- Documentation only; AI connectivity and generation remain planned.
+
+## 0.1.0-alpha13
+
+Native navigation icons from editor to bundled Android assets.
+
+- Adds 20 original built-in symbols and custom static PNG uploads for both normal
+  and active menu states, with fallback to the normal icon when no active icon is set.
+- Adds mobile-friendly icon selection, previews, reset actions and guarded uploads
+  that cannot overwrite a later choice or another profile.
+- Preserves both icon fields through JSON editing, autosave and PHP/SQLite storage;
+  existing label/URL-only profiles retain their behavior.
+- Previews active icons and configured colors in both sidebar and bottom tabs,
+  including aligned slots for mixed icon/text menus.
+- Validates PNG structure, checksums, dimensions and bounded image data. Each PNG
+  is limited to 64 KiB and 256 pixels per side.
+- Compiles custom icons to deduplicated APK assets with short JSON references;
+  no image data is embedded in Java string constants.
+- Requires the beta10 wrapper icon module for icon-bearing builds, with an explicit
+  error for older wrapper refs. Iconless profiles still compile against older refs.
+- Records local browser, model, PHP/SQLite and compiler regressions. Android runtime
+  code is implemented in the companion wrapper change; device acceptance remains
+  open and is tracked separately in docs/NAVIGATION_ICONS.md.
+- Keeps the API-only AI decision in this branch; AI implementation remains planned.
+- Bumps frontend asset versioning. GitHub Actions is not used for this tranche.
+
 ## 0.1.0-alpha12
 
 Visual native-navigation editing and live navigation preview.

@@ -1,6 +1,6 @@
 # Quantum Builder Functional Parity Matrix
 
-Updated for Builder **0.1.0-alpha12**. The complete dated reference inventory and
+Updated for Builder **0.1.0-alpha13**. The complete dated reference inventory and
 dependency order are retained in [MEDIAN_PARITY_ROADMAP.md](MEDIAN_PARITY_ROADMAP.md).
 The approved brighter Builder direction is retained separately in
 [QUANTUM_ENTERPRISE_DESIGN.md](QUANTUM_ENTERPRISE_DESIGN.md).
@@ -23,6 +23,7 @@ Status legend:
 - `RUNTIME` - works in generated wrapper/runtime
 - `PROFILE` - stored/configurable in Builder, runtime wiring still incomplete
 - `BUILDER` - Builder-side feature works
+- `IMPLEMENTED_PENDING_QA` - code and local checks exist; native device acceptance is open
 - `PLANNED` - not implemented yet
 - `IOS-LATER` - intentionally deferred until the iOS engine exists
 
@@ -43,6 +44,7 @@ Status legend:
 - Live rendering of current native navigation overlays - `BUILDER` (approximate
   browser presentation of Top Bar, Sidebar, Bottom Tabs and Contextual Toolbar)
 - Simulator-owned route history and current-route reload - `BUILDER`
+- Normal/active built-in and custom PNG navigation icons - `BUILDER`
 
 ## Overview
 
@@ -118,7 +120,8 @@ Status legend:
 - Light/dark background/foreground/separator/highlight - `PLANNED`
 - Visual label/URL menu editor - `BUILDER` (existing shared runtime menu)
 - Label/link items - `RUNTIME`
-- Item icons - `PLANNED`
+- Built-in/custom PNG icon editor and normal/active preview - `BUILDER`
+- Native item icons and active-state rendering - `IMPLEMENTED_PENDING_QA` (beta10)
 - Grouping/collapsible groups - `PLANNED`
 - Drag/drop, touch-button and keyboard ordering - `BUILDER`
 - Restore defaults / clear all - `PLANNED`
@@ -129,13 +132,17 @@ Status legend:
 - Enable/default mode - `RUNTIME`
 - Hide with scroll - `PLANNED`
 - Light/dark styling - `PLANNED`
-- Active/inactive tab colors - `PLANNED`
+- Independent active/inactive tab backgrounds and borders - `PLANNED`
 - Visual shared-menu editor - `BUILDER` (first five shared destinations)
 - Multiple tab menus - `PLANNED`
 - Visibility rules - `PLANNED`
 - Text/links - `RUNTIME`
-- Tab icons - `PLANNED`
+- Built-in/custom PNG icon editor and normal/active preview - `BUILDER`
+- Native tab icons with configured foreground/accent colors - `IMPLEMENTED_PENDING_QA` (beta10)
 - Advanced shared-menu JSON editing - `BUILDER`
+
+The sidebar/tab icon schema, upload limits, wrapper dependency and remaining
+Android acceptance are recorded in [NAVIGATION_ICONS.md](NAVIGATION_ICONS.md).
 
 ### Contextual Navigation Toolbar
 
@@ -348,8 +355,10 @@ broader requirements.
 
 ### Generated application projects
 
+- External API endpoint/key/model and real connection check - `PLANNED`
+- Server-side credentials, provider errors and manually entered model IDs - `PLANNED`
 - Prompt/website/repository inputs and editable generation plans (CD-01, CD-02) - `PLANNED`
-- Durable agent jobs, visible progress, cancellation and recovery (CD-01) - `PLANNED`
+- API-backed agent jobs, visible progress, cancellation and recovery (CD-01) - `PLANNED`
 - Separate mobile/web generation engines and multi-app projects (CD-03) - `PLANNED`
 - Phone-based source editing, file context and screenshot feedback (CD-04) - `PLANNED`
 - Per-engine browser/device previews and logs (CD-05) - `PLANNED`
@@ -362,6 +371,11 @@ broader requirements.
 - Required-configuration checks and release-readiness findings (CD-09) - `PLANNED`
 - Error monitoring and reproducible repair jobs (CD-11) - `PLANNED`
 - Complete generated-source export and independent builds (CD-12) - `PLANNED`
+
+The [AI connection decision](AI_API_INTEGRATION.md) requires external API access.
+Local inference services, model downloads and periodic model synchronization are
+outside scope. CoreUI reuse is limited to suitable settings and transport pieces;
+its reserved external adapter is not counted as an implemented Quantum feature.
 
 ## Rule for future work
 

@@ -14,8 +14,10 @@ import shutil
 import sqlite3
 import string
 import subprocess
+import tempfile
 import time
 import traceback
+import zlib
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -274,6 +276,164 @@ def replace_once(text: str, pattern: str, replacement: str, label: str, flags: i
     return updated
 
 
+NAVIGATION_ICON_IDS = frozenset({
+    "home", "search", "grid", "star", "heart", "user", "settings", "info", "mail", "cart",
+    "calendar", "camera", "map", "phone", "download", "help", "play", "folder", "globe", "link",
+})
+NAVIGATION_ICON_MAX_BYTES = 65536
+NAVIGATION_ICON_ASSET_DIRECTORY = "quantum_nav_icons"
+
+
+def validate_navigation_png(payload: bytes) -> None:
+    """Validate bounded static PNG data using stdlib only; never decode arbitrary-size images."""
+    error = "Navigation icons need a valid static PNG, 1 to 256 pixels per side and at most 64 KiB"
+    if len(payload) > NAVIGATION_ICON_MAX_BYTES or not payload.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise RuntimeError(error)
+    offset = 8
+    header = None
+    palette = False
+    image_data = bytearray()
+    has_idat = False
+    idat_ended = False
+    ended = False
+    while offset < len(payload):
+        if len(payload) - offset < 12:
+            raise RuntimeError(error)
+        length = int.from_bytes(payload[offset:offset + 4], "big")
+        if length > len(payload) - offset - 12:
+            raise RuntimeError(error)
+        kind = payload[offset + 4:offset + 8]
+        data = payload[offset + 8:offset + 8 + length]
+        crc = int.from_bytes(payload[offset + 8 + length:offset + 12 + length], "big")
+        if (not re.fullmatch(rb"[A-Za-z]{4}", kind) or binascii.crc32(kind + data) != crc
+                or (header is None and kind != b"IHDR") or kind == b"acTL"):
+            raise RuntimeError(error)
+        offset += length + 12
+        if kind == b"IHDR":
+            if header is not None or length != 13:
+                raise RuntimeError(error)
+            width = int.from_bytes(data[:4], "big")
+            height = int.from_bytes(data[4:8], "big")
+            depth, color, compression, filtering, interlace = data[8:13]
+            depths = {0: {1, 2, 4, 8, 16}, 2: {8, 16}, 3: {1, 2, 4, 8}, 4: {8, 16}, 6: {8, 16}}
+            if (not 1 <= width <= 256 or not 1 <= height <= 256 or depth not in depths.get(color, set())
+                    or compression != 0 or filtering != 0 or interlace not in {0, 1}):
+                raise RuntimeError(error)
+            header = (width, height, depth, color, interlace)
+        elif kind == b"PLTE":
+            if palette or has_idat or not 0 < length <= 768 or length % 3:
+                raise RuntimeError(error)
+            palette = True
+        elif kind == b"IDAT":
+            if idat_ended or (header[3] == 3 and not palette):
+                raise RuntimeError(error)
+            has_idat = True
+            image_data.extend(data)
+        elif kind == b"IEND":
+            if length != 0 or not image_data or offset != len(payload):
+                raise RuntimeError(error)
+            ended = True
+        else:
+            if kind[0:1].isupper():
+                raise RuntimeError(error)
+            if has_idat:
+                idat_ended = True
+    if not ended or header is None:
+        raise RuntimeError(error)
+
+    width, height, depth, color, interlace = header
+    channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}[color]
+    passes = [(0, 0, 1, 1)] if interlace == 0 else [
+        (0, 0, 8, 8), (4, 0, 8, 8), (0, 4, 4, 8), (2, 0, 4, 4),
+        (0, 2, 2, 4), (1, 0, 2, 2), (0, 1, 1, 2),
+    ]
+    rows = []
+    for x, y, dx, dy in passes:
+        pass_width = max(0, (width - x + dx - 1) // dx)
+        pass_height = max(0, (height - y + dy - 1) // dy)
+        if pass_width and pass_height:
+            rows.extend([1 + (pass_width * channels * depth + 7) // 8] * pass_height)
+    expected = sum(rows)
+    try:
+        decoder = zlib.decompressobj()
+        decoded = decoder.decompress(image_data, expected + 1)
+    except zlib.error as exc:
+        raise RuntimeError(error) from exc
+    if len(decoded) != expected or not decoder.eof or decoder.unconsumed_tail or decoder.unused_data:
+        raise RuntimeError(error)
+    offset = 0
+    for row_size in rows:
+        if decoded[offset] > 4:
+            raise RuntimeError(error)
+        offset += row_size
+
+
+def compile_navigation_items(project: Path, items: Any) -> list[dict[str, str]]:
+    """Compile profile icons to bundled assets, leaving short references in Java constants."""
+    if not isinstance(items, list) or len(items) > 12:
+        raise RuntimeError("Native navigation supports a list of at most 12 items")
+    compiled = []
+    images: dict[str, bytes] = {}
+    has_icons = False
+    for item in items:
+        if not isinstance(item, dict):
+            raise RuntimeError("Each native navigation item must be an object")
+        normalized = {}
+        for field, limit in (("label", 80), ("url", 2048)):
+            value = item.get(field)
+            if not isinstance(value, str) or not value.strip() or len(value.strip().encode("utf-8")) > limit:
+                raise RuntimeError(f"Native navigation {field} is invalid")
+            normalized[field] = value.strip()
+        for field in ("icon", "active_icon"):
+            if field not in item:
+                continue
+            value = item[field]
+            if not isinstance(value, str):
+                raise RuntimeError("Navigation icons must be icon identifiers or PNG data URLs")
+            value = value.strip()
+            if value == "":
+                continue
+            if value in NAVIGATION_ICON_IDS:
+                normalized[field] = value
+            else:
+                match = re.fullmatch(r"data:image/png;base64,([A-Za-z0-9+/]+={0,2})", value) if len(value) <= 87406 else None
+                if match is None:
+                    raise RuntimeError("Navigation icons must be a built-in icon or a PNG up to 64 KiB")
+                try:
+                    payload = base64.b64decode(match.group(1), validate=True)
+                except (ValueError, binascii.Error) as exc:
+                    raise RuntimeError("Navigation icon base64 is invalid") from exc
+                if base64.b64encode(payload).decode("ascii") != match.group(1):
+                    raise RuntimeError("Navigation icon base64 must use canonical encoding")
+                validate_navigation_png(payload)
+                filename = hashlib.sha256(payload).hexdigest() + ".png"
+                images[filename] = payload
+                normalized[field] = f"asset:{NAVIGATION_ICON_ASSET_DIRECTORY}/{filename}"
+            has_icons = True
+        compiled.append(normalized)
+
+    capability = project / "app/src/main/java/de/starlightunit/wrapper/navigation/NativeNavigationIcons.java"
+    if has_icons and not capability.is_file():
+        raise RuntimeError("Navigation icons require Quantum Mobile Wrapper beta10 or newer (NativeNavigationIcons.java missing); update the wrapper ref")
+
+    asset_dir = project / "app/src/main/assets" / NAVIGATION_ICON_ASSET_DIRECTORY
+    if asset_dir.is_symlink() or not asset_dir.resolve().is_relative_to(project.resolve()):
+        raise RuntimeError("Navigation icon asset directory must stay inside the wrapper project")
+    if images:
+        asset_dir.mkdir(parents=True, exist_ok=True)
+        # Validate every icon before writing. Replace individual files atomically.
+        with tempfile.TemporaryDirectory(prefix=".nav-icons-", dir=asset_dir.parent) as temporary:
+            for filename, payload in images.items():
+                staged = Path(temporary) / filename
+                staged.write_bytes(payload)
+                os.replace(staged, asset_dir / filename)
+    if asset_dir.is_dir():
+        for old in asset_dir.iterdir():
+            if re.fullmatch(r"[0-9a-f]{64}\.png", old.name) and old.name not in images and (old.is_file() or old.is_symlink()):
+                old.unlink()
+    return compiled
+
+
 def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) -> None:
     path = project / "app/src/main/java/de/starlightunit/wrapper/config/AppConfig.java"
     text = path.read_text(encoding="utf-8")
@@ -335,11 +495,7 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
     native_navigation_background = normalized_hex_color(navigation.get("background"), "#020611")
     native_navigation_foreground = normalized_hex_color(navigation.get("foreground"), "#ffffff")
     native_navigation_accent = normalized_hex_color(navigation.get("accent"), "#6fc7ff")
-    native_navigation_items = navigation.get("items", [])
-    if not isinstance(native_navigation_items, list):
-        raise RuntimeError("Native navigation items must be a list")
-    if len(native_navigation_items) > 12:
-        raise RuntimeError("Native navigation supports at most 12 items")
+    native_navigation_items = compile_navigation_items(project, navigation.get("items", []))
 
     new_window_policy = str(links.get("new_windows") or "blocked").strip().lower()
     if new_window_policy not in {"blocked", "internal", "external"}:

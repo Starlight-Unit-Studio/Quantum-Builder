@@ -124,9 +124,39 @@
   white-space: nowrap;
   font-size: 13px;
 }
-.sim-native-screen .sim-native-tab.is-selected {
+.sim-native-screen .sim-native-tab.is-selected,
+.sim-native-screen .sim-native-item.is-selected {
   color: var(--sim-nav-accent);
   font-weight: 700;
+}
+.sim-native-icon {
+  display: inline-flex;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+}
+.sim-native-icon-image {
+  display: block;
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+.sim-native-tabs.has-icons .sim-native-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 3px 4px;
+}
+.sim-native-tab .sim-native-menu-label {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sim-native-drawer-overlay {
@@ -172,6 +202,9 @@
 }
 .sim-native-drawer-items { display: flex; flex-direction: column; }
 .sim-native-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   width: 100%;
   min-height: 48px;
   padding: 14px;
@@ -179,6 +212,7 @@
   text-align: left;
   overflow-wrap: anywhere;
 }
+.sim-native-item .sim-native-menu-label { flex: 1; min-width: 0; }
 .sim-navigation-note,
 .sim-navigation-status {
   margin: 12px 0 0;

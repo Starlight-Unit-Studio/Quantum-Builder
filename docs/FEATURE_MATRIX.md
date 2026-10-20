@@ -1,6 +1,6 @@
 # Quantum Builder Feature Matrix
 
-Current Builder: **0.1.0-alpha12**. The full dated scope and delivery sequence are
+Current Builder: **0.1.0-alpha13**. The full dated scope and delivery sequence are
 in [MEDIAN_PARITY_ROADMAP.md](MEDIAN_PARITY_ROADMAP.md); the brighter design is in
 [QUANTUM_ENTERPRISE_DESIGN.md](QUANTUM_ENTERPRISE_DESIGN.md).
 MobiLoud, Twinr and CatDoes extend the reference scope in
@@ -13,6 +13,8 @@ Legend:
 - **Planned**: not implemented in the current version
 - **Builder**: implemented in the web editor/preview; native behavior retains its
   separately stated runtime scope
+- **Implemented, native QA open**: compiler/runtime code exists and local checks
+  pass; Android device acceptance remains open
 
 | Area | Feature | Current status |
 |---|---|---|
@@ -55,7 +57,11 @@ Legend:
 | Navigation | Shared ordered menu JSON | Runtime |
 | Navigation | Visual shared-menu editor, touch/keyboard ordering and drag/drop | Builder |
 | Navigation | Advanced shared-menu JSON editing with draft validation | Builder |
+| Navigation | Built-in/custom PNG icon editor with normal/active states | Builder |
+| Navigation | Icon persistence and deduplicated build assets | Builder/compiler; beta10 wrapper required |
+| Navigation | Native sidebar/tab icon rendering and active selection | Implemented, native QA open; see [NAVIGATION_ICONS.md](NAVIGATION_ICONS.md) |
 | Simulator | Top bar, sidebar, bottom tabs and contextual toolbar preview | Builder |
+| Simulator | Built-in/custom icons and active-state preview | Builder |
 | Simulator | Preview-owned navigation history and current-route reload | Builder |
 | Navigation | Page visibility rules | Planned |
 | Navigation | Retained tab state and background invalidation/refresh | Planned |
@@ -98,6 +104,7 @@ Legend:
 | Deployment | Previous signed releases | Runtime build history |
 | Deployment | Native device-preview links and install/promotional widgets | Planned |
 | Deployment | Remote configuration rollout and rollback | Planned |
+| AI Connection | External API endpoint, server-side key, manual model ID and connection check | Planned |
 | Generation | AI-assisted web/mobile application projects | Planned |
 | Generation | Mobile source editor, GitHub round trips and checkpoints | Planned |
 | Generation | Application backend adapters and error-repair workflow | Planned |
@@ -115,3 +122,5 @@ Median, MobiLoud and Twinr inform wrapper, native-screen, engagement and operati
 capabilities. CatDoes adds a distinct generated-application workflow. Shared
 features use one Quantum implementation and retain explicit platform status.
 The current Terran interface precedes the planned brighter Quantum Enterprise design.
+AI inference uses a planned external API connection only; model installation and
+hosting are outside the Builder scope. See [AI_API_INTEGRATION.md](AI_API_INTEGRATION.md).
