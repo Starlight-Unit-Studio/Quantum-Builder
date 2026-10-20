@@ -401,7 +401,7 @@
       const rowHeader = element('div', 'qb-nav-editor__row-header');
       const position = element('div', 'qb-nav-editor__position');
       position.append(element('span', 'qb-nav-editor__number', path.map((part) => part + 1).join('.')));
-      position.append(element('span', `qb-nav-editor__badge${!isGroup(item) && linkIndex < maxTabs ? ' is-tab' : ''}`, isGroup(item) ? 'Gruppe' : linkIndex < maxTabs ? `Tab ${linkIndex + 1} + Sidebar` : 'Sidebar'));
+      position.append(element('span', `qb-nav-editor__badge${!isGroup(item) && linkIndex < maxTabs ? ' is-tab' : ''}`, isGroup(item) ? 'Gruppe' : linkIndex < maxTabs ? `Tab-Platz ${linkIndex + 1}` : 'Sidebar-Ziel'));
       const handle = button('qb-nav-editor__handle', '⠿', `Menüpunkt ${index + 1} ziehen`);
       handle.draggable = true;
       handle.title = 'Ziehen oder mit Pfeil hoch / runter verschieben';

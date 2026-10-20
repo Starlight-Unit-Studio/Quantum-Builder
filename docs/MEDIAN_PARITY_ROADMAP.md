@@ -40,9 +40,9 @@ is retained so existing links and handoffs continue to work.
 
 | Component | Baseline |
 |---|---|
-| Quantum Builder | `0.1.0-alpha13`, `main`, `8cfb6cfa038738c02a1603c4c49185609261960b`; icon PR #25 merged |
-| Quantum Mobile Wrapper | `0.1.0-beta10`, `compat/android-6-api23`, `21313664e996d2fc7805948e6d17f84dac58709d`; icon PR #26 merged |
-| Current alpha14 candidate | Sidebar groups, nesting and collapse across editor, persistence, preview and compiler; companion beta11 native code is **IMPLEMENTED_PENDING_QA** |
+| Quantum Builder | `0.1.0-alpha14`, `main`, `da07e363ae419f268937dcacbc478c3d88d0a83b`; groups PR #26 merged |
+| Quantum Mobile Wrapper | `0.1.0-beta11`, `compat/android-6-api23`, `1265e33b80ebafba06f628bf393d8fe97714cfd1`; groups PR #27 merged |
+| Current alpha15 candidate | Independent Sidebar/Tabs menus and URL selection/visibility across editor, persistence, preview and compiler; companion beta12 native code is **IMPLEMENTED_PENDING_QA** |
 
 The Builder uses the compatibility branch as its default wrapper source. Wrapper
 `main` is a different line of development; its open integration must retain both
@@ -82,8 +82,8 @@ by this tranche's browser regression, and GitHub Actions was not used for valida
 
 The browser simulator previews presentation and navigation configuration. It is
 not an Android emulator and does not establish native plugin or OS behavior.
-Multiple menus, typed custom actions and visibility rules remain later work.
-Nested groups are recorded separately in the alpha14 tranche below.
+Independent menus and URL visibility rules are recorded in alpha15 below; typed
+custom actions remain later work. Nested groups are recorded in alpha14.
 
 ### Alpha13 icon tranche
 
@@ -116,10 +116,30 @@ builds require the beta11 wrapper module; flat menus retain previous compatibili
 - [x] Keep the first five depth-first destinations as tabs, with an empty-menu Home fallback.
 - [ ] Accept a generated grouped APK on Android 6 and a current Android device/emulator.
 
-Local validation and its exact scope are maintained in the group record. The next
-implementation block is independent menu sets and URL-based selection/visibility
-rules. APK rendering remains a separate acceptance item; the browser preview and
-API 23 source compilation do not establish device behavior.
+Local validation and its exact scope are maintained in the group record. Groups
+are merged through Builder #26 and Wrapper #27. APK rendering remains a separate
+acceptance item; browser preview and source compilation do not establish it.
+
+### Alpha15 independent menus and URL rules
+
+The [menu/rule contract and validation record](NAVIGATION_MENUS.md) adds three
+optional menus alongside Standard, independent Sidebar/Tabs defaults and sixteen
+ordered URL rules. Rules can select menus and show/hide all four surfaces. The
+first matching exact/segment-prefix path and optional trusted host filter wins;
+unset options use the profile defaults. Twenty-four nodes remain the combined
+budget, with group identity scoped per menu.
+
+- [x] Implement visual menu management, reference-safe deletion and ordered rules.
+- [x] Preserve per-menu drafts, uploads, JSON types, references and visibility through save/build.
+- [x] Implement independent preview/native selection, dynamic insets and per-menu group state.
+- [x] Connect native presentation to page and reported WebView history URL changes.
+- [x] Verify local model, browser, PHP/SQLite, compiler and cross-runtime data flow.
+- [ ] Accept generated APKs, real WebView callback behavior and accessibility on Android 6/current devices.
+
+Additional menus/rules require beta12. Standard-only profiles retain older
+compatibility. The next implementation block is page-specific titles/images,
+search and typed actions. Retained tab sessions, invalidation, scroll visibility
+and per-surface styling remain subsequent navigation work.
 
 ## Status rules
 
@@ -148,7 +168,8 @@ while delivering useful complete blocks instead of adding inactive switches.
   acceptance remains separately open in the alpha13 tranche above.
 - [x] Add sidebar groups, nesting and collapsible sections; native device
   acceptance remains separately open in the alpha14 tranche above.
-- [ ] Add independent menu sets and URL-based selection/visibility rules.
+- [x] Add independent menu sets and URL-based selection/visibility rules; native
+  device acceptance remains separately open in the alpha15 tranche above.
 - [ ] Add page-specific titles/images, search and typed actions such as Back,
   Home, Reload, Forward and Share; preserve the trusted-navigation boundary.
 - [ ] Add scroll visibility, per-surface styling and contextual-toolbar rules.

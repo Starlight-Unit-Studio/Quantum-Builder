@@ -27,6 +27,7 @@
     currentUrl: '',
     drawerOpen: false,
     validationError: '',
+    effectiveNavigation: {},
   };
 
   const frame = () => $('simulatorFrame');
@@ -35,10 +36,11 @@
   let surfaces = null;
   let drawerTrigger = null;
   const menuBindings = new WeakMap();
-  const groupStates = new Map();
+  let groupStates = new Map();
+  const menuGroupStates = new Map();
+  let activeSidebarMenu = null;
   let groupBindings = new Map();
   let groupRoute = null;
-  const groupsToReveal = new Set();
 
   const create = (tag, className, text = '') => {
     const element = document.createElement(tag);
@@ -78,7 +80,7 @@
   };
 
   const openDrawer = (event) => {
-    if (!surfaces || !state.profile?.navigation.sidebar) return;
+    if (!surfaces || !state.effectiveNavigation.sidebar) return;
     drawerTrigger = event?.currentTarget || surfaces.menu;
     state.drawerOpen = true;
     surfaces.overlay.hidden = false;
@@ -112,9 +114,53 @@
   };
 
   const clearGroups = () => {
-    groupStates.clear();
+    menuGroupStates.clear();
+    groupStates = new Map();
+    groupBindings.clear();
+    activeSidebarMenu = null;
     groupRoute = null;
-    groupsToReveal.clear();
+  };
+
+  const prepareMenuGroups = (navigation, selectedMenu) => {
+    const model = window.QuantumNavigationModel;
+    const menus = navigation.resolvedMenus || new Map();
+    const routeChanged = groupRoute !== state.currentUrl;
+    for (const id of menuGroupStates.keys()) if (!menus.has(id)) menuGroupStates.delete(id);
+    for (const [menuId, tree] of menus) {
+      let record = menuGroupStates.get(menuId);
+      if (!record) {
+        record = { states: new Map(), targets: new Map() };
+        menuGroupStates.set(menuId, record);
+      }
+      const ids = new Set();
+      for (const { item } of model.walkItems(tree)) {
+        if (!model.isGroup(item)) continue;
+        ids.add(item.id);
+        const targets = model.flattenItems(item.children).map((link) => link.resolvedUrl);
+        const wasActive = record.targets.get(item.id)?.some((url) => sameLocation(url, state.currentUrl));
+        const isActive = targets.some((url) => sameLocation(url, state.currentUrl));
+        let previous = record.states.get(item.id);
+        const reset = !previous || previous.configuredCollapsed !== item.collapsed;
+        if (reset) {
+          previous = { expanded: !item.collapsed, configuredCollapsed: item.collapsed };
+          record.states.set(item.id, previous);
+        }
+        if (isActive && (reset || routeChanged || !wasActive)) previous.expanded = true;
+        record.targets.set(item.id, targets);
+      }
+      for (const id of record.states.keys()) if (!ids.has(id)) {
+        record.states.delete(id);
+        record.targets.delete(id);
+      }
+    }
+    if (activeSidebarMenu !== selectedMenu) {
+      closeDrawer(true);
+      surfaces.items.replaceChildren();
+      groupBindings.clear();
+      activeSidebarMenu = selectedMenu;
+    }
+    groupStates = menuGroupStates.get(selectedMenu)?.states || new Map();
+    groupRoute = state.currentUrl;
   };
 
   const updateHistoryState = () => {
@@ -125,17 +171,6 @@
     surfaces.home.disabled = !ready;
     surfaces.contextHome.disabled = !ready;
     surfaces.reload.disabled = !ready;
-    if (ready) {
-      for (const [id, binding] of groupBindings) {
-        const groupState = groupStates.get(id);
-        if (groupState && (groupRoute !== state.currentUrl || groupsToReveal.has(id))
-          && binding.targets.some((url) => sameLocation(url, state.currentUrl))) {
-          groupState.expanded = true;
-        }
-      }
-    }
-    groupRoute = state.currentUrl;
-    groupsToReveal.clear();
     syncGroupVisibility();
     const buttons = [...surfaces.tabs.children, ...surfaces.items.querySelectorAll('.sim-native-item')];
     for (const button of buttons) {
@@ -179,7 +214,7 @@
       state.currentUrl = url;
       loadFrame(url);
       setStatus(state.validationError);
-      updateHistoryState();
+      renderNavigation();
       return true;
     } catch (error) {
       setStatus(error.message || 'Dieses Ziel ist für die App-Vorschau nicht freigegeben.');
@@ -355,17 +390,7 @@
         button.setAttribute('aria-label', item.label);
         if (group) {
           currentIds.add(item.id);
-          const previous = groupStates.get(item.id);
           const targets = model.flattenItems(item.children).map((link) => link.resolvedUrl);
-          const wasActive = groupBindings.get(item.id)?.targets.some((url) => sameLocation(url, state.currentUrl));
-          const isActive = targets.some((url) => sameLocation(url, state.currentUrl));
-          if (!previous || previous.configuredCollapsed !== item.collapsed) {
-            groupStates.set(item.id, { expanded: !item.collapsed, configuredCollapsed: item.collapsed });
-            groupsToReveal.add(item.id);
-          }
-          // Reordering or adding an unrelated sibling must not undo a manual
-          // collapse. Reveal a group when it gains the current destination.
-          if (isActive && !wasActive) groupsToReveal.add(item.id);
           binding.targets = targets;
           binding.content.setAttribute('aria-label', item.label);
           nextBindings.set(item.id, binding);
@@ -382,7 +407,12 @@
   const renderNavigation = () => {
     const nodes = ensureSurfaces();
     if (!nodes) return;
-    const nav = state.profile?.navigation || {};
+    const profileNavigation = state.profile?.navigation || {};
+    const nav = window.QuantumNavigationModel.selectNavigation(profileNavigation, state.currentUrl, {
+      startUrl: state.profile?.startUrl, trustedDomain: state.profile?.trustedDomain,
+    });
+    state.effectiveNavigation = nav;
+    prepareMenuGroups(profileNavigation, nav.sidebar_menu);
     const color = (value, fallback) => /^#[0-9a-f]{6}$/i.test(value || '') ? value : fallback;
     nodes.screen.style.setProperty('--sim-nav-background', color(nav.background, '#020611'));
     nodes.screen.style.setProperty('--sim-nav-foreground', color(nav.foreground, '#ffffff'));
@@ -401,10 +431,15 @@
     nodes.drawerTitle.textContent = appTitle || 'Navigation';
 
     const fallback = state.currentUrl ? [{ label: 'Home', resolvedUrl: state.profile.startUrl }] : [];
-    const items = nav.resolvedItems?.length ? nav.resolvedItems : fallback;
-    const tree = nav.resolvedTree || [];
-    syncSidebar(nav.resolvedItems?.length ? tree : [...tree, ...fallback]);
-    syncMenu(nodes.tabs, items.slice(0, 5), false);
+    const tree = profileNavigation.resolvedMenus?.get(nav.sidebar_menu) || [];
+    const tabTree = profileNavigation.resolvedMenus?.get(nav.bottom_tabs_menu) || [];
+    const sidebarItems = window.QuantumNavigationModel.flattenItems(tree);
+    const tabItems = window.QuantumNavigationModel.flattenItems(tabTree);
+    syncSidebar(sidebarItems.length ? tree : [...tree, ...fallback]);
+    syncMenu(nodes.tabs, (tabItems.length ? tabItems : fallback).slice(0, 5), false);
+    nodes.items.dataset.menuId = nav.sidebar_menu;
+    nodes.tabs.dataset.menuId = nav.bottom_tabs_menu;
+    nodes.screen.dataset.matchedRule = String(nav.matchedRuleIndex);
     if (!nav.sidebar) closeDrawer();
     updateHistoryState();
   };
@@ -456,20 +491,19 @@
         throw new Error(input.validationError || 'Die Menüeingabe ist noch kein gültiges JSON-Array.');
       }
       const context = { startUrl: next.startUrl, trustedDomain: next.trustedDomain };
-      const items = window.QuantumNavigationModel.validateItems(source.items || [], context);
+      const navigation = window.QuantumNavigationModel.validateNavigation(source, context);
+      const items = navigation.items;
       const resolveTree = (list) => list.map((item) => window.QuantumNavigationModel.isGroup(item)
         ? { ...item, label: item.label.slice(0, 40), children: resolveTree(item.children) }
         : { ...item, label: item.label.slice(0, 40), resolvedUrl: resolveTarget(item.url) });
       const resolvedTree = resolveTree(items);
+      const resolvedMenus = new Map([['default', resolvedTree],
+        ...navigation.menus.map((menu) => [menu.id, resolveTree(menu.items)])]);
       next.navigation = {
-        ...source,
-        top_bar: source.top_bar === true,
-        sidebar: source.sidebar === true,
-        bottom_tabs: source.bottom_tabs === true,
-        contextual_toolbar: source.contextual_toolbar === true,
-        items,
+        ...navigation,
         resolvedTree,
         resolvedItems: window.QuantumNavigationModel.flattenItems(resolvedTree),
+        resolvedMenus,
       };
       // A trust-domain edit must not keep a route that no longer belongs to this app.
       if (!reset && state.currentUrl) {

@@ -233,8 +233,10 @@ about the vendors' internal implementation.
 
 Icons and menu groups have their own implementation/acceptance records in
 [NAVIGATION_ICONS.md](NAVIGATION_ICONS.md) and
-[NAVIGATION_GROUPS.md](NAVIGATION_GROUPS.md). Continue the navigation block with
-independent menu sets, visibility rules and typed actions. Extend its design to accommodate
+[NAVIGATION_GROUPS.md](NAVIGATION_GROUPS.md). Independent menus and URL visibility
+rules are now recorded in [NAVIGATION_MENUS.md](NAVIGATION_MENUS.md), with native
+device acceptance still open. Continue with page-specific titles/images, search
+and typed actions. Extend the navigation design to accommodate
 tab invalidation and web/native page destinations, while implementing native
 composition, engagement and application generation in their recorded phases.
 

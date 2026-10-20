@@ -8,6 +8,31 @@
   boundary. Local inference/model management remains outside Quantum Builder.
 - Documentation only; AI connectivity and generation remain planned.
 
+## 0.1.0-alpha15
+
+Independent navigation menus and ordered URL presentation rules.
+
+- Keeps the Standard menu and adds up to three named menus with stable IDs,
+  independent Sidebar/Bottom Tabs defaults and persistent per-menu editing drafts.
+- Adds visual exact/prefix URL rules, optional trusted host filters, ordered
+  precedence and Default/Show/Hide choices for all four navigation surfaces.
+- Blocks removal of referenced menus and identifies their default/rule references.
+- Preserves incomplete hidden-menu drafts and PNG uploads across menu switches;
+  invalid profiles block saving/builds and cannot inherit another app's editor state.
+- Applies first-match rules in preview and the companion Android runtime without
+  resetting the current page. Hidden bars release space; Sidebar stays reachable
+  without Top Bar, and group expansion remains scoped to each menu.
+- Extends object-aware API decoding and atomic validation to catalogs, references,
+  rules and visibility. Retains per-menu limits and a 24-node combined icon budget.
+- Compiles the Standard tree and extension into separate bounded Java constants,
+  deduplicating PNGs across all menus. Extended profiles require beta12; legacy
+  Standard-only profiles retain previous wrapper compatibility.
+- Matches raw case-sensitive paths with segment boundaries, ignores query/fragment
+  for matching, and shares current-URL character validation with Android.
+- Adds local model, actual-frontend browser, PHP/SQLite and compiler regression
+  coverage, plus a cross-runtime saved-profile check. Device acceptance stays open
+  in docs/NAVIGATION_MENUS.md. Validation uses no GitHub Actions.
+
 ## 0.1.0-alpha14
 
 Nested sidebar groups from mobile editing to native navigation.

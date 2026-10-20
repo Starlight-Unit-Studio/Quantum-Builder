@@ -388,13 +388,20 @@ def valid_navigation_target(target: str, trusted_domain: str | None = None) -> b
     return domain is None or host == domain or host.endswith("." + domain)
 
 
-def compile_navigation_items(project: Path, items: Any, *, trusted_domain: str | None = None) -> list[dict[str, Any]]:
-    """Validate a bounded menu tree, then compile icons into short bundled-asset references."""
+def compile_navigation_profile(project: Path, navigation: Any, *, trusted_domain: str | None = None) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Validate all menus/rules, then bundle their shared icons in one atomic pass."""
+    if not isinstance(navigation, dict):
+        raise RuntimeError("Native navigation must be an object")
+    for field in ("top_bar", "sidebar", "bottom_tabs", "contextual_toolbar"):
+        if field in navigation and not isinstance(navigation[field], bool):
+            raise RuntimeError("Native navigation default visibility must be boolean")
     images: dict[str, bytes] = {}
     has_icons = False
+    has_groups = False
     group_ids: set[str] = set()
     link_count = 0
     node_count = 0
+    total_nodes = 0
 
     def text_field(item: dict[str, Any], field: str, limit: int) -> str:
         value = item.get(field)
@@ -435,14 +442,15 @@ def compile_navigation_items(project: Path, items: Any, *, trusted_domain: str |
             has_icons = True
 
     def walk(items: Any, depth: int) -> list[dict[str, Any]]:
-        nonlocal link_count, node_count
+        nonlocal link_count, node_count, total_nodes, has_groups
         if not isinstance(items, list):
             raise RuntimeError("Native navigation items and group children must be lists")
         compiled = []
         for item in items:
             node_count += 1
-            if node_count > 24:
-                raise RuntimeError("Native navigation supports at most 24 total menu nodes")
+            total_nodes += 1
+            if node_count > 24 or total_nodes > 24:
+                raise RuntimeError("Native navigation supports at most 24 total nodes across all menus")
             if not isinstance(item, dict):
                 raise RuntimeError("Each native navigation item must be an object")
             kind = item.get("type", "link")
@@ -450,6 +458,7 @@ def compile_navigation_items(project: Path, items: Any, *, trusted_domain: str |
                 raise RuntimeError("Native navigation item type must be link or group")
             label = text_field(item, "label", 80)
             if kind == "group":
+                has_groups = True
                 if depth >= 3 or len(group_ids) >= 12:
                     raise RuntimeError("Native navigation supports at most 12 groups and 3 nested group levels")
                 group_id = item.get("id")
@@ -479,10 +488,86 @@ def compile_navigation_items(project: Path, items: Any, *, trusted_domain: str |
             compiled.append(normalized)
         return compiled
 
-    compiled = walk(items, 0)
+    compiled = walk(navigation.get("items", []), 0)
+    menus = navigation.get("menus", [])
+    if not isinstance(menus, list) or len(menus) > 3:
+        raise RuntimeError("Native navigation supports at most three additional menus in a list")
+    menu_ids = {"default"}
+    compiled_menus = []
+    for menu in menus:
+        if not isinstance(menu, dict) or set(menu) - {"id", "label", "items"}:
+            raise RuntimeError("Navigation menus must contain only id, label and items")
+        menu_id = menu.get("id")
+        if not isinstance(menu_id, str) or not re.fullmatch(r"[a-z][a-z0-9_-]{0,39}", menu_id) or menu_id in menu_ids:
+            raise RuntimeError("Menu IDs must be unique lowercase identifiers; default is reserved")
+        label = text_field(menu, "label", 80)
+        menu_ids.add(menu_id)
+        # Group identity and per-menu limits are independent; image assets and
+        # the aggregate node budget belong to the whole navigation profile.
+        group_ids = set()
+        link_count = node_count = 0
+        compiled_menus.append({"id": menu_id, "label": label, "items": walk(menu.get("items"), 0)})
+
+    def menu_reference(value: Any) -> str:
+        if not isinstance(value, str) or value not in menu_ids:
+            raise RuntimeError("Navigation menu references must name an existing menu")
+        return value
+
+    sidebar_menu = menu_reference(navigation.get("sidebar_menu", "default"))
+    bottom_tabs_menu = menu_reference(navigation.get("bottom_tabs_menu", "default"))
+    rules = navigation.get("rules", [])
+    if not isinstance(rules, list) or len(rules) > 16:
+        raise RuntimeError("Native navigation supports at most 16 ordered URL rules in a list")
+    compiled_rules = []
+    for rule in rules:
+        if not isinstance(rule, dict) or set(rule) - {"match", "path", "host", "sidebar_menu", "bottom_tabs_menu", "visibility"}:
+            raise RuntimeError("Navigation URL rules must be objects with supported rule fields")
+        match, path = rule.get("match"), rule.get("path")
+        if match not in ("exact", "prefix"):
+            raise RuntimeError("Navigation URL rules must use exact or prefix matching")
+        if (not isinstance(path, str) or len(path) > 2048 or path.startswith("//")
+                or not re.fullmatch(r"/(?:[A-Za-z0-9._~!$&'()*+,;=:@/-]|%[0-9A-Fa-f]{2})*", path)):
+            raise RuntimeError("Navigation rule paths must be ASCII paths starting with /, with valid escapes and no query or fragment")
+        normalized_rule: dict[str, Any] = {"match": match, "path": path}
+        if "host" in rule:
+            # Reject Unicode before case folding: e.g. Kelvin sign lowercases
+            # to ASCII k in Python but is not an ASCII DNS host in the profile.
+            host = rule["host"].lower() if isinstance(rule["host"], str) and rule["host"].isascii() else ""
+            domain = trusted_domain.lower() if trusted_domain is not None else None
+            if (not host or len(host) > 253
+                    or not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*", host)
+                    or domain is not None and host != domain and not host.endswith("." + domain)):
+                raise RuntimeError("Navigation rule hosts must be exact DNS names within the trusted domain")
+            normalized_rule["host"] = host
+        has_override = False
+        for field in ("sidebar_menu", "bottom_tabs_menu"):
+            if field in rule:
+                normalized_rule[field] = menu_reference(rule[field])
+                has_override = True
+        if "visibility" in rule:
+            visibility = rule["visibility"]
+            if (not isinstance(visibility, dict) or not visibility
+                    or set(visibility) - {"top_bar", "sidebar", "bottom_tabs", "contextual_toolbar"}
+                    or any(not isinstance(value, bool) for value in visibility.values())):
+                raise RuntimeError("Navigation visibility must be a nonempty object of supported boolean surface overrides")
+            normalized_rule["visibility"] = dict(visibility)
+            has_override = True
+        if not has_override:
+            raise RuntimeError("Each navigation URL rule must override a menu or surface visibility")
+        compiled_rules.append(normalized_rule)
+
+    extension = bool(compiled_menus or compiled_rules or sidebar_menu != "default" or bottom_tabs_menu != "default")
+    profile = {"menus": compiled_menus, "sidebar_menu": sidebar_menu, "bottom_tabs_menu": bottom_tabs_menu, "rules": compiled_rules} if extension else {}
+
+    if extension:
+        menu_capability = project / "app/src/main/java/de/starlightunit/wrapper/navigation/NativeNavigationMenus.java"
+        app_config = project / "app/src/main/java/de/starlightunit/wrapper/config/AppConfig.java"
+        if (not menu_capability.is_file() or not app_config.is_file()
+                or not re.search(r"public\s+static\s+final\s+String\s+NATIVE_NAVIGATION_PROFILE_JSON\s*=", app_config.read_text(encoding="utf-8"))):
+            raise RuntimeError("Navigation menus and URL rules require Quantum Mobile Wrapper beta12 or newer (NativeNavigationMenus.java or NATIVE_NAVIGATION_PROFILE_JSON missing); update the wrapper ref")
 
     group_capability = project / "app/src/main/java/de/starlightunit/wrapper/navigation/NativeNavigationGroups.java"
-    if group_ids and not group_capability.is_file():
+    if has_groups and not group_capability.is_file():
         raise RuntimeError("Navigation groups require Quantum Mobile Wrapper beta11 or newer (NativeNavigationGroups.java missing); update the wrapper ref")
 
     capability = project / "app/src/main/java/de/starlightunit/wrapper/navigation/NativeNavigationIcons.java"
@@ -491,11 +576,12 @@ def compile_navigation_items(project: Path, items: Any, *, trusted_domain: str |
 
     # Java constant-pool strings use modified UTF-8. Count UTF-16 code units,
     # including the six-byte representation of non-BMP characters, before writes.
-    menu_json = json.dumps(compiled, ensure_ascii=False, separators=(",", ":"))
-    utf16 = menu_json.encode("utf-16-be")
-    units = (int.from_bytes(utf16[index:index + 2], "big") for index in range(0, len(utf16), 2))
-    if sum(1 if 0 < unit < 128 else 2 if unit < 2048 else 3 for unit in units) > 65535:
-        raise RuntimeError("Native navigation JSON exceeds the Java configuration string limit")
+    for value in (compiled, profile):
+        menu_json = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+        utf16 = menu_json.encode("utf-16-be")
+        units = (int.from_bytes(utf16[index:index + 2], "big") for index in range(0, len(utf16), 2))
+        if sum(1 if 0 < unit < 128 else 2 if unit < 2048 else 3 for unit in units) > 65535:
+            raise RuntimeError("Native navigation JSON exceeds the Java configuration string limit")
 
     asset_dir = project / "app/src/main/assets" / NAVIGATION_ICON_ASSET_DIRECTORY
     if asset_dir.is_symlink() or not asset_dir.resolve().is_relative_to(project.resolve()):
@@ -512,6 +598,12 @@ def compile_navigation_items(project: Path, items: Any, *, trusted_domain: str |
         for old in asset_dir.iterdir():
             if re.fullmatch(r"[0-9a-f]{64}\.png", old.name) and old.name not in images and (old.is_file() or old.is_symlink()):
                 old.unlink()
+    return compiled, profile
+
+
+def compile_navigation_items(project: Path, items: Any, *, trusted_domain: str | None = None) -> list[dict[str, Any]]:
+    """Compatibility entry point for the existing single-menu compiler contract."""
+    compiled, _ = compile_navigation_profile(project, {"items": items}, trusted_domain=trusted_domain)
     return compiled
 
 
@@ -576,8 +668,8 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
     native_navigation_background = normalized_hex_color(navigation.get("background"), "#020611")
     native_navigation_foreground = normalized_hex_color(navigation.get("foreground"), "#ffffff")
     native_navigation_accent = normalized_hex_color(navigation.get("accent"), "#6fc7ff")
-    native_navigation_items = compile_navigation_items(
-        project, navigation.get("items", []),
+    native_navigation_items, native_navigation_profile = compile_navigation_profile(
+        project, navigation,
         trusted_domain=str(config.get("trusted_domain") or parsed.hostname or ""),
     )
 
@@ -619,6 +711,8 @@ def patch_app_config(project: Path, app: sqlite3.Row, config: dict[str, Any]) ->
         "LOADING_INDICATOR_STYLE": str(interface.get("loading_indicator_style") or "top-bar"),
         "LOADING_INDICATOR_COLOR": str(interface.get("loading_indicator_color") or "#6fc7ff"),
     }
+    if re.search(r"public\s+static\s+final\s+String\s+NATIVE_NAVIGATION_PROFILE_JSON\s*=", text):
+        string_values["NATIVE_NAVIGATION_PROFILE_JSON"] = json.dumps(native_navigation_profile, ensure_ascii=False, separators=(",", ":"))
     for constant, value in string_values.items():
         text = replace_once(
             text,
