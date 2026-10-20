@@ -1,12 +1,20 @@
 # Quantum Builder Feature Matrix
 
+Current Builder: **0.1.0-alpha12**. The full dated scope and delivery sequence are
+in [MEDIAN_PARITY_ROADMAP.md](MEDIAN_PARITY_ROADMAP.md); the brighter design is in
+[QUANTUM_ENTERPRISE_DESIGN.md](QUANTUM_ENTERPRISE_DESIGN.md).
+MobiLoud, Twinr and CatDoes extend the reference scope in
+[REFERENCE_PLATFORM_EXPANSION.md](REFERENCE_PLATFORM_EXPANSION.md).
+
 Legend:
 
 - **Runtime**: stored and compiled into the generated Android app now
 - **Profile**: stored in the app profile/UI, native compiler connection is still being added
-- **Planned**: intentionally not implemented in alpha1
+- **Planned**: not implemented in the current version
+- **Builder**: implemented in the web editor/preview; native behavior retains its
+  separately stated runtime scope
 
-| Area | Feature | Alpha1 |
+| Area | Feature | Current status |
 |---|---|---|
 | Overview | App name | Runtime |
 | Overview | HTTPS start URL | Runtime |
@@ -45,8 +53,15 @@ Legend:
 | Navigation | Bottom tabs enable | Runtime |
 | Navigation | Contextual toolbar enable | Runtime |
 | Navigation | Shared ordered menu JSON | Runtime |
-| Navigation | Visual drag/drop menu editor | Planned |
+| Navigation | Visual shared-menu editor, touch/keyboard ordering and drag/drop | Builder |
+| Navigation | Advanced shared-menu JSON editing with draft validation | Builder |
+| Simulator | Top bar, sidebar, bottom tabs and contextual toolbar preview | Builder |
+| Simulator | Preview-owned navigation history and current-route reload | Builder |
 | Navigation | Page visibility rules | Planned |
+| Navigation | Retained tab state and background invalidation/refresh | Planned |
+| Native Screens | Visual component editor and native renderers | Planned |
+| Native Screens | REST data sources and response-to-component mapping | Planned |
+| Onboarding | First-run content, completion and permission timing | Planned |
 | Links | New-window behavior | Runtime |
 | Links | Deep-link scheme | Runtime |
 | Links | Ordered URL rule engine | Runtime |
@@ -72,10 +87,21 @@ Legend:
 | Plugins | QR/Barcode | Profile |
 | Plugins | Firebase Cloud Messaging | Profile |
 | Plugins | Full plugin library | Planned |
+| Engagement | Provider identity lifecycle and audience segments | Planned |
+| Engagement | Scheduled/event push and in-app message campaigns | Planned |
+| Engagement | Native notification inbox and read state | Planned |
+| Commerce | App-only offers, loyalty, cart and marketplace adapters | Planned |
+| Analytics | Acquisition, retention, revenue and campaign reporting | Planned |
 | Management | Members/access roles | Planned |
 | Management | Test devices/testers | Planned |
 | Deployment | Google Play upload | Planned |
 | Deployment | Previous signed releases | Runtime build history |
+| Deployment | Native device-preview links and install/promotional widgets | Planned |
+| Deployment | Remote configuration rollout and rollback | Planned |
+| Generation | AI-assisted web/mobile application projects | Planned |
+| Generation | Mobile source editor, GitHub round trips and checkpoints | Planned |
+| Generation | Application backend adapters and error-repair workflow | Planned |
+| Generation | Independent source export and generated-web deployment | Planned |
 | Platforms | Android | Active |
 | Platforms | iOS | Planned, separate native build engine |
 
@@ -85,4 +111,7 @@ A field shown as **Profile** is not advertised as an active native capability un
 
 ## Reference scope
 
-Median's control panel is used as a feature inventory and workflow reference. Quantum Builder uses its own data model, implementation, plugin architecture and Terran terminal interface.
+Median, MobiLoud and Twinr inform wrapper, native-screen, engagement and operational
+capabilities. CatDoes adds a distinct generated-application workflow. Shared
+features use one Quantum implementation and retain explicit platform status.
+The current Terran interface precedes the planned brighter Quantum Enterprise design.

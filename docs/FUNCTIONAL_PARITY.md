@@ -1,8 +1,20 @@
 # Quantum Builder Functional Parity Matrix
 
+Updated for Builder **0.1.0-alpha12**. The complete dated reference inventory and
+dependency order are retained in [MEDIAN_PARITY_ROADMAP.md](MEDIAN_PARITY_ROADMAP.md).
+The approved brighter Builder direction is retained separately in
+[QUANTUM_ENTERPRISE_DESIGN.md](QUANTUM_ENTERPRISE_DESIGN.md).
+
 ## Goal
 
-Quantum Builder targets functional parity with the capabilities exposed by modern web-to-native builders such as Median while keeping its own Terran terminal design, codebase, runtime architecture and product identity.
+Quantum Builder targets the combined capability and workflow scope recorded for
+Median, MobiLoud, Twinr and CatDoes. Wrapper/native-screen capabilities and generated
+application projects retain separate engines and acceptance criteria. Quantum owns
+its codebase, runtime architecture and product identity, with the brighter
+Enterprise design planned after the functional phase.
+
+The dated evidence, reference IDs and additional acceptance scope are in
+[REFERENCE_PLATFORM_EXPANSION.md](REFERENCE_PLATFORM_EXPANSION.md).
 
 This is a capability/workflow target only. We do not copy proprietary source code, assets or a pixel-identical UI.
 
@@ -28,15 +40,17 @@ Status legend:
 - iPad preview - `IOS-LATER`
 - Simulator setting panel - `PLANNED`
 - Device presets / resolutions - `PLANNED`
-- Live rendering of native navigation overlays - `PLANNED`
+- Live rendering of current native navigation overlays - `BUILDER` (approximate
+  browser presentation of Top Bar, Sidebar, Bottom Tabs and Contextual Toolbar)
+- Simulator-owned route history and current-route reload - `BUILDER`
 
 ## Overview
 
-- App name - `PROFILE`
-- Website URL - `PROFILE`
+- App name - `RUNTIME`
+- Website URL - `RUNTIME`
 - App description - `PROFILE`
-- Trusted domain - `PROFILE`
-- Wrapper runtime ref - `PROFILE`
+- Trusted domain - `RUNTIME`
+- Wrapper runtime ref - `BUILDER`
 - Private management/share link - `PLANNED`
 - Public share link - `PLANNED`
 - App access/member assignment - `PLANNED`
@@ -59,11 +73,11 @@ Status legend:
 
 ## Interface
 
-- Dark mode setting - `PROFILE`
+- Dark mode setting - `RUNTIME`
 - Orientation - `RUNTIME`
 - Keep screen on - `RUNTIME`
 - Immersive fullscreen - `RUNTIME`
-- Native page transitions - `PROFILE`
+- Native page transitions - `RUNTIME`
 - Pull-to-refresh - `RUNTIME`
 - Pinch-to-zoom - `RUNTIME`
 - Android font scaling - `RUNTIME`
@@ -102,13 +116,13 @@ Status legend:
 - App image/name - `PLANNED`
 - Font/style controls - `PLANNED`
 - Light/dark background/foreground/separator/highlight - `PLANNED`
-- Visual menu editor - `PLANNED`
+- Visual label/URL menu editor - `BUILDER` (existing shared runtime menu)
 - Label/link items - `RUNTIME`
 - Item icons - `PLANNED`
 - Grouping/collapsible groups - `PLANNED`
-- Drag/drop ordering - `PLANNED`
+- Drag/drop, touch-button and keyboard ordering - `BUILDER`
 - Restore defaults / clear all - `PLANNED`
-- Advanced mode - `PLANNED`
+- Advanced shared-menu JSON editing - `BUILDER`
 
 ### Bottom Tab Bar
 
@@ -116,12 +130,12 @@ Status legend:
 - Hide with scroll - `PLANNED`
 - Light/dark styling - `PLANNED`
 - Active/inactive tab colors - `PLANNED`
-- Visual tab editor - `PLANNED`
+- Visual shared-menu editor - `BUILDER` (first five shared destinations)
 - Multiple tab menus - `PLANNED`
 - Visibility rules - `PLANNED`
 - Text/links - `RUNTIME`
 - Tab icons - `PLANNED`
-- Advanced mode - `PLANNED`
+- Advanced shared-menu JSON editing - `BUILDER`
 
 ### Contextual Navigation Toolbar
 
@@ -132,7 +146,7 @@ Status legend:
 - Back button label/pages - `PLANNED`
 - Refresh button configuration - `PLANNED`
 - Forward button configuration - `PLANNED`
-- Preview - `PLANNED`
+- Preview - `BUILDER` (simulator-owned history; embedded page history is not observable)
 - iOS-first implementation - `IOS-LATER`
 
 ## Link Handling
@@ -182,7 +196,8 @@ Status legend:
 
 Current Quantum-native modules:
 
-- Quantum Native Media Player - `RUNTIME`
+- Quantum Native Media Player - `RUNTIME` for existing playback; Builder
+  enable/disable compilation and full playlist/background/media-session parity remain open
 - Quantum Asset Store - `RUNTIME`
 
 Profiles already exposed:
@@ -243,14 +258,29 @@ Plugin parity targets observed in reference builder:
 - iBeacon - `IOS-LATER`
 - Scandit QR/Barcode - `PLANNED`
 - Microsoft Intune - `PLANNED`
+- Enterprise Security - `PLANNED`
+- Secure Modal (Apple Pay) - `IOS-LATER`
+- Reader Modal (External Link Account) - `IOS-LATER`
+- Card.io - `PLANNED`
+- Shopify - `PLANNED`
+- Intent Edge - `PLANNED`
+- Sendbird - `PLANNED`
+- IBM Cloud - `PLANNED`
+- Optimizely - `PLANNED`
+- MoEngage - `PLANNED`
+- Salesforce Marketing Cloud - `PLANNED`
+- Microsoft Dynamics 365 - `PLANNED`
+- Xtremepush - `PLANNED`
+- Master Lock - `PLANNED`
+- Social Share - `PLANNED`
 
 Third-party plugins may require the user's own provider account, credentials or paid provider plan. Quantum Builder itself should not introduce artificial product-tier locks around integrations.
 
 ## Build & Deploy
 
-- Package ID - `PROFILE`
-- Version name/code - `PROFILE`
-- minSdk/targetSdk - `PROFILE`
+- Package ID - `RUNTIME`
+- Version name/code - `RUNTIME`
+- minSdk/targetSdk - `RUNTIME`
 - Persistent per-app signing identity - `RUNTIME`
 - Rebuild All - `RUNTIME`
 - APK output - `RUNTIME`
@@ -277,6 +307,61 @@ Third-party plugins may require the user's own provider account, credentials or 
 - Global settings - `PLANNED`
 - Store/deployment accounts - `PLANNED`
 - iOS testers/App Store Connect - `IOS-LATER`
+
+## Additional platform scope
+
+All additional items below are `PLANNED`. Their reference IDs resolve to the
+additional-platform inventory. Existing features elsewhere in this matrix retain
+their own status; an overlapping provider or UI control does not complete these
+broader requirements.
+
+### Native screens, navigation and website continuity
+
+- Retained tab state, selective background refresh and cart/wishlist invalidation
+  (ML-02, TW-05) - `PLANNED`
+- Per-tab rule precedence, component visibility and typed page-element actions
+  (TW-03, TW-04) - `PLANNED`
+- Native-screen component editor and Android/iOS renderer coverage (TW-01) - `PLANNED`
+- REST request configuration, response mapping and screen data states (TW-02) - `PLANNED`
+- First-run onboarding, completion state and permission timing (ML-03, TW-06) - `PLANNED`
+- Website journey compatibility, app-context content and verified session lifecycle
+  (ML-01, ML-04, ML-05) - `PLANNED`
+
+### Engagement, commerce and analytics
+
+- Provider identity association/reset, attributes and merge behavior (ML-06) - `PLANNED`
+- Audience segmentation and event/scheduled push campaigns (TW-07, TW-08) - `PLANNED`
+- Visual/HTML in-app messages, targeting and interaction reporting (TW-09) - `PLANNED`
+- Native notification inbox, read state and destinations (TW-10) - `PLANNED`
+- Commerce and marketplace adapters, including app-only offers, loyalty and
+  Sharetribe inbox events (ML-07, TW-12) - `PLANNED`
+- Acquisition, retention, revenue and attribution-aware reporting (ML-08, TW-11) - `PLANNED`
+
+### Delivery and operations
+
+- Same-phone native preview links and QR sharing (TW-14, CD-05) - `PLANNED`
+- Website install/promotional widgets and device-aware redirects (ML-09, TW-13) - `PLANNED`
+- Configuration templates/versions, remote rollout and rollback (TW-14, TW-15) - `PLANNED`
+- Store description/screenshot tooling, release tasks and OS/SDK maintenance
+  (ML-11, TW-17) - `PLANNED`
+- Supported app-listing migration and signing continuity workflow (ML-12) - `PLANNED`
+
+### Generated application projects
+
+- Prompt/website/repository inputs and editable generation plans (CD-01, CD-02) - `PLANNED`
+- Durable agent jobs, visible progress, cancellation and recovery (CD-01) - `PLANNED`
+- Separate mobile/web generation engines and multi-app projects (CD-03) - `PLANNED`
+- Phone-based source editing, file context and screenshot feedback (CD-04) - `PLANNED`
+- Per-engine browser/device previews and logs (CD-05) - `PLANNED`
+- Source/configuration checkpoints with defined restore scope (CD-06) - `PLANNED`
+- GitHub import, synchronization, branch/conflict handling and source round trips
+  (CD-07) - `PLANNED`
+- Optional application backend and external provider adapters (CD-08) - `PLANNED`
+- Target-specific build profiles and generated-web/domain deployment
+  (CD-09, CD-10) - `PLANNED`
+- Required-configuration checks and release-readiness findings (CD-09) - `PLANNED`
+- Error monitoring and reproducible repair jobs (CD-11) - `PLANNED`
+- Complete generated-source export and independent builds (CD-12) - `PLANNED`
 
 ## Rule for future work
 

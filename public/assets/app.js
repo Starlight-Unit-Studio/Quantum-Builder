@@ -12,6 +12,7 @@
     savedRevision: 0,
     appIconDataUrl: '',
     customSplashDataUrl: '',
+    navigationEditor: null,
   };
 
   const $ = (id) => document.getElementById(id);
@@ -76,6 +77,7 @@
     } finally {
       state.csrf = null;
       state.currentApp = null;
+      window.QuantumSimulator?.updateProfile(null);
       if (state.buildTimer) clearInterval(state.buildTimer);
       if (state.saveTimer) clearTimeout(state.saveTimer);
       setAuthenticated(false);
@@ -209,6 +211,7 @@
     $('nativeNavigationForeground').value = get(config, 'navigation.foreground', '#ffffff');
     $('nativeNavigationAccent').value = get(config, 'navigation.accent', '#6fc7ff');
     $('nativeNavigationItems').value = JSON.stringify(get(config, 'navigation.items', []), null, 2);
+    state.navigationEditor?.load();
 
     $('newWindows').value = get(config, 'links.new_windows', 'blocked');
     $('deepLinkScheme').value = get(config, 'links.deep_link_scheme', '');
@@ -259,6 +262,10 @@
       if (!Array.isArray(nativeNavigationItems)) throw new Error('Native Navigation Items müssen ein JSON-Array sein.');
       if (nativeNavigationItems.length > 12) throw new Error('Native Navigation unterstützt maximal 12 Menüeinträge.');
     }
+    nativeNavigationItems = window.QuantumNavigationModel.validateItems(nativeNavigationItems, {
+      startUrl: $('startUrl').value.trim(),
+      trustedDomain: $('trustedDomain').value.trim(),
+    });
 
     let linkRules = [];
     const rawLinkRules = $('linkRules').value.trim();
@@ -433,6 +440,7 @@
       if (!saved) return;
     }
     state.currentApp = null;
+    window.QuantumSimulator?.updateProfile(null);
     resetSaveTracking();
     if (state.buildTimer) clearInterval(state.buildTimer);
     $('editorView').classList.add('is-hidden');
@@ -492,23 +500,34 @@
   };
 
   const updateSimulator = () => {
+    state.navigationEditor?.refreshValidation();
     const name = $('appName')?.value?.trim() || state.currentApp?.name || 'APP PREVIEW';
     const url = $('startUrl')?.value?.trim() || state.currentApp?.start_url || '';
     $('simAppName').textContent = name;
     $('simPackage').textContent = $('packageId')?.value || state.currentApp?.package_id || 'package';
     $('simVersion').textContent = $('versionName')?.value || state.currentApp?.version_name || 'version';
-    const frame = $('simulatorFrame');
-    const fallback = $('simFallback');
-    if (/^https:\/\//i.test(url)) {
-      if (frame.dataset.url !== url) {
-        frame.dataset.url = url;
-        frame.src = url;
-      }
-      fallback.classList.add('is-hidden');
-    } else {
-      frame.removeAttribute('src');
-      fallback.classList.remove('is-hidden');
-    }
+    let items = null;
+    let validationError = '';
+    try { items = JSON.parse($('nativeNavigationItems').value.trim() || '[]'); }
+    catch { validationError = 'Die Menü-JSON ist noch unvollständig. Die letzte gültige Vorschau bleibt sichtbar.'; }
+    window.QuantumSimulator?.updateProfile({
+      id: state.currentApp?.id ?? null,
+      name,
+      startUrl: url,
+      trustedDomain: $('trustedDomain').value.trim(),
+      navigation: {
+        top_bar: $('topBar').checked,
+        sidebar: $('sidebarNav').checked,
+        bottom_tabs: $('bottomTabs').checked,
+        contextual_toolbar: $('contextualToolbar').checked,
+        title: $('nativeNavigationTitle').value.trim(),
+        background: $('nativeNavigationBackground').value,
+        foreground: $('nativeNavigationForeground').value,
+        accent: $('nativeNavigationAccent').value,
+        items,
+      },
+      validationError,
+    });
   };
 
   const readAppIcon = (file) => new Promise((resolve, reject) => {
@@ -618,6 +637,18 @@
   const closeMobileNav = () => $('sidebar').classList.remove('is-open');
 
   const bind = () => {
+    state.navigationEditor = window.QuantumNavigationEditor.create({
+      root: $('nativeNavigationEditor'),
+      textarea: $('nativeNavigationItems'),
+      getContext: () => ({
+        startUrl: $('startUrl').value.trim(),
+        trustedDomain: $('trustedDomain').value.trim(),
+      }),
+    });
+    $('appForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      saveApp({ silent: false, force: true });
+    });
     $('loginForm').addEventListener('submit', login);
     $('logoutButton').addEventListener('click', logout);
     $('newAppButton').addEventListener('click', () => $('newAppDialog').showModal());

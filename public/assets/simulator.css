@@ -19,3 +19,172 @@
 #simulatorDevice.sim-tablet.sim-landscape{aspect-ratio:4/3}
 .sim-audio-note{margin-top:8px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:8px;line-height:1.45;color:var(--muted-2)}
 @media(max-width:430px){.sim-control-row{grid-template-columns:1fr repeat(4,36px)}.sim-tool-btn{min-width:36px;padding:0 6px}.sim-zoom-control{grid-template-columns:auto 1fr}.sim-zoom-value{grid-column:1/-1;text-align:center}.sim-zoom-label{display:none}}
+
+/* Native dp sizes are represented as CSS pixels before the device zoom. */
+.sim-native-screen {
+  --sim-nav-background: #020611;
+  --sim-nav-foreground: #ffffff;
+  --sim-nav-accent: #6fc7ff;
+  --sim-nav-top-height: 0px;
+  --sim-nav-tabs-height: 0px;
+  --sim-nav-context-height: 0px;
+  position: absolute;
+  inset: 30px 0 0;
+  overflow: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--sim-nav-foreground);
+  text-align: left;
+}
+
+.sim-native-screen [hidden] { display: none !important; }
+#simulatorDevice .sim-native-screen #simulatorFrame {
+  position: absolute;
+  top: var(--sim-nav-top-height);
+  left: 0;
+  width: 100%;
+  height: calc(100% - var(--sim-nav-top-height) - var(--sim-nav-tabs-height) - var(--sim-nav-context-height));
+}
+.sim-native-screen .sim-fallback {
+  inset: var(--sim-nav-top-height) 0 calc(var(--sim-nav-tabs-height) + var(--sim-nav-context-height));
+}
+
+.sim-native-top,
+.sim-native-tabs,
+.sim-native-toolbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: stretch;
+  background: var(--sim-nav-background);
+  color: var(--sim-nav-foreground);
+}
+.sim-native-top { top: 0; height: 52px; }
+.sim-native-tabs { bottom: 0; height: 58px; }
+.sim-native-toolbar { bottom: var(--sim-nav-tabs-height); height: 46px; }
+.sim-native-title {
+  flex: 1;
+  min-width: 0;
+  padding: 0 12px;
+  align-self: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.sim-native-screen button {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: normal;
+  text-transform: none;
+  box-shadow: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.sim-native-screen button:focus-visible {
+  outline: 2px solid var(--sim-nav-accent);
+  outline-offset: -3px;
+}
+.sim-native-screen button:disabled {
+  opacity: .35;
+  cursor: default;
+}
+.sim-native-action {
+  flex: 0 0 48px;
+  width: 48px;
+  min-height: 44px;
+  padding: 0;
+  font-size: 22px;
+  text-align: center;
+}
+.sim-native-toolbar .sim-native-action { flex: 1 1 0; min-width: 0; }
+.sim-native-screen .sim-native-launcher {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 48px;
+  height: 48px;
+  background: var(--sim-nav-background);
+  font-size: 24px;
+}
+.sim-native-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.sim-native-screen .sim-native-tab.is-selected {
+  color: var(--sim-nav-accent);
+  font-weight: 700;
+}
+
+.sim-native-drawer-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+.sim-native-screen .sim-native-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, .6);
+}
+.sim-native-drawer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 280px;
+  max-width: calc(100% - 36px);
+  padding: 12px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--sim-nav-background);
+  color: var(--sim-nav-foreground);
+}
+.sim-native-drawer-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sim-native-drawer-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 14px 0 18px 12px;
+  color: var(--sim-nav-accent);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.sim-native-drawer-items { display: flex; flex-direction: column; }
+.sim-native-item {
+  width: 100%;
+  min-height: 48px;
+  padding: 14px;
+  font-size: 16px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.sim-navigation-note,
+.sim-navigation-status {
+  margin: 12px 0 0;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.sim-navigation-status { color: var(--gold); }
+.sim-navigation-status[hidden] { display: none; }

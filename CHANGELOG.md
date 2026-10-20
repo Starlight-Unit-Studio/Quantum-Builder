@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.1.0-alpha12
+
+Visual native-navigation editing and live navigation preview.
+
+- Adds label/URL menu rows with add, remove, touch-friendly move buttons,
+  keyboard ordering and desktop drag handles over the existing profile schema.
+- Keeps advanced JSON editing and preserves malformed or incomplete drafts
+  without silently replacing the saved menu.
+- Shows inline destination/label validation and the shared 12-entry/five-tab limits.
+- Feeds visual edits through the existing autosave and build validation paths.
+- Previews native Top Bar, Sidebar, Bottom Tabs and Contextual Toolbar with
+  configured colors and reserved page space, plus the empty-menu Home fallback.
+- Adds simulator-owned route history and current-page reload; editing navigation
+  settings no longer resets the preview to the app start URL.
+- Clears preview state between profiles and validates every preview destination.
+- Records the complete dated Median expansion roadmap and the agreed brighter
+  Quantum Enterprise design direction for the later redesign phase.
+- Extends planned reference coverage to MobiLoud, Twinr and CatDoes, including
+  website/commerce continuity, native screens and engagement, and a separate
+  generated-application workflow; no new runtime capability is implied.
+- Includes local URL-contract and integrated browser regressions for mobile and
+  desktop. This tranche changes Builder editing/preview, not the Android runtime.
+- Bumps the Builder version to refresh browser assets on installer updates.
+
 ## 0.1.0-alpha11
 
 Custom splash replacement with post-load STU attribution.
