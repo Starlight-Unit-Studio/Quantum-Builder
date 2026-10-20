@@ -98,6 +98,7 @@ Legend:
 | Deployment | Previous signed releases | Runtime build history |
 | Deployment | Native device-preview links and install/promotional widgets | Planned |
 | Deployment | Remote configuration rollout and rollback | Planned |
+| AI Connection | External API endpoint, server-side key, manual model ID and connection check | Planned |
 | Generation | AI-assisted web/mobile application projects | Planned |
 | Generation | Mobile source editor, GitHub round trips and checkpoints | Planned |
 | Generation | Application backend adapters and error-repair workflow | Planned |
@@ -115,3 +116,5 @@ Median, MobiLoud and Twinr inform wrapper, native-screen, engagement and operati
 capabilities. CatDoes adds a distinct generated-application workflow. Shared
 features use one Quantum implementation and retain explicit platform status.
 The current Terran interface precedes the planned brighter Quantum Enterprise design.
+AI inference uses a planned external API connection only; model installation and
+hosting are outside the Builder scope. See [AI_API_INTEGRATION.md](AI_API_INTEGRATION.md).

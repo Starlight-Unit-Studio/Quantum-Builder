@@ -348,8 +348,10 @@ broader requirements.
 
 ### Generated application projects
 
+- External API endpoint/key/model and real connection check - `PLANNED`
+- Server-side credentials, provider errors and manually entered model IDs - `PLANNED`
 - Prompt/website/repository inputs and editable generation plans (CD-01, CD-02) - `PLANNED`
-- Durable agent jobs, visible progress, cancellation and recovery (CD-01) - `PLANNED`
+- API-backed agent jobs, visible progress, cancellation and recovery (CD-01) - `PLANNED`
 - Separate mobile/web generation engines and multi-app projects (CD-03) - `PLANNED`
 - Phone-based source editing, file context and screenshot feedback (CD-04) - `PLANNED`
 - Per-engine browser/device previews and logs (CD-05) - `PLANNED`
@@ -362,6 +364,11 @@ broader requirements.
 - Required-configuration checks and release-readiness findings (CD-09) - `PLANNED`
 - Error monitoring and reproducible repair jobs (CD-11) - `PLANNED`
 - Complete generated-source export and independent builds (CD-12) - `PLANNED`
+
+The [AI connection decision](AI_API_INTEGRATION.md) requires external API access.
+Local inference services, model downloads and periodic model synchronization are
+outside scope. CoreUI reuse is limited to suitable settings and transport pieces;
+its reserved external adapter is not counted as an implemented Quantum feature.
 
 ## Rule for future work
 

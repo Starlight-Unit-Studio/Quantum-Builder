@@ -32,6 +32,11 @@ MobiLoud's website/commerce and launch workflows, Twinr's native screens/data bi
 and engagement tools, and CatDoes-style generated application projects. These
 extensions are planned; they do not change the implemented alpha12 feature scope.
 
+Planned AI features connect to a compatible external API using an API address,
+API key and model identifier. Model inference runs at the connected service.
+The [AI connection specification](docs/AI_API_INTEGRATION.md) records the small
+connection surface, provider-neutral description and reusable CoreUI components.
+
 ## Studio quick installer
 
 Like Ember CoreUI, Quantum Builder ships with a single-command SSH installer. It installs/updates the project under `/opt/quantum-builder`, preserves persistent builder state and runs a post-install preflight.

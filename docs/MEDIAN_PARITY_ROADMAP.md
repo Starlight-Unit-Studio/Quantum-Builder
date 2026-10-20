@@ -31,6 +31,10 @@ is retained so existing links and handoffs continue to work.
 - CatDoes adds a planned generated-application mode. It is a separate project
   capability alongside the existing website-wrapper workflow; framework selection
   remains an implementation decision. All newly added scope remains `PLANNED`.
+- AI model access is **API-only**, as finalized on 2026-10-20: endpoint, API key
+  and model identifier. Quantum installs no inference service or model weights
+  and runs no model-sync daemon. Product copy remains provider-neutral. See
+  [AI_API_INTEGRATION.md](AI_API_INTEGRATION.md) for the connection and CoreUI reuse plan.
 
 ## Recorded baseline and current tranche
 
@@ -260,12 +264,16 @@ Reference: [iOS build and deployment](https://docs.median.co/docs/ios-build-depl
 
 ### 7. Add generated-application projects
 
+- [ ] Implement the small [external API connection](AI_API_INTEGRATION.md) first:
+  endpoint/key/model, a real connection check and useful provider errors. Reuse
+  appropriate CoreUI settings/transport pieces without its local-model lifecycle.
 - [ ] Add a generated-app project type alongside the wrapper, with explicit mobile
   and web engines and support for multiple app targets in one project (CD-02, CD-03).
 - [ ] Turn a prompt, website analysis or repository import into a reviewable screen
   inventory, application specification and implementation plan (CD-01, CD-02).
-- [ ] Add durable AI execution jobs with visible progress, interruption/recovery,
-  reconnectable sessions and isolated working environments (CD-01).
+- [ ] Add durable API-backed AI jobs with visible progress, interruption/recovery,
+  reconnectable sessions and isolated project workspaces (CD-01). Model inference
+  stays with the configured API provider; project/build execution remains separate.
 - [ ] Add mobile source editing, file references, screenshot feedback, browser and
   device previews with target-specific limitations (CD-04, CD-05).
 - [ ] Add checkpoints, GitHub synchronization, branch/conflict workflows and complete

@@ -29,6 +29,11 @@ feature gates. The brighter redesign still follows the functional phase. Splash
 and the accepted attribution behavior remain complete; first-run onboarding is a
 separate application workflow.
 
+The AI access decision is **API-only**: configure endpoint, key and model. Quantum
+does not add local model installation or synchronization. Provider-neutral wording
+and the inspected CoreUI reuse points are in
+[AI_API_INTEGRATION.md](AI_API_INTEGRATION.md).
+
 ## MobiLoud inventory
 
 | ID | Public reference evidence | Additional Quantum acceptance target | Phase |
@@ -155,7 +160,7 @@ continuous synchronization with the original website. [C1, C2]
 
 | ID | Public reference evidence | Additional Quantum acceptance target | Phase |
 |---|---|---|---|
-| CD-01 | Conversational planning and a cloud Compose agent with subagents [C3] | Durable generation jobs with a reviewable specification, visible work progress, cancellation, recovery and reconnectable sessions | 7 |
+| CD-01 | Conversational planning and a cloud Compose agent with subagents [C3] | API-backed generation jobs with a reviewable specification, visible work progress, cancellation, recovery and reconnectable sessions | 7 |
 | CD-02 | URL-based website analysis and GitHub project import [C2, C4] | Select URL or repository input, review extracted screens/assets, preserve source provenance and expose inaccessible content | 7 |
 | CD-03 | Mobile, web and multiple applications in one project [C1] | Separate wrapper/generated project types and per-target build/preview adapters; keep one project capable of multiple application folders | 7 |
 | CD-04 | File browsing/editing, file references and screenshot feedback [C5] | Phone-usable source editing, targeted file context and image annotations tied to a revision | 7 |
@@ -220,6 +225,9 @@ about the vendors' internal implementation.
 6. **Complete mobile workflow.** Accept the features from a phone: configuration,
    page composition, source feedback, direct device preview, builds and downloads.
    A QR code alone is insufficient when the same phone is the only device.
+7. **API-only model access.** Use the configured external connection for inference.
+   Keep project execution, builds and application backends separate from model
+   hosting. A local inference installation or model-sync script is outside scope.
 
 ## Next implementation and review
 

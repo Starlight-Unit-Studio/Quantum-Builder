@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Records the API-only AI connection decision: endpoint, server-side API key,
+  model identifier and a connection check, with provider-neutral product copy.
+- Documents the reusable CoreUI groundwork and the reserved external-adapter
+  boundary. Local inference/model management remains outside Quantum Builder.
+- Documentation only; AI connectivity and generation remain planned.
+
 ## 0.1.0-alpha12
 
 Visual native-navigation editing and live navigation preview.
