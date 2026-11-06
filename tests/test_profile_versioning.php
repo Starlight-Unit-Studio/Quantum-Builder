@@ -50,6 +50,32 @@ assert(get_object_vars($app['config']['web']['custom_headers']) === []);
 assert($app['config']['web']['cookie_persistence'] === 'persistent');
 assert($app['config']['navigation']['items'] === []);
 assert($app['config']['navigation']['title'] === 'Version Test');
+assert($app['target_sdk'] === 36); // Saved API 36 profiles remain unchanged.
+
+$android17Input = $input;
+$android17Input['package_id'] = 'de.starlightunit.android17';
+$android17Input['target_sdk'] = 37;
+$android17App = $apps->create($android17Input);
+assert($android17App['min_sdk'] === 23 && $android17App['target_sdk'] === 37);
+$android17Input['min_sdk'] = 37;
+$android17App = $apps->update((int) $android17App['id'], $android17Input);
+assert($android17App['min_sdk'] === 37 && $android17App['target_sdk'] === 37);
+foreach ([
+    ['min_sdk' => 22, 'target_sdk' => 37],
+    ['min_sdk' => 38, 'target_sdk' => 38],
+    ['min_sdk' => 37, 'target_sdk' => 36],
+    ['min_sdk' => 23, 'target_sdk' => 38],
+] as $invalidSdk) {
+    $invalidInput = array_replace($android17Input, $invalidSdk);
+    $rejected = false;
+    try {
+        $apps->update((int) $android17App['id'], $invalidInput);
+    } catch (InvalidArgumentException) {
+        $rejected = true;
+    }
+    assert($rejected === true);
+}
+assert($apps->find((int) $android17App['id'])['target_sdk'] === 37);
 
 $unsafeInput = $input;
 $unsafeInput['package_id'] = 'de.starlightunit.unsafenav';
