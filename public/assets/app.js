@@ -137,7 +137,7 @@
           name: $('newAppName').value.trim(),
           start_url: $('newStartUrl').value.trim(),
           package_id: $('newPackageId').value.trim(),
-          description: '', version_name: '0.1.0', version_code: 0, min_sdk: 23, target_sdk: 36, config: {},
+          description: '', version_name: '0.1.0', version_code: 0, min_sdk: 23, target_sdk: 37, config: {},
         },
       });
       $('newAppDialog').close();
@@ -173,7 +173,7 @@
     $('versionName').value = app.version_name || '0.1.0';
     $('versionCode').value = app.version_code ?? 0;
     $('minSdk').value = app.min_sdk || 23;
-    $('targetSdk').value = app.target_sdk || 36;
+    $('targetSdk').value = app.target_sdk || 37;
 
     $('primaryColor').value = get(config, 'theme.primary', '#6fc7ff');
     $('accentColor').value = get(config, 'theme.accent', '#ffd978');
