@@ -776,8 +776,16 @@ def patch_gradle(project: Path, app: sqlite3.Row) -> None:
     path = project / "app/build.gradle"
     text = path.read_text(encoding="utf-8")
     text = replace_once(text, r"applicationId\s+'[^']+'", f"applicationId '{groovy_literal(str(app['package_id']))}'", "applicationId")
+    target_sdk = int(app["target_sdk"])
+    # Target API 37 requires compile SDK 37; do not lower a newer compile SDK.
+    text = replace_once(
+        text,
+        r"compileSdk\s*=\s*(\d+)",
+        lambda match: f"compileSdk = {max(int(match.group(1)), target_sdk)}",
+        "compileSdk",
+    )
     text = replace_once(text, r"minSdk\s*=\s*\d+", f"minSdk = {int(app['min_sdk'])}", "minSdk")
-    text = replace_once(text, r"targetSdk\s*=\s*\d+", f"targetSdk = {int(app['target_sdk'])}", "targetSdk")
+    text = replace_once(text, r"targetSdk\s*=\s*\d+", f"targetSdk = {target_sdk}", "targetSdk")
     text = replace_once(text, r"versionCode\s*=\s*\d+", f"versionCode = {int(app['version_code'])}", "versionCode")
     text = replace_once(text, r"versionName\s*=\s*'[^']*'", f"versionName = '{groovy_literal(str(app['version_name']))}'", "versionName")
 

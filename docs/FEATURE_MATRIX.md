@@ -1,6 +1,6 @@
 # Quantum Builder Feature Matrix
 
-Current Builder: **0.1.0-alpha15**. The full dated scope and delivery sequence are
+Current Builder: **0.1.0-alpha16**. The full dated scope and delivery sequence are
 in [MEDIAN_PARITY_ROADMAP.md](MEDIAN_PARITY_ROADMAP.md); the brighter design is in
 [QUANTUM_ENTERPRISE_DESIGN.md](QUANTUM_ENTERPRISE_DESIGN.md).
 MobiLoud, Twinr and CatDoes extend the reference scope in
@@ -24,8 +24,8 @@ Legend:
 | Identity | Android package ID | Runtime |
 | Identity | Version name | Runtime |
 | Identity | Version code | Runtime |
-| Android | Minimum SDK 23-36 | Runtime |
-| Android | Target SDK up to 36 | Runtime |
+| Android | Minimum SDK 23-37 | Runtime |
+| Android | Target SDK up to 37 | Runtime (Android 17 device QA pending) |
 | Android | Persistent per-app signing identity | Runtime |
 | Build | One build -> APK + AAB + Source + SHA256 | Runtime |
 | Build | Build history | Runtime |

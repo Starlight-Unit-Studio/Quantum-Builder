@@ -8,6 +8,17 @@
   boundary. Local inference/model management remains outside Quantum Builder.
 - Documentation only; AI connectivity and generation remain planned.
 
+## 0.1.0-alpha16
+
+Android 17 / API 37 profile and build support.
+
+- Extends minimum/target SDK validation and app editor to API 37.
+- Defaults new app profiles to target API 37 while preserving saved profiles.
+- Installs API 37 platform and Build Tools 37.0.0 in the Android worker.
+- Promotes wrapper compileSdk only when required by the profile target SDK.
+- Adds API 37 validation, compiler tests, an integration probe and runtime QA guidance.
+- Physical-device and Android 17 emulator acceptance remains pending.
+
 ## 0.1.0-alpha15
 
 Independent navigation menus and ordered URL presentation rules.

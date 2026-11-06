@@ -67,7 +67,7 @@ final class Apps
         $versionName = trim((string) ($input['version_name'] ?? '0.1.0'));
         $versionCode = (int) ($input['version_code'] ?? 0);
         $minSdk = (int) ($input['min_sdk'] ?? 23);
-        $targetSdk = (int) ($input['target_sdk'] ?? 36);
+        $targetSdk = (int) ($input['target_sdk'] ?? 37);
         $config = is_array($input['config'] ?? null) ? $input['config'] : [];
 
         if ($name === '' || strlen($name) > 160) {
@@ -86,11 +86,11 @@ final class Apps
         if ($versionCode < 0) {
             throw new \InvalidArgumentException('Version code must not be negative.');
         }
-        if ($minSdk < 23 || $minSdk > 36) {
-            throw new \InvalidArgumentException('Minimum SDK must be between 23 and 36.');
+        if ($minSdk < 23 || $minSdk > 37) {
+            throw new \InvalidArgumentException('Minimum SDK must be between 23 and 37.');
         }
-        if ($targetSdk < $minSdk || $targetSdk > 36) {
-            throw new \InvalidArgumentException('Target SDK must be between minSdk and 36.');
+        if ($targetSdk < $minSdk || $targetSdk > 37) {
+            throw new \InvalidArgumentException('Target SDK must be between minSdk and 37.');
         }
 
         $defaults = [

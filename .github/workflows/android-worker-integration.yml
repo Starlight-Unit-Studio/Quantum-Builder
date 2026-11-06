@@ -49,7 +49,7 @@ jobs:
             '0.1.0-ci-probe',
             100,
             23,
-            36,
+            37,
             '{"trusted_domain":"game.starlight-unit.de","interface":{"keep_screen_on":false,"orientation":"portrait"},"web":{"user_agent_suffix":" QuantumCI","custom_headers":{}},"permissions":{"location":false,"microphone":false,"camera":false},"wrapper_ref":"compat/android-6-api23"}'
           );
           INSERT INTO builds (app_id, status, stage, message, wrapper_ref)
@@ -115,6 +115,11 @@ jobs:
             exit 1
           fi
 
+      - name: Verify compiled API 37 profile
+        run: |
+          sudo unzip -p var/builds/1/source.zip app/build.gradle | grep -Fq 'compileSdk = 37'
+          sudo unzip -p var/builds/1/source.zip app/build.gradle | grep -Fq 'targetSdk = 37'
+
       - name: Verify Android identity and signature
         run: |
           docker compose exec -T worker sh -lc '
@@ -124,7 +129,7 @@ jobs:
             grep -q "package: name=.de.starlightunit.game." /tmp/badging.txt
             grep -q "versionCode=.100." /tmp/badging.txt
             grep -q "sdkVersion:.23." /tmp/badging.txt
-            grep -q "targetSdkVersion:.36." /tmp/badging.txt
+            grep -q "targetSdkVersion:.37." /tmp/badging.txt
             jarsigner -verify /var/lib/quantum-builder/builds/1/app-release.aab
           '
 

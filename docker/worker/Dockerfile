@@ -19,7 +19,8 @@ RUN apt-get update \
     && mv /tmp/android-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest \
     && rm -rf /tmp/android-tools \
     && yes | sdkmanager --licenses >/dev/null \
-    && sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+    && sdkmanager "platform-tools" "platforms;android-36" "platforms;android-37" \
+        "build-tools;36.0.0" "build-tools;37.0.0"
 
 WORKDIR /worker
 COPY docker/worker/worker.py /worker/worker.py

@@ -6,9 +6,14 @@ The project turns one maintained Android wrapper runtime into reusable app profi
 
 The current interface uses the **Terran terminal design language** from *Starlight Unit: The Game* and its mobile Admin Console. Median, MobiLoud, Twinr and CatDoes are capability and workflow references; Quantum retains its own implementation and visual identity.
 
-Current version: `0.1.0-alpha15`
+Current version: `0.1.0-alpha16`
 
 ## Current development
+
+Alpha16 supports Android 17 / API 37 as an Android SDK minimum or target.
+New profiles default to target 37 while saved profiles keep their target SDK.
+The build worker installs platform 37 and raises wrapper compileSdk as needed.
+See [Android 17 compatibility](docs/ANDROID_17.md) for runtime constraints and QA.
 
 Alpha15 adds independent menus for Sidebar and Bottom Tabs, plus ordered URL rules
 for menu selection and visibility of all four native navigation surfaces. A Standard
@@ -172,7 +177,7 @@ The first alpha establishes the real architecture rather than a static mockup:
 - Source ZIP and `SHA256SUMS` generated from the same build
 - authenticated artifact downloads
 - build history
-- Android 6/API 23 through Android 16/API 36 profile baseline
+- Android 6/API 23 through Android 17/API 37 profile range
 - health endpoint and installer preflight
 
 A build is intentionally **one operation**. `REBUILD ALL` produces the complete artifact set, then the UI lets the operator choose which artifact to download.
