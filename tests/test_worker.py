@@ -126,10 +126,22 @@ class WorkerCompilerTests(unittest.TestCase):
         self.assertIn("applicationId 'de.starlightunit.quantumtest'", text)
         self.assertIn("versionCode = 42", text)
         self.assertIn("versionName = '1.2.3'", text)
+        self.assertIn("compileSdk = 36", text)
+        self.assertIn("targetSdk = 36", text)
         signing_section = text.split("signingConfigs {", 1)[1].split("buildTypes {", 1)[0]
         build_section = text.split("buildTypes {", 1)[1]
         self.assertNotIn("signingConfig signingConfigs.release", signing_section)
         self.assertIn("signingConfig signingConfigs.release", build_section)
+        worker.patch_gradle(self.root, {**self.app, "target_sdk": 37})
+        text = gradle.read_text(encoding="utf-8")
+        self.assertIn("compileSdk = 37", text)
+        self.assertIn("targetSdk = 37", text)
+        self.assertEqual(text.count("signingConfig signingConfigs.release"), 1)
+        worker.patch_gradle(self.root, self.app)
+        text = gradle.read_text(encoding="utf-8")
+        self.assertIn("compileSdk = 37", text)
+        self.assertIn("targetSdk = 36", text)
+        self.assertEqual(text.count("signingConfig signingConfigs.release"), 1)
 
     def write_app_config_fixture(self):
         path = self.root / "app/src/main/java/de/starlightunit/wrapper/config/AppConfig.java"
