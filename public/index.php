@@ -254,9 +254,10 @@ $authenticated = $auth->isLoggedIn();
                   <label><span class="field-label">Android Package ID</span><input class="field mono" id="packageId" required></label>
                   <label><span class="field-label">Version Name</span><input class="field mono" id="versionName" required></label>
                   <label><span class="field-label">Version Code</span><input class="field" id="versionCode" type="number" min="1" required></label>
-                  <label><span class="field-label">Minimum SDK</span><input class="field" id="minSdk" type="number" min="23" max="36"></label>
-                  <label><span class="field-label">Target SDK</span><input class="field" id="targetSdk" type="number" min="23" max="36"></label>
+                  <label><span class="field-label">Minimum SDK</span><input class="field" id="minSdk" type="number" min="23" max="37"></label>
+                  <label><span class="field-label">Target SDK</span><input class="field" id="targetSdk" type="number" min="23" max="37"></label>
                 </div>
+                <div class="notice">Android 17: API 37. Target 37 aktiviert neue Regeln für lokale Netzwerke und große Displays. Bereits gespeicherte Profile behalten ihren bisherigen Wert.</div>
                 <div class="build-command-row">
                   <button id="rebuildAllButton" class="btn primary" type="button">REBUILD ALL</button>
                   <span class="muted">Erzeugt APK + AAB + Source ZIP + SHA256SUMS in einem Lauf.</span>
